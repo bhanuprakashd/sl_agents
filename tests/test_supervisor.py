@@ -107,12 +107,15 @@ def test_loop_guard_no_loop(sdb):
 
 
 def test_loop_guard_detects_exact_loop(sdb):
+    from tools.supervisor import _compute_input_hash
     lg = LoopGuard(db=sdb)
     sdb.create_run("r2", "sales", {})
+    input_text = "original input text"
+    computed_hash = _compute_input_hash(input_text)
     for _ in range(3):
         sdb.append_event("r2", "lead_researcher", "agent.called",
-                         {"input_hash": "deadbeef"})
-    result = lg.check("r2", "lead_researcher", "original input text")
+                         {"input_hash": computed_hash})
+    result = lg.check("r2", "lead_researcher", input_text)
     assert result is not None
     assert "Loop" in result
 
