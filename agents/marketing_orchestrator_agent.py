@@ -16,6 +16,8 @@ from agents.content_strategist_agent import content_strategist_agent
 from agents.seo_analyst_agent import seo_analyst_agent
 from agents.campaign_analyst_agent import campaign_analyst_agent
 from agents.brand_voice_agent import brand_voice_agent
+from agents.reflection_agent import make_reflection_agent
+reflection_agent = make_reflection_agent()
 from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     save_agent_output, recall_past_outputs,
@@ -81,7 +83,7 @@ Step 2: campaign_composer → full channel campaign (email + LinkedIn + landing 
 Step 3: brand_voice       → review all copy before launch
 Step 4: seo_analyst       → keyword strategy for supporting content
 Step 5: content_strategist→ content briefs for campaign-supporting articles
-Step 6: [Execute campaign — user action]
+Step 6: Announce campaign is ready to execute — pause only if live publishing requires external credentials not yet available
 Step 7: campaign_analyst  → performance review after 2 weeks
 Step 8: campaign_composer → optimised second wave based on results
 ```
@@ -120,6 +122,42 @@ When win/loss data is received from Sales:
 - After each agent completes: `save_agent_output` with campaign name and agent
 - Before re-running any agent: check if recent output exists, offer to reuse
 
+## Reflection Loop Protocol
+
+Apply after every sub-agent invocation — do NOT ask the user for confirmation between steps:
+
+```
+Step 1: Invoke the sub-agent.
+Step 2: Evaluate the output:
+        a. Completeness — all required sections present?
+        b. Specificity   — concrete details or vague placeholders?
+        c. Actionability — can the team act on this immediately?
+Step 3: If 2+ checks fail → invoke reflection_agent with:
+        - agent_name: [which agent ran]
+        - output: [the output text]
+        - context: [original request + campaign context]
+Step 4: If reflection_agent returns NEEDS_REVISION:
+        - Re-invoke the sub-agent with original request + reflection report appended
+        - Maximum 2 reflection cycles per request
+Step 5: If output still fails after 2 cycles → proceed with gaps flagged:
+        "⚠ Warning: output is incomplete. Missing: [list gaps]"
+Step 6: Save the final output to memory. Proceed to next step autonomously.
+```
+
+High-stakes triggers (always run reflection, skip the 3-point shortcut):
+- Full campaign builds
+- Brand voice reviews before publish
+- Audience/ICP model updates after win/loss feedback
+
+## Autonomous Execution Rules
+
+- Proceed through all workflow steps without asking for user confirmation
+- Only pause (HITL) for genuine blockers:
+  - Missing credentials or API access required to publish/execute
+  - Ambiguous requirement that cannot be resolved from context
+  - External action with irreversible real-world effect (e.g., actually publishing live ads)
+- When pausing, state exactly what is blocking and what you need
+
 ## Quality Standards
 
 - Never launch a campaign without brand_voice review
@@ -144,6 +182,7 @@ marketing_orchestrator = Agent(
         seo_analyst_agent,
         campaign_analyst_agent,
         brand_voice_agent,
+        reflection_agent,
     ],
     tools=[
         save_agent_output,

@@ -15,7 +15,8 @@ from agents.objection_handler_agent import objection_handler_agent
 from agents.proposal_generator_agent import proposal_generator_agent
 from agents.crm_updater_agent import crm_updater_agent
 from agents.deal_analyst_agent import deal_analyst_agent
-from agents.reflection_agent import reflection_agent
+from agents.reflection_agent import make_reflection_agent
+reflection_agent = make_reflection_agent()
 from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,
@@ -98,7 +99,8 @@ Step 9: crm_updater        → log proposal sent, set next step
 Step 10: deal_analyst      → pipeline review at quarter checkpoints
 ```
 
-At each step: show the output, update the deal card, confirm before proceeding.
+At each step: show the output, update the deal card, and proceed autonomously to the next step.
+Only pause if a genuine blocker is encountered (missing data that cannot be inferred, external system failure).
 
 ## Context Passing Rules
 
@@ -159,7 +161,7 @@ High-stakes triggers (always run reflection, skip the 3-point shortcut):
 - Always confirm the next step before ending any session
 - If research is missing before outreach, warn — don't silently skip
 - Keep the deal card visible and up-to-date at every transition
-- When in doubt about routing, ask: "Do you want me to [X] or [Y]?"
+- When routing is ambiguous, choose the most logical path and proceed — only pause if the ambiguity cannot be resolved from context
 """
 
 sales_orchestrator = Agent(
