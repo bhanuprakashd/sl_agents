@@ -5,10 +5,15 @@ Uses its own SQLite table keyed by product_id (UUID).
 import json
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 _DEFAULT_DB = os.path.join(os.path.dirname(__file__), "..", "product_pipeline.db")
+
+_VALID_COLUMNS = {
+    "product_name", "status", "prd", "architecture",
+    "repo_url", "database_url", "backend_url", "frontend_url", "qa_report",
+}
 
 
 def _db_path() -> str:
@@ -47,8 +52,11 @@ def save_product_state(product_id: str, **fields: Any) -> None:
     Upsert product pipeline state.
     JSON-serializes dict/list values automatically.
     """
+    invalid = set(fields) - _VALID_COLUMNS
+    if invalid:
+        raise ValueError(f"Unknown product state fields: {invalid}")
     init_product_db()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     serialized = {
         k: json.dumps(v) if isinstance(v, (dict, list)) else v
         for k, v in fields.items()
@@ -87,10 +95,10 @@ def recall_product_state(product_id: str) -> dict | None:
     if row is None:
         return None
     result = dict(row)
-    for key in ("prd", "architecture", "qa_report"):
-        if result.get(key):
+    for key, val in result.items():
+        if isinstance(val, str) and val and val[0] in ("{", "["):
             try:
-                result[key] = json.loads(result[key])
+                result[key] = json.loads(val)
             except (json.JSONDecodeError, TypeError):
                 pass
     return result

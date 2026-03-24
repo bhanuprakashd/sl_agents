@@ -37,3 +37,8 @@ def test_save_json_fields():
     save_product_state(pid, prd=prd)
     state = recall_product_state(pid)
     assert state["prd"]["features"] == ["f1", "f2"]
+
+def test_invalid_field_raises():
+    pid = str(uuid.uuid4())
+    with pytest.raises(ValueError, match="Unknown product state fields"):
+        save_product_state(pid, nonexistent_column="bad")
