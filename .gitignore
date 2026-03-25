@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.coverage
+
+# Env & secrets
+.env
+*.env
+config.yaml
+mcp_config.json
+extensions_config.json
+
+# Databases
+*.db
+
+# OS
+.DS_Store
+._*
+
+# IDE
+.idea/
+*.code-workspace
+
+# deer-flow specific
+deer-flow/docker/.cache/
+deer-flow/backend/.venv/
+
+# Build artifacts
+*.pdf
