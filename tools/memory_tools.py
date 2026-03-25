@@ -1,6 +1,5 @@
 """Memory tools — give agents access to the long-term SQLite memory store."""
 
-from google.adk.tools import tool
 from typing import Optional
 import asyncio
 import json
@@ -20,7 +19,6 @@ def _run(coro):
         return asyncio.run(coro)
 
 
-@tool
 def save_deal_context(company_name: str, deal_context_json: str, user_id: str = "default") -> dict:
     """
     Persist the current deal context for a company to long-term memory.
@@ -45,7 +43,6 @@ def save_deal_context(company_name: str, deal_context_json: str, user_id: str = 
     return {"saved": True, "company": company_name, "fields": list(context.keys())}
 
 
-@tool
 def recall_deal_context(company_name: str, user_id: str = "default") -> dict:
     """
     Retrieve previously saved deal context for a company from long-term memory.
@@ -66,7 +63,6 @@ def recall_deal_context(company_name: str, user_id: str = "default") -> dict:
     return {"found": False, "company": company_name}
 
 
-@tool
 def list_active_deals(user_id: str = "default") -> dict:
     """
     List all companies with saved deal memory for the current rep.
@@ -84,7 +80,6 @@ def list_active_deals(user_id: str = "default") -> dict:
     return {"deals": deals, "count": len(deals)}
 
 
-@tool
 def save_agent_output(
     company_name: str,
     agent_name: str,
@@ -112,7 +107,6 @@ def save_agent_output(
     return {"saved": True, "company": company_name, "agent": agent_name}
 
 
-@tool
 def recall_past_outputs(
     company_name: str,
     agent_name: Optional[str] = None,

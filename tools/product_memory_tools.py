@@ -15,6 +15,8 @@ _VALID_COLUMNS = {
     "repo_url", "database_url", "backend_url", "frontend_url", "qa_report",
 }
 
+_STEP_LOG_TABLE = "product_step_log"
+
 
 def _db_path() -> str:
     return os.environ.get("PRODUCT_DB_PATH", _DEFAULT_DB)
@@ -82,6 +84,26 @@ def save_product_state(product_id: str, **fields: Any) -> None:
                 f"UPDATE product_pipeline_state SET {set_clause}, updated_at = ? WHERE product_id = ?",
                 vals,
             )
+
+
+def log_step(product_id: str, step: str, message: str) -> None:
+    """Log a pipeline step progress message to SQLite."""
+    init_product_db()
+    now = datetime.now(timezone.utc).isoformat()
+    with _conn() as conn:
+        conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {_STEP_LOG_TABLE} (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id TEXT NOT NULL,
+                step       TEXT NOT NULL,
+                message    TEXT,
+                logged_at  TEXT
+            )
+        """)
+        conn.execute(
+            f"INSERT INTO {_STEP_LOG_TABLE} (product_id, step, message, logged_at) VALUES (?, ?, ?, ?)",
+            (product_id, step, message, now),
+        )
 
 
 def recall_product_state(product_id: str) -> dict | None:

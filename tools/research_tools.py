@@ -2,7 +2,6 @@
 
 import os
 import httpx
-from google.adk.tools import tool
 from typing import Optional
 
 
@@ -25,7 +24,6 @@ def _relevance_score(company_name: str, results: list[dict]) -> list[dict]:
 
 # ── Web Search (DuckDuckGo — no API key required) ────────────────────────────
 
-@tool
 def search_company_web(company_name: str, query_suffix: str = "") -> dict:
     """
     Search the web for company information using DuckDuckGo (no API key needed).
@@ -64,7 +62,6 @@ def search_company_web(company_name: str, query_suffix: str = "") -> dict:
     }
 
 
-@tool
 def search_news(company_name: str, days_back: int = 180) -> dict:
     """
     Search for recent news about a company using DuckDuckGo News (no API key needed).
@@ -113,7 +110,6 @@ def search_news(company_name: str, days_back: int = 180) -> dict:
 
 # ── Company Enrichment (OpenCorporates + DuckDuckGo) ─────────────────────────
 
-@tool
 def enrich_company(domain: str) -> dict:
     """
     Enrich company firmographic data using OpenCorporates (open, free tier)
@@ -177,7 +173,6 @@ def enrich_company(domain: str) -> dict:
 
 # ── Contact Finder (GitHub + DuckDuckGo LinkedIn search) ─────────────────────
 
-@tool
 def find_contacts(company_domain: str, title_filter: Optional[str] = None) -> dict:
     """
     Find decision-maker contacts using GitHub API (open) and DuckDuckGo
@@ -260,3 +255,74 @@ def find_contacts(company_domain: str, title_filter: Optional[str] = None) -> di
             unique.append(c)
 
     return {"company_domain": company_domain, "contacts": unique[:10]}
+
+
+# ── Deep Research (DeerFlow LangGraph API) ───────────────────────────────────
+
+DEERFLOW_URL = os.environ.get("DEERFLOW_URL", "http://localhost:2026")
+_DEERFLOW_TIMEOUT = 120
+
+
+def deep_research(query: str) -> dict:
+    """
+    Run a deep multi-step research query via DeerFlow.
+    Returns a synthesized report with citations.
+    Falls back to DuckDuckGo web search if DeerFlow is unavailable.
+
+    Args:
+        query: Research question or topic to investigate in depth
+
+    Returns:
+        dict with 'report' (full synthesized text), 'source', and 'query'
+    """
+    import json as _json
+
+    try:
+        with httpx.Client(timeout=_DEERFLOW_TIMEOUT) as client:
+            # Step 1: create thread
+            thread_resp = client.post(f"{DEERFLOW_URL}/api/langgraph/threads", json={})
+            thread_resp.raise_for_status()
+            thread_id = thread_resp.json()["thread_id"]
+
+            # Step 2: stream run and collect SSE
+            payload = {
+                "assistant_id": "lead_agent",
+                "input": {"messages": [{"role": "human", "content": query}]},
+                "stream_mode": ["values"],
+            }
+            report = ""
+            with client.stream(
+                "POST",
+                f"{DEERFLOW_URL}/api/langgraph/threads/{thread_id}/runs/stream",
+                json=payload,
+            ) as stream:
+                for line in stream.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data_str = line[len("data:"):].strip()
+                    if not data_str or data_str == "[DONE]":
+                        continue
+                    try:
+                        event = _json.loads(data_str)
+                        messages = event.get("messages", [])
+                        if messages:
+                            content = messages[-1].get("content", "")
+                            if isinstance(content, str) and content:
+                                report = content
+                    except _json.JSONDecodeError:
+                        continue
+
+        return {"report": report, "source": "deerflow", "query": query}
+
+    except Exception as exc:
+        # Fallback: DuckDuckGo
+        try:
+            from duckduckgo_search import DDGS
+            results = []
+            with DDGS() as ddgs:
+                for r in ddgs.text(query, max_results=8):
+                    results.append({"title": r.get("title"), "snippet": r.get("body"), "link": r.get("href")})
+            return {"report": _json.dumps(results), "source": "duckduckgo_fallback", "query": query,
+                    "fallback_reason": str(exc)}
+        except Exception as fallback_exc:
+            return {"error": f"DeerFlow unavailable ({exc}); fallback also failed ({fallback_exc})", "query": query}

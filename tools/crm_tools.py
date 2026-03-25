@@ -1,7 +1,6 @@
 """CRM tools for Salesforce and HubSpot integration."""
 
 import os
-from google.adk.tools import tool
 from typing import Optional
 import httpx
 
@@ -26,7 +25,6 @@ def _get_hs_headers() -> dict:
 
 # ── Salesforce Tools ──────────────────────────────────────────────────────────
 
-@tool
 def sf_find_opportunity(company_name: str) -> dict:
     """
     Find an opportunity in Salesforce by company name.
@@ -67,7 +65,6 @@ def sf_find_opportunity(company_name: str) -> dict:
     }
 
 
-@tool
 def sf_update_opportunity(
     opportunity_id: str,
     stage: Optional[str] = None,
@@ -116,7 +113,6 @@ def sf_update_opportunity(
     return response.json()
 
 
-@tool
 def sf_log_call(
     opportunity_id: str,
     subject: str,
@@ -157,7 +153,6 @@ def sf_log_call(
     return response.json()
 
 
-@tool
 def sf_create_task(
     opportunity_id: str,
     subject: str,
@@ -201,7 +196,6 @@ def sf_create_task(
     return response.json()
 
 
-@tool
 def sf_get_pipeline(owner_id: Optional[str] = None, fiscal_quarter: Optional[str] = None) -> dict:
     """
     Fetch all open pipeline opportunities from Salesforce.
@@ -241,7 +235,6 @@ def sf_get_pipeline(owner_id: Optional[str] = None, fiscal_quarter: Optional[str
 
 # ── HubSpot Tools ─────────────────────────────────────────────────────────────
 
-@tool
 def hs_find_deal(company_name: str) -> dict:
     """
     Find a HubSpot deal by company name.
@@ -273,7 +266,6 @@ def hs_find_deal(company_name: str) -> dict:
     return response.json()
 
 
-@tool
 def hs_log_note(deal_id: str, note_body: str) -> dict:
     """
     Log a note on a HubSpot deal.
@@ -308,7 +300,6 @@ def hs_log_note(deal_id: str, note_body: str) -> dict:
     return response.json()
 
 
-@tool
 def hs_update_deal(
     deal_id: str,
     stage: Optional[str] = None,
@@ -353,7 +344,6 @@ def hs_update_deal(
     return response.json()
 
 
-@tool
 def hs_create_task(
     deal_id: str,
     subject: str,

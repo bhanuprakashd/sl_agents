@@ -2,7 +2,22 @@
 
 import os
 from google.adk.agents import Agent
-from tools.research_tools import search_company_web, enrich_company, find_contacts, search_news
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+from tools.research_tools import search_company_web, enrich_company, find_contacts, search_news, deep_research
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_MEDIUM_MCP_PATH = os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..", "medium-mcp-server")
+_MEDIUM_MCP_PATH = os.path.abspath(_MEDIUM_MCP_PATH)
+_medium_mcp = None
+if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
+    _medium_mcp = MCPToolset(
+        connection_params=StdioServerParameters(
+            command="node",
+            args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
+            cwd=_MEDIUM_MCP_PATH,
+            env={**os.environ},
+        )
+    )
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 
@@ -16,10 +31,14 @@ produce a comprehensive, actionable profile a sales rep can use immediately.
    what we're selling (for relevance filtering).
 
 2. **Run research in parallel:**
+   - `deep_research(query)` — multi-step synthesized report via DeerFlow (use for deep company/market analysis)
    - `enrich_company(domain)` — firmographics, tech stack, funding
    - `search_news(company_name, days_back=180)` — last 6 months of signals
    - `search_company_web(company_name, "tech stack job postings")` — tech signals
    - `find_contacts(domain, title_filter)` — decision makers
+   - `search-medium(keywords)` — search Medium articles for thought leadership, industry trends, and competitor content
+
+   Prefer `deep_research` for comprehensive analysis; use `search-medium` to find what experts are writing about the prospect's industry.
 
 3. **Synthesize into a structured profile:**
 
@@ -88,5 +107,5 @@ lead_researcher_agent = Agent(
         "Use before outreach or call prep."
     ),
     instruction=INSTRUCTION,
-    tools=[search_company_web, enrich_company, find_contacts, search_news],
+    tools=[t for t in [deep_research, search_company_web, enrich_company, find_contacts, search_news, _medium_mcp] if t is not None],
 )

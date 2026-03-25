@@ -9,6 +9,8 @@ import os
 os.environ.setdefault("MODEL_ID", "gemini-2.0-flash")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "test-project")
 
+pytestmark = pytest.mark.integration
+
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part

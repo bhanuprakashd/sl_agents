@@ -2,13 +2,11 @@
 
 import os
 import httpx
-from google.adk.tools import tool
 from typing import Optional
 
 
 # ── Trending Topics (Google Trends via pytrends) ──────────────────────────────
 
-@tool
 def get_trending_topics(keyword: str, region: str = "US", timeframe: str = "today 3-m") -> dict:
     """
     Get trending related topics and queries for a keyword using Google Trends.
@@ -74,7 +72,6 @@ def get_trending_topics(keyword: str, region: str = "US", timeframe: str = "toda
 
 # ── Competitor Content Analysis ────────────────────────────────────────────────
 
-@tool
 def search_competitor_content(
     competitor_domain: str,
     topic: Optional[str] = None,
@@ -126,7 +123,6 @@ def search_competitor_content(
 
 # ── RSS Feed Monitor ───────────────────────────────────────────────────────────
 
-@tool
 def fetch_rss_feed(feed_url: str, max_items: int = 10) -> dict:
     """
     Fetch and parse an RSS/Atom feed to monitor competitor or industry content.
@@ -167,7 +163,6 @@ def fetch_rss_feed(feed_url: str, max_items: int = 10) -> dict:
 
 # ── Audience Community Search ──────────────────────────────────────────────────
 
-@tool
 def search_audience_communities(
     persona_description: str,
     platform: str = "all",
