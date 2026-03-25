@@ -1,4 +1,4 @@
-# sales-adk-agents/agents/pm_agent.py
+# aass_agents/agents/pm_agent.py
 """
 PM Agent — converts raw requirement into a structured PRD.
 Uses DeerFlow (via MCP research_server) for competitor research.

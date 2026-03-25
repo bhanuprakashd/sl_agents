@@ -1,4 +1,4 @@
-# sales-adk-agents/tools/http_tools.py
+# aass_agents/tools/http_tools.py
 """
 HTTP smoke-test utilities for verifying deployed services.
 """

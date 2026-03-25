@@ -5,7 +5,7 @@
 > **Inspired by:** Karpathy's autoresearch (self-improving loop pattern)
 > **Extends:** `docs/superpowers/specs/2026-03-25-engineering-research-teams-design.md`
 
-**Goal:** Add a self-evolving `autoresearcher` department to `sales-adk-agents` that continuously monitors all agent outputs, identifies underperforming agents, rewrites their active instructions, and automatically rolls back if quality drops.
+**Goal:** Add a self-evolving `autoresearcher` department to `aass_agents` that continuously monitors all agent outputs, identifies underperforming agents, rewrites their active instructions, and automatically rolls back if quality drops.
 
 **Architecture:** New top-level department (`autoresearcher_orchestrator`) wired into `company_orchestrator` as a peer alongside Sales, Marketing, Product, Engineering, Research, and QA. Four specialist agents handle distinct phases of the evolution loop. A new SQLite-backed tool layer manages version snapshots, scores, rollback state, and dynamic instruction loading.
 
@@ -15,7 +15,7 @@
 
 ## 1. System Context
 
-The system (`sales-adk-agents`) already has:
+The system (`aass_agents`) already has:
 
 - `company_orchestrator` — top-level router
 - `sales_orchestrator`, `marketing_orchestrator`, `product_orchestrator` — existing departments

@@ -6,7 +6,7 @@
 2. [Architecture](#architecture)
 3. [System Components](#system-components)
    - [DeerFlow](#deerflow)
-   - [Sales ADK Agents](#sales-adk-agents)
+   - [Sales ADK Agents](#aass_agents)
    - [MCP Servers (GTM)](#mcp-servers-gtm)
    - [gstack (Claude Code Skills)](#gstack-claude-code-skills)
 4. [Agents Reference](#agents-reference)
@@ -136,13 +136,13 @@ deer-flow/
 
 ### Sales ADK Agents
 
-**Location**: `sales-adk-agents/`
+**Location**: `aass_agents/`
 
 Google ADK agent team covering B2B sales, marketing, and autonomous product engineering. 26 specialized agents organized into 3 orchestrated teams.
 
 **Key files:**
 ```
-sales-adk-agents/
+aass_agents/
 ├── main.py                          # Entry point; exports root_agent
 ├── agents/                          # 22 agent files
 ├── tools/                           # 14 tool modules
@@ -529,7 +529,7 @@ Config is hot-reloaded from `config.yaml` on mtime change (no restart needed).
 ### Sales ADK Agents
 
 ```bash
-cd sales-adk-agents
+cd aass_agents
 cp .env.example .env   # fill in keys
 pip install -r requirements.txt
 
@@ -610,11 +610,11 @@ MCP servers and skills enabled state. Managed via:
 }
 ```
 
-### `sales-adk-agents/.env`
+### `aass_agents/.env`
 
 Copied from `.env.example`. Contains all API keys and configuration for Sales ADK. Loaded via `python-dotenv` at startup.
 
-### `sales-adk-agents/requirements.txt`
+### `aass_agents/requirements.txt`
 
 Core deps: `google-adk`, `duckduckgo-search`, `pydantic`, `python-dotenv`, `httpx`, `feedparser`, `pytrends`
 

@@ -1,14 +1,14 @@
 # SOTA Autonomous Supervisor Layer — Design Spec
 
 **Date:** 2026-03-24
-**Project:** sales-adk-agents
+**Project:** aass_agents
 **Status:** Approved for implementation
 
 ---
 
 ## Problem Statement
 
-The current `sales-adk-agents` system has four failure modes that make it unsuitable for fully autonomous operation:
+The current `aass_agents` system has four failure modes that make it unsuitable for fully autonomous operation:
 
 - **A — Context loss:** Agents lose pipeline state mid-run (e.g. architect decisions forgotten by backend builder)
 - **B — No observability:** Black-box execution with no audit trail

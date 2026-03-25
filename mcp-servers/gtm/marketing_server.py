@@ -1,5 +1,5 @@
 """
-gtm-marketing MCP server — wraps sales-adk-agents/tools/marketing_tools.py
+gtm-marketing MCP server — wraps aass_agents/tools/marketing_tools.py
 
 Tools: get_trending_topics, search_competitor_content, fetch_rss_feed,
        search_audience_communities
@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-ADK_ROOT = Path(__file__).parent.parent.parent / "sales-adk-agents"
+ADK_ROOT = Path(__file__).parent.parent.parent / "aass_agents"
 sys.path.insert(0, str(ADK_ROOT))
 
 from mcp.server import Server

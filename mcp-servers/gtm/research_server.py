@@ -1,5 +1,5 @@
 """
-gtm-research MCP server — wraps sales-adk-agents/tools/research_tools.py
+gtm-research MCP server — wraps aass_agents/tools/research_tools.py
 
 Tools: search_company_web, enrich_company, find_contacts, search_news, deep_research
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 import httpx
 
 # Allow importing from the ADK project
-ADK_ROOT = Path(__file__).parent.parent.parent / "sales-adk-agents"
+ADK_ROOT = Path(__file__).parent.parent.parent / "aass_agents"
 sys.path.insert(0, str(ADK_ROOT))
 
 from mcp.server import Server

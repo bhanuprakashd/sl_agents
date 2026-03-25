@@ -1,4 +1,4 @@
-# sales-adk-agents/tools/supabase_tools.py
+# aass_agents/tools/supabase_tools.py
 """
 Supabase Management API tools for provisioning projects.
 Requires: SUPABASE_ACCESS_TOKEN env var

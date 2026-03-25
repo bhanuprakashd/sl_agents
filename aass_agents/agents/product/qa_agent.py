@@ -1,4 +1,4 @@
-# sales-adk-agents/agents/qa_agent.py
+# aass_agents/agents/qa_agent.py
 """
 QA Agent — smoke tests the live deployment using HTTP tools and gstack browse binary.
 """

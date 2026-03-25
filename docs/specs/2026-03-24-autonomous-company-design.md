@@ -305,7 +305,7 @@ Requirement (string)
 ## 13. Files to Create / Modify
 
 ```
-sales-adk-agents/
+aass_agents/
 ├── agents/
 │   ├── product_orchestrator_agent.py    NEW
 │   ├── pm_agent.py                      NEW

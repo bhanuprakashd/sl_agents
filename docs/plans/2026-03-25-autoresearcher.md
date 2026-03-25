@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-03-25-autoresearcher-design.md`
 
-**Working directory for all commands:** `sales-adk-agents/`
+**Working directory for all commands:** `aass_agents/`
 
 ---
 
@@ -1592,7 +1592,7 @@ sub_agents=[
 - [ ] **Step 8.2: Verify import chain works**
 
 ```bash
-cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/sales-adk-agents
+cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/aass_agents
 python -c "from agents.company_orchestrator_agent import company_orchestrator; print('OK')"
 ```
 Expected: `OK`

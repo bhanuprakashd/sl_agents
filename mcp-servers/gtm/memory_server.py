@@ -30,7 +30,7 @@ DB_PATH = Path(
     os.environ.get(
         "GTM_MEMORY_DB_PATH",
         Path(__file__).parent.parent.parent
-        / "sales-adk-agents"
+        / "aass_agents"
         / "sales_memory.db",
     )
 )

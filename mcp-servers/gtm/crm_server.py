@@ -1,5 +1,5 @@
 """
-gtm-crm MCP server — wraps sales-adk-agents/tools/crm_tools.py
+gtm-crm MCP server — wraps aass_agents/tools/crm_tools.py
 
 Tools: sf_find_opportunity, sf_update_opportunity, sf_log_call, sf_create_task,
        sf_get_pipeline, hs_find_deal, hs_log_note, hs_update_deal, hs_create_task
@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-ADK_ROOT = Path(__file__).parent.parent.parent / "sales-adk-agents"
+ADK_ROOT = Path(__file__).parent.parent.parent / "aass_agents"
 sys.path.insert(0, str(ADK_ROOT))
 
 from mcp.server import Server

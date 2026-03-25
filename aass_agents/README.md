@@ -33,7 +33,7 @@ All research tools use free, open-source backends — no paid API keys required 
 
 ```bash
 # 1. Clone and enter directory
-cd sales-adk-agents
+cd aass_agents
 
 # 2. Create virtual environment
 python -m venv .venv && source .venv/bin/activate
@@ -75,7 +75,7 @@ Run the full workflow for Stripe
 ## Project structure
 
 ```
-sales-adk-agents/
+aass_agents/
 ├── main.py                        # Entry point — exports root_agent
 ├── agents/
 │   ├── sales_orchestrator_agent.py  # Root agent — routes and maintains deal card

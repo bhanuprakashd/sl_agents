@@ -13,7 +13,7 @@
 ## File Map
 
 ```
-sales-adk-agents/
+aass_agents/
 ├── tools/
 │   ├── product_memory_tools.py     NEW  — product_pipeline_state SQLite table
 │   ├── github_tools.py             NEW  — create repo, push files
@@ -47,13 +47,13 @@ tests/
 ## Task 1: Product Memory Store
 
 **Files:**
-- Create: `sales-adk-agents/tools/product_memory_tools.py`
-- Create: `sales-adk-agents/tests/test_product_memory_tools.py`
+- Create: `aass_agents/tools/product_memory_tools.py`
+- Create: `aass_agents/tests/test_product_memory_tools.py`
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-# sales-adk-agents/tests/test_product_memory_tools.py
+# aass_agents/tests/test_product_memory_tools.py
 import pytest
 import uuid
 from tools.product_memory_tools import (
@@ -98,7 +98,7 @@ def test_save_json_fields():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/sales-adk-agents
+cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/aass_agents
 python -m pytest tests/test_product_memory_tools.py -v
 ```
 Expected: `ModuleNotFoundError: No module named 'tools.product_memory_tools'`
@@ -106,7 +106,7 @@ Expected: `ModuleNotFoundError: No module named 'tools.product_memory_tools'`
 - [ ] **Step 3: Implement product_memory_tools.py**
 
 ```python
-# sales-adk-agents/tools/product_memory_tools.py
+# aass_agents/tools/product_memory_tools.py
 """
 Product pipeline state store — separate from GTM memory.
 Uses its own SQLite table keyed by product_id (UUID).
@@ -224,12 +224,12 @@ git commit -m "feat: add product pipeline memory store"
 ## Task 2: Paperclip + Research Server Extensions
 
 **Files:**
-- Modify: `sales-adk-agents/tools/paperclip_client.py`
+- Modify: `aass_agents/tools/paperclip_client.py`
 - Modify: `mcp-servers/gtm/research_server.py`
 
 - [ ] **Step 1: Add create_issue to paperclip_client.py**
 
-Open `sales-adk-agents/tools/paperclip_client.py` and append after `get_current_agent`:
+Open `aass_agents/tools/paperclip_client.py` and append after `get_current_agent`:
 
 ```python
 def create_issue(title: str, description: str, project_id: str | None = None) -> dict:
@@ -277,14 +277,14 @@ elif name == "search_product_web":
 
 ```bash
 cd /Users/bhanu.prakash/Documents/claude_works/sl_agents
-python -c "import sys; sys.path.insert(0, 'sales-adk-agents'); from mcp_servers.gtm import research_server; print('OK')"
+python -c "import sys; sys.path.insert(0, 'aass_agents'); from mcp_servers.gtm import research_server; print('OK')"
 ```
 Expected: `OK`
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add sales-adk-agents/tools/paperclip_client.py mcp-servers/gtm/research_server.py
+git add aass_agents/tools/paperclip_client.py mcp-servers/gtm/research_server.py
 git commit -m "feat: add create_issue to paperclip client and search_product_web to research MCP"
 ```
 
@@ -293,16 +293,16 @@ git commit -m "feat: add create_issue to paperclip client and search_product_web
 ## Task 3: Infrastructure Tools (GitHub, Vercel, Railway)
 
 **Files:**
-- Create: `sales-adk-agents/tools/github_tools.py`
-- Create: `sales-adk-agents/tools/vercel_tools.py`
-- Create: `sales-adk-agents/tools/railway_tools.py`
+- Create: `aass_agents/tools/github_tools.py`
+- Create: `aass_agents/tools/vercel_tools.py`
+- Create: `aass_agents/tools/railway_tools.py`
 
 These tools call external APIs. Tests mock the HTTP layer.
 
 - [ ] **Step 1: Write github_tools.py**
 
 ```python
-# sales-adk-agents/tools/github_tools.py
+# aass_agents/tools/github_tools.py
 """
 GitHub API tools for creating repos and pushing files.
 Requires: GITHUB_TOKEN env var (personal access token with repo scope)
@@ -366,7 +366,7 @@ def get_repo(repo_full_name: str) -> dict:
 - [ ] **Step 2: Write vercel_tools.py**
 
 ```python
-# sales-adk-agents/tools/vercel_tools.py
+# aass_agents/tools/vercel_tools.py
 """
 Vercel API tools for creating projects and deploying.
 Requires: VERCEL_TOKEN env var
@@ -454,7 +454,7 @@ def get_deployment_url(project_id: str) -> str:
 - [ ] **Step 3: Write railway_tools.py**
 
 ```python
-# sales-adk-agents/tools/railway_tools.py
+# aass_agents/tools/railway_tools.py
 """
 Railway GraphQL API tools for creating projects and deploying.
 Requires: RAILWAY_TOKEN env var
@@ -536,7 +536,7 @@ def get_service_url(project_id: str, service_id: str) -> str:
 
 - [ ] **Step 4: Add env vars to .env.example**
 
-Append to `sales-adk-agents/.env.example`:
+Append to `aass_agents/.env.example`:
 
 ```
 # Product Engineering Pipeline
@@ -560,13 +560,13 @@ git commit -m "feat: add GitHub, Vercel, Railway infrastructure tools"
 ## Task 4: Database Tools (NeonDB + Supabase)
 
 **Files:**
-- Create: `sales-adk-agents/tools/neondb_tools.py`
-- Create: `sales-adk-agents/tools/supabase_tools.py`
+- Create: `aass_agents/tools/neondb_tools.py`
+- Create: `aass_agents/tools/supabase_tools.py`
 
 - [ ] **Step 1: Write neondb_tools.py**
 
 ```python
-# sales-adk-agents/tools/neondb_tools.py
+# aass_agents/tools/neondb_tools.py
 """
 NeonDB API tools for provisioning a serverless Postgres database.
 Requires: NEONDB_API_KEY env var
@@ -621,7 +621,7 @@ def run_sql(project_id: str, branch_id: str, sql: str) -> dict:
 - [ ] **Step 2: Write supabase_tools.py**
 
 ```python
-# sales-adk-agents/tools/supabase_tools.py
+# aass_agents/tools/supabase_tools.py
 """
 Supabase Management API tools for provisioning a project and running migrations.
 Requires: SUPABASE_ACCESS_TOKEN env var
@@ -693,10 +693,10 @@ git commit -m "feat: add NeonDB and Supabase database provisioning tools"
 ## Task 5: Code Generation + HTTP Tools
 
 **Files:**
-- Create: `sales-adk-agents/tools/code_gen_tools.py`
-- Create: `sales-adk-agents/tools/http_tools.py`
-- Create: `sales-adk-agents/tests/test_code_gen_tools.py`
-- Create: `sales-adk-agents/tests/test_http_tools.py`
+- Create: `aass_agents/tools/code_gen_tools.py`
+- Create: `aass_agents/tools/http_tools.py`
+- Create: `aass_agents/tests/test_code_gen_tools.py`
+- Create: `aass_agents/tests/test_http_tools.py`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -755,7 +755,7 @@ Expected: `ModuleNotFoundError`
 - [ ] **Step 3: Write code_gen_tools.py**
 
 ```python
-# sales-adk-agents/tools/code_gen_tools.py
+# aass_agents/tools/code_gen_tools.py
 """
 Claude API wrapper for code generation.
 Uses claude-sonnet-4-6 for code, claude-haiku-4-5 for lightweight tasks.
@@ -828,7 +828,7 @@ def _strip_fences(text: str) -> str:
 - [ ] **Step 4: Write http_tools.py**
 
 ```python
-# sales-adk-agents/tools/http_tools.py
+# aass_agents/tools/http_tools.py
 """
 HTTP smoke test tools for QA agent.
 """
@@ -900,13 +900,13 @@ git commit -m "feat: add code generation and HTTP smoke test tools"
 ## Task 6: PM Agent + Architect Agent
 
 **Files:**
-- Create: `sales-adk-agents/agents/pm_agent.py`
-- Create: `sales-adk-agents/agents/architect_agent.py`
+- Create: `aass_agents/agents/pm_agent.py`
+- Create: `aass_agents/agents/architect_agent.py`
 
 - [ ] **Step 1: Write pm_agent.py**
 
 ```python
-# sales-adk-agents/agents/pm_agent.py
+# aass_agents/agents/pm_agent.py
 """
 PM Agent — converts raw requirement into a structured PRD.
 Uses DeerFlow (via MCP research_server) for competitor research.
@@ -972,7 +972,7 @@ pm_agent = Agent(
 - [ ] **Step 2: Write architect_agent.py**
 
 ```python
-# sales-adk-agents/agents/architect_agent.py
+# aass_agents/agents/architect_agent.py
 """
 Architect Agent — picks tech stack deterministically and generates file tree.
 Does NOT use DeerFlow — stack selection is rule-based to avoid non-determinism.
@@ -1038,7 +1038,7 @@ architect_agent = Agent(
 - [ ] **Step 3: Verify imports work**
 
 ```bash
-cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/sales-adk-agents
+cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/aass_agents
 python -c "from agents.pm_agent import pm_agent; from agents.architect_agent import architect_agent; print('OK')"
 ```
 Expected: `OK`
@@ -1055,13 +1055,13 @@ git commit -m "feat: add PM and Architect agents"
 ## Task 7: DevOps + DB Agents
 
 **Files:**
-- Create: `sales-adk-agents/agents/devops_agent.py`
-- Create: `sales-adk-agents/agents/db_agent.py`
+- Create: `aass_agents/agents/devops_agent.py`
+- Create: `aass_agents/agents/db_agent.py`
 
 - [ ] **Step 1: Write devops_agent.py**
 
 ```python
-# sales-adk-agents/agents/devops_agent.py
+# aass_agents/agents/devops_agent.py
 """
 DevOps Agent — creates GitHub repo, Vercel project, Railway project, injects env vars.
 Runs TWICE in pipeline:
@@ -1127,7 +1127,7 @@ devops_agent = Agent(
 - [ ] **Step 2: Write db_agent.py**
 
 ```python
-# sales-adk-agents/agents/db_agent.py
+# aass_agents/agents/db_agent.py
 """
 DB Agent — generates SQL schema and provisions NeonDB or Supabase.
 """
@@ -1197,13 +1197,13 @@ git commit -m "feat: add DevOps and DB agents"
 ## Task 8: Builder Agents (Backend + Frontend)
 
 **Files:**
-- Create: `sales-adk-agents/agents/backend_builder_agent.py`
-- Create: `sales-adk-agents/agents/frontend_builder_agent.py`
+- Create: `aass_agents/agents/backend_builder_agent.py`
+- Create: `aass_agents/agents/frontend_builder_agent.py`
 
 - [ ] **Step 1: Write backend_builder_agent.py**
 
 ```python
-# sales-adk-agents/agents/backend_builder_agent.py
+# aass_agents/agents/backend_builder_agent.py
 """
 Backend Builder Agent — generates API code and deploys to Railway or Vercel.
 Uses claude-sonnet-4-6 via code_gen_tools for code generation.
@@ -1265,7 +1265,7 @@ backend_builder_agent = Agent(
 - [ ] **Step 2: Write frontend_builder_agent.py**
 
 ```python
-# sales-adk-agents/agents/frontend_builder_agent.py
+# aass_agents/agents/frontend_builder_agent.py
 """
 Frontend Builder Agent — generates Next.js UI and deploys to Vercel.
 """
@@ -1337,12 +1337,12 @@ git commit -m "feat: add Backend and Frontend builder agents"
 ## Task 9: QA Agent
 
 **Files:**
-- Create: `sales-adk-agents/agents/qa_agent.py`
+- Create: `aass_agents/agents/qa_agent.py`
 
 - [ ] **Step 1: Write qa_agent.py**
 
 ```python
-# sales-adk-agents/agents/qa_agent.py
+# aass_agents/agents/qa_agent.py
 """
 QA Agent — smoke tests the live deployment.
 """
@@ -1415,12 +1415,12 @@ git commit -m "feat: add QA agent"
 ## Task 10: Product Orchestrator
 
 **Files:**
-- Create: `sales-adk-agents/agents/product_orchestrator_agent.py`
+- Create: `aass_agents/agents/product_orchestrator_agent.py`
 
 - [ ] **Step 1: Write product_orchestrator_agent.py**
 
 ```python
-# sales-adk-agents/agents/product_orchestrator_agent.py
+# aass_agents/agents/product_orchestrator_agent.py
 """
 Product Orchestrator — coordinates the 8-step pipeline from requirement to live URL.
 Creates Paperclip issues upfront, runs agents sequentially, returns live URL.
@@ -1530,11 +1530,11 @@ git commit -m "feat: add product orchestrator agent"
 ## Task 11: Wire Into Company Orchestrator
 
 **Files:**
-- Modify: `sales-adk-agents/agents/company_orchestrator_agent.py`
+- Modify: `aass_agents/agents/company_orchestrator_agent.py`
 
 - [ ] **Step 1: Read current company_orchestrator_agent.py**
 
-Read the file at `sales-adk-agents/agents/company_orchestrator_agent.py` to see the current INSTRUCTION and Agent definition.
+Read the file at `aass_agents/agents/company_orchestrator_agent.py` to see the current INSTRUCTION and Agent definition.
 
 - [ ] **Step 2: Add product routing to INSTRUCTION**
 
@@ -1610,7 +1610,7 @@ Copy `.env.example` to `.env` and fill in:
 - [ ] **Step 2: Run the pipeline with a minimal requirement**
 
 ```bash
-cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/sales-adk-agents
+cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/aass_agents
 python main.py
 # Send this message to company_orchestrator:
 # "Build me a simple task tracker SaaS where users can create, complete, and delete tasks"

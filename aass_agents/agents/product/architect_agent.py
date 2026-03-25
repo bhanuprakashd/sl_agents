@@ -1,4 +1,4 @@
-# sales-adk-agents/agents/architect_agent.py
+# aass_agents/agents/architect_agent.py
 """
 Architect Agent — picks tech stack deterministically and generates file tree.
 Does NOT use DeerFlow — stack selection is rule-based to avoid non-determinism.

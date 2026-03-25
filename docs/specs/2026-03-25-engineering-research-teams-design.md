@@ -4,7 +4,7 @@
 > **Date:** 2026-03-25
 > **Extends:** `docs/superpowers/specs/2026-03-24-sota-autonomous-supervisor-design.md`
 
-**Goal:** Add Engineering (pipeline & systems builders) and Research & Development departments to the existing sales-adk-agents multi-agent system, following the established orchestrator/sub-agent pattern.
+**Goal:** Add Engineering (pipeline & systems builders) and Research & Development departments to the existing aass_agents multi-agent system, following the established orchestrator/sub-agent pattern.
 
 **Architecture:** Two new orchestrators wired into company_orchestrator. Engineering owns full-spectrum pipeline and systems building (data, AI/ML, toolchains, integrations, platform). Research & Development owns R&D across scientific, market intelligence, and user research domains. Both follow the existing ADK Agent pattern with reflection loops, memory protocol, and supervisor layer integration.
 
@@ -14,7 +14,7 @@
 
 ## 1. Existing System Context
 
-The system (`sales-adk-agents`) already has:
+The system (`aass_agents`) already has:
 
 - `company_orchestrator` — top-level router
 - `sales_orchestrator` + 7 specialist agents (Sales dept)

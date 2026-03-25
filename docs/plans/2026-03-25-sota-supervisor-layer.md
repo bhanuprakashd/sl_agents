@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a pure-Python supervisor layer to `sales-adk-agents` that gives every agent invocation an audit trail, loop detection, circuit breaking, checkpoint/resume, and staleness-aware caching — with zero changes to any `agents/*.py` file.
+**Goal:** Add a pure-Python supervisor layer to `aass_agents` that gives every agent invocation an audit trail, loop detection, circuit breaking, checkpoint/resume, and staleness-aware caching — with zero changes to any `agents/*.py` file.
 
 **Architecture:** A `Supervisor` class in `tools/supervisor.py` wires five components (EventLog, PipelineRun, LoopGuard, CircuitBreaker, StalenessRegistry) into two ADK callbacks (`before_agent_callback` / `after_agent_callback`) attached to `company_orchestrator` in `main.py`. All state is persisted to `sales_memory.db` via five new tables. No LLM calls are added.
 
@@ -55,7 +55,7 @@ def test_init_creates_all_tables(tmp_path, monkeypatch):
 
 - [ ] **Step 2: Run test — verify FAIL**
 ```bash
-cd sales-adk-agents && python -m pytest tests/test_supervisor.py::test_init_creates_all_tables -v
+cd aass_agents && python -m pytest tests/test_supervisor.py::test_init_creates_all_tables -v
 ```
 Expected: `ModuleNotFoundError` or `ImportError`
 
@@ -1512,7 +1512,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Verify import works cleanly**
 ```bash
-cd sales-adk-agents && python -c "import main; print('✓ main.py imports OK')"
+cd aass_agents && python -c "import main; print('✓ main.py imports OK')"
 ```
 Expected: `✓ main.py imports OK` with no errors
 

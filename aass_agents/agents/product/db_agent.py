@@ -1,4 +1,4 @@
-# sales-adk-agents/agents/db_agent.py
+# aass_agents/agents/db_agent.py
 """
 DB Agent — generates SQL schema and provisions NeonDB or Supabase.
 """

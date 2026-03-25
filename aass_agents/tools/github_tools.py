@@ -1,4 +1,4 @@
-# sales-adk-agents/tools/github_tools.py
+# aass_agents/tools/github_tools.py
 """
 GitHub API tools for creating repos and pushing files.
 Requires: GITHUB_TOKEN env var (personal access token with repo scope)

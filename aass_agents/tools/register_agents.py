@@ -1,4 +1,4 @@
-# sales-adk-agents/tools/register_agents.py
+# aass_agents/tools/register_agents.py
 """
 ADK agent hierarchy definition.
 Used by generate_orgchart.py to build the standalone HTML org chart.

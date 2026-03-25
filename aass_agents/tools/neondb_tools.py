@@ -1,4 +1,4 @@
-# sales-adk-agents/tools/neondb_tools.py
+# aass_agents/tools/neondb_tools.py
 """
 NeonDB API tools for provisioning Postgres databases.
 Requires: NEONDB_API_KEY env var

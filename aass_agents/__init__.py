@@ -2,7 +2,7 @@
 import os, sys
 from pathlib import Path
 
-# Ensure sales-adk-agents/ is on the path so sub-packages resolve correctly
+# Ensure aass_agents/ is on the path so sub-packages resolve correctly
 _HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_HERE))
 

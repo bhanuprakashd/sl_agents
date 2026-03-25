@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add Engineering, Research & Development, and QA & Testing departments to the existing sales-adk-agents multi-agent system — 3 orchestrators + 20 specialist agents + 1 tool file, wired into `company_orchestrator`.
+**Goal:** Add Engineering, Research & Development, and QA & Testing departments to the existing aass_agents multi-agent system — 3 orchestrators + 20 specialist agents + 1 tool file, wired into `company_orchestrator`.
 
 **Architecture:** Each new department follows the identical pattern used by Sales, Marketing, and Product: one orchestrator agent with `sub_agents=[]`, per-orchestrator `make_reflection_agent()` instance, memory protocol via `save_agent_output`/`recall_past_outputs`, and autonomous execution with reflection loops. `tools/engineering_tools.py` provides pipeline/integration state tools to Engineering agents. All 20 new agents get TTL entries in `supervisor_db.py`. `company_orchestrator_agent.py` is updated to route to all 6 departments.
 
@@ -135,7 +135,7 @@ def test_get_pipeline_status_after_second_create_updates():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/sales-adk-agents
+cd /Users/bhanu.prakash/Documents/claude_works/sl_agents/aass_agents
 pytest tests/test_engineering_tools.py -v
 ```
 Expected: `ImportError: cannot import name 'create_pipeline_spec' from 'tools.engineering_tools'` (or ModuleNotFoundError)
