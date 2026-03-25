@@ -6,7 +6,7 @@ SQLite opened in WAL mode for safe concurrent access.
 import sqlite3
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -135,7 +135,7 @@ def init_supervisor_tables() -> None:
 # ── Runs ─────────────────────────────────────────────────────────────────────
 
 def _now() -> str:
-    return datetime.utcnow().isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def create_run(run_id: str, pipeline_type: str, context: dict) -> None:
@@ -243,7 +243,7 @@ def list_dlq_entries() -> list[dict]:
 
 def set_validity(entity_id: str, entity_type: str, agent_name: str,
                  run_id: str, ttl_days: Optional[float]) -> None:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if ttl_days is None:
         expires_at = None          # per-run — always stale
     elif ttl_days == float("inf"):
@@ -282,7 +282,7 @@ def is_stale(entity_id: str, entity_type: str, agent_name: str) -> bool:
         return True  # per-run agent
     if row["expires_at"] == "9999-12-31":
         return False  # architect: never expires
-    return datetime.utcnow().isoformat() > row["expires_at"]
+    return datetime.now(timezone.utc).isoformat() > row["expires_at"]
 
 
 def invalidate(entity_id: str, entity_type: str, agent_names: list[str],

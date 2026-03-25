@@ -16,8 +16,9 @@ from agents.security_tester_agent import security_tester_agent
 from agents.qa_engineer_agent import qa_engineer_agent
 from agents.chaos_engineer_agent import chaos_engineer_agent
 from agents.reflection_agent import make_reflection_agent
-reflection_agent = make_reflection_agent()
 from tools.memory_tools import save_agent_output, recall_past_outputs
+
+reflection_agent = make_reflection_agent()
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 

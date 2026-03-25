@@ -1,7 +1,7 @@
 """Research Scientist Agent — literature reviews, hypothesis docs, experiment designs."""
 import os
 from google.adk.agents import Agent
-from tools.research_tools import deep_research, search_company_web, search_news
+from tools.research_tools import deep_research, search_company_web
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 
@@ -48,5 +48,5 @@ research_scientist_agent = Agent(
         "Use for academic R&D, scientific literature synthesis, and research methodology."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, search_news],
+    tools=[deep_research, search_company_web],
 )

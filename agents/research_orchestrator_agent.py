@@ -14,8 +14,9 @@ from agents.competitive_analyst_agent import competitive_analyst_agent
 from agents.user_researcher_agent import user_researcher_agent
 from agents.knowledge_manager_agent import knowledge_manager_agent
 from agents.reflection_agent import make_reflection_agent
-reflection_agent = make_reflection_agent()
 from tools.memory_tools import save_agent_output, recall_past_outputs
+
+reflection_agent = make_reflection_agent()
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 

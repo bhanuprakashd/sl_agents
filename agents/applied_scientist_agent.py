@@ -1,7 +1,7 @@
 """Applied Scientist Agent — feasibility assessments, research-to-product opportunity briefs."""
 import os
 from google.adk.agents import Agent
-from tools.research_tools import deep_research, search_company_web, search_news
+from tools.research_tools import deep_research, search_company_web
 from tools.code_gen_tools import generate_code
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
@@ -49,5 +49,5 @@ applied_scientist_agent = Agent(
         "PoC plans. Use when evaluating whether a research idea can become a product feature."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, search_news, generate_code],
+    tools=[deep_research, search_company_web, generate_code],
 )

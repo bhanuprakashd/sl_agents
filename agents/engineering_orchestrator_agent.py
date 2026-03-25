@@ -14,9 +14,10 @@ from agents.integration_engineer_agent import integration_engineer_agent
 from agents.platform_engineer_agent import platform_engineer_agent
 from agents.sdet_agent import sdet_agent
 from agents.reflection_agent import make_reflection_agent
-reflection_agent = make_reflection_agent()
 from tools.memory_tools import save_agent_output, recall_past_outputs
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status, log_integration
+
+reflection_agent = make_reflection_agent()
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 
