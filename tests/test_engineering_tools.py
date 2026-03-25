@@ -3,6 +3,16 @@
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def clear_registries():
+    from tools.engineering_tools import _PIPELINE_REGISTRY, _INTEGRATION_REGISTRY
+    _PIPELINE_REGISTRY.clear()
+    _INTEGRATION_REGISTRY.clear()
+    yield
+    _PIPELINE_REGISTRY.clear()
+    _INTEGRATION_REGISTRY.clear()
+
+
 def test_create_pipeline_spec_returns_dict():
     from tools.engineering_tools import create_pipeline_spec
     result = create_pipeline_spec(
@@ -56,15 +66,13 @@ def test_log_integration_returns_entry():
 
 def test_log_integration_accumulates_entries():
     from tools.engineering_tools import log_integration, _INTEGRATION_REGISTRY
-    _INTEGRATION_REGISTRY.clear()
     log_integration("svc-a", "svc-b", "gRPC", "connected")
     log_integration("svc-b", "svc-c", "REST", "pending")
     assert len(_INTEGRATION_REGISTRY) == 2
 
 
 def test_get_pipeline_status_after_second_create_updates():
-    from tools.engineering_tools import create_pipeline_spec, get_pipeline_status, _PIPELINE_REGISTRY
-    _PIPELINE_REGISTRY.clear()
+    from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
     create_pipeline_spec("pipe-x", ["a"], ["in"], ["out"])
     create_pipeline_spec("pipe-x", ["a", "b"], ["in2"], ["out2"])
     result = get_pipeline_status("pipe-x")

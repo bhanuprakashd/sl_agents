@@ -3,7 +3,6 @@ Engineering tools — pipeline spec registry and integration log for Engineering
 Session-scoped: stored in module-level dicts. Survives within a process; cleared on restart.
 """
 from datetime import datetime, timezone
-from typing import Optional
 
 # Module-level session stores (reset on process restart)
 _PIPELINE_REGISTRY: dict[str, dict] = {}
@@ -12,9 +11,9 @@ _INTEGRATION_REGISTRY: list[dict] = []
 
 def create_pipeline_spec(
     name: str,
-    stages: list,
-    inputs: list,
-    outputs: list,
+    stages: list[str],
+    inputs: list[str],
+    outputs: list[str],
 ) -> dict:
     """
     Define or update a pipeline specification and store it in the session registry.
@@ -30,9 +29,9 @@ def create_pipeline_spec(
     """
     spec = {
         "name": name,
-        "stages": stages,
-        "inputs": inputs,
-        "outputs": outputs,
+        "stages": list(stages),
+        "inputs": list(inputs),
+        "outputs": list(outputs),
         "status": "defined",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
