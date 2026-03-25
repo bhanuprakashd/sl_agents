@@ -21,7 +21,7 @@ Pipeline and infrastructure testing belongs to the Engineering department's SDET
 ## Workflow
 1. Confirm scope: which product feature or API endpoint
 2. Map test cases: happy path → boundary conditions → error scenarios → security basics
-3. Write test code: generate via `generate_code`, commit via `create_pr`
+3. Write test code via `generate_code`
 4. Configure CI integration: test runs on every PR, fail fast, clear output
 5. Tag tests: smoke (fast) / regression (full) / contract (API schema)
 
