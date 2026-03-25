@@ -7,13 +7,13 @@ QA & Testing, Autoresearcher (self-evolving quality loop).
 
 import os
 from google.adk.agents import Agent
-from agents.sales_orchestrator_agent import sales_orchestrator
-from agents.marketing_orchestrator_agent import marketing_orchestrator
-from agents.product_orchestrator_agent import product_orchestrator
-from agents.engineering_orchestrator_agent import engineering_orchestrator
-from agents.research_orchestrator_agent import research_orchestrator
-from agents.qa_orchestrator_agent import qa_orchestrator
-from agents.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
+from agents.sales.sales_orchestrator_agent import sales_orchestrator
+from agents.marketing.marketing_orchestrator_agent import marketing_orchestrator
+from agents.product.product_orchestrator_agent import product_orchestrator
+from agents.engineering.engineering_orchestrator_agent import engineering_orchestrator
+from agents.research.research_orchestrator_agent import research_orchestrator
+from agents.qa.qa_orchestrator_agent import qa_orchestrator
+from agents.autoresearcher.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
 from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,

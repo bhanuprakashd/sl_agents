@@ -10,34 +10,34 @@ import pytest
 # ── Import tests ──────────────────────────────────────────────────────────────
 
 def test_evaluator_agent_imports():
-    from agents.evaluator_agent import evaluator_agent
+    from agents.autoresearcher.evaluator_agent import evaluator_agent
     assert evaluator_agent.name == "evaluator_agent"
 
 
 def test_hypothesis_agent_imports():
-    from agents.hypothesis_agent import hypothesis_agent
+    from agents.autoresearcher.hypothesis_agent import hypothesis_agent
     assert hypothesis_agent.name == "hypothesis_agent"
 
 
 def test_rewriter_agent_imports():
-    from agents.rewriter_agent import rewriter_agent
+    from agents.autoresearcher.rewriter_agent import rewriter_agent
     assert rewriter_agent.name == "rewriter_agent"
 
 
 def test_rollback_watchdog_agent_imports():
-    from agents.rollback_watchdog_agent import rollback_watchdog_agent
+    from agents.autoresearcher.rollback_watchdog_agent import rollback_watchdog_agent
     assert rollback_watchdog_agent.name == "rollback_watchdog_agent"
 
 
 def test_autoresearcher_orchestrator_imports():
-    from agents.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
+    from agents.autoresearcher.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
     assert autoresearcher_orchestrator.name == "autoresearcher_orchestrator"
 
 
 # ── Sub-agent composition ─────────────────────────────────────────────────────
 
 def test_autoresearcher_orchestrator_has_four_sub_agents():
-    from agents.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
+    from agents.autoresearcher.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
     names = {a.name for a in autoresearcher_orchestrator.sub_agents}
     assert "evaluator_agent" in names
     assert "hypothesis_agent" in names
@@ -46,13 +46,13 @@ def test_autoresearcher_orchestrator_has_four_sub_agents():
 
 
 def test_autoresearcher_orchestrator_has_reflection_agent():
-    from agents.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
+    from agents.autoresearcher.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
     names = {a.name for a in autoresearcher_orchestrator.sub_agents}
     assert "reflection_agent" in names
 
 
 def test_evaluator_agent_has_reflection_sub_agent():
-    from agents.evaluator_agent import evaluator_agent
+    from agents.autoresearcher.evaluator_agent import evaluator_agent
     names = {a.name for a in evaluator_agent.sub_agents}
     assert "reflection_agent" in names
 

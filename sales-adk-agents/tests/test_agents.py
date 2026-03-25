@@ -14,7 +14,7 @@ pytestmark = pytest.mark.integration
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from agents.sales_orchestrator_agent import sales_orchestrator
+from agents.sales.sales_orchestrator_agent import sales_orchestrator
 
 
 APP_NAME = "sales-agent-test"
