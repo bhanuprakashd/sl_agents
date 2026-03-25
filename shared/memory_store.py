@@ -46,6 +46,9 @@ def _init_db():
             CREATE INDEX IF NOT EXISTS idx_query_company
                 ON query_history (company_name, user_id);
         """)
+    # Initialise supervisor tables in the same DB
+    from tools.supervisor_db import init_supervisor_tables
+    init_supervisor_tables()
 
 
 # Initialise on import
