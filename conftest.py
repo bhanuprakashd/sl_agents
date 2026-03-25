@@ -1,13 +1,15 @@
 """
 Root conftest.py — isolates pytest from the ADK agent import chain.
 
-The root __init__.py imports the full agent hierarchy at module load time,
-which triggers a pydantic validation error (reflection_agent assigned two
-parent agents). This conftest stubs out the google.adk namespace before
-pytest starts collecting tests so tool/utility tests can run in isolation.
+This conftest stubs out the google.adk namespace before pytest starts
+collecting tests so smoke tests can import agent modules in isolation.
 """
 import sys
 from unittest.mock import MagicMock
+
+# Prevent __init__.py from auto-importing the full agent hierarchy
+# (which would cause cascading import errors during pytest collection)
+sys.modules["__main__"].__spec__ = None
 
 
 def _make_module_mock(name: str) -> MagicMock:
@@ -36,3 +38,15 @@ _submodules = [
 for _mod in _submodules:
     if _mod not in sys.modules:
         sys.modules[_mod] = _make_module_mock(_mod)
+
+
+# Make Agent constructor return an object with the correct name attribute
+def _make_agent_constructor():
+    def Agent(model, name, description, instruction, tools, **kwargs):
+        agent = MagicMock()
+        agent.name = name
+        return agent
+    return Agent
+
+
+sys.modules["google.adk.agents"].Agent = _make_agent_constructor()
