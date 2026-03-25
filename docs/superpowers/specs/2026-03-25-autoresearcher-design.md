@@ -141,9 +141,11 @@ Each `Agent(...)` call passes `instruction=get_instruction("agent_name")` at ins
 │     - Reads pending_watch entries from agent_versions   │
 │     - Passively waits for reflection_agent to log new   │
 │       evolution_events for this agent (natural usage)   │
-│     - Polls every hour; timeout = 48h wall-clock        │
-│     - Timeout fallback (< 5 outputs after 48h):         │
-│       mark stable, release lock (idle agent)            │
+│     - Invoked hourly by supervisor (same task-counter   │
+│       mechanism, separate WATCHDOG_POLL_INTERVAL=1h)    │
+│     - Timeout: 0 outputs after 48h → extend to 72h;    │
+│       1-4 outputs after 48h → decide with available;   │
+│       72h with 0 outputs → mark stable + idle alert    │
 │     - If exactly N outputs received before timeout:     │
 │       compare avg vs baseline                           │
 │       - Drop > 10% → restore, mark rolled_back          │
@@ -301,7 +303,11 @@ get_post_rewrite_scores(agent_name: str, after_timestamp: str, n: int = 5) → l
 # Events
 log_evolution_event(agent_name, trigger_type, score, output_sample) → None
   # output_sample truncated to 2000 chars UTF-8 before insert
-mark_event_processed(event_id: int) → None
+mark_event_processed(event_id: int) → bool
+  # Uses atomic UPDATE WHERE processed=0 (compare-and-swap):
+  # UPDATE evolution_events SET processed=1 WHERE id=? AND processed=0
+  # Returns True if update affected 1 row (this caller wins), False if already processed.
+  # Prevents race between concurrent evaluator instances.
 
 # Queue operations (evaluator_queue table)
 enqueue_agent(agent_name: str, priority: float, evidence: list[dict]) → None
@@ -418,7 +424,21 @@ Confidence prioritization is embedded in `evaluator_queue`: when hypothesis_agen
 
 **Inputs:** polls `agent_versions` where `status = 'pending_watch'` — DB is the handoff, not direct parameters
 
-**Polling interval:** every 1 hour, timeout = 48h wall-clock from `created_at` of pending_watch row.
+**Invocation model:** `rollback_watchdog_agent` is NOT a long-running daemon. It is invoked by supervisor every 1 hour via a separate wall-clock trigger (`WATCHDOG_POLL_INTERVAL`, default: `"1h"`). Each invocation:
+1. Scans ALL `pending_watch` entries in `agent_versions`
+2. For each entry, checks scores and decides (stable/rollback/extend)
+3. Completes and exits
+
+Supervisor integration addition:
+```python
+# In supervisor.py — separate wall-clock trigger (not task-count based)
+import threading
+def _schedule_watchdog_polls(self):
+    while True:
+        time.sleep(WATCHDOG_POLL_INTERVAL_SECONDS)
+        self._route_to_company_orchestrator("autoresearcher:watchdog_poll")
+```
+Add to `company_orchestrator` routing: `"autoresearcher:watchdog_poll"` → `autoresearcher_orchestrator` → `rollback_watchdog_agent`.
 
 **Timeout resolution:**
 - If **0 post-rewrite outputs** exist after 48h (agent was not invoked at all since rewrite): **do not mark stable**. Instead, extend the watchdog window by 24h (to 72h total). If still 0 outputs at 72h, mark `stable` with warning log: "version X marked stable by extended timeout (0 outputs in 72h — agent appears idle)." Additionally, `log_evolution_event(agent_name, "batch_review", score=0, output_sample="[idle: no invocations post-rewrite]")` to flag the agent for the next evaluator run.
@@ -428,7 +448,7 @@ Confidence prioritization is embedded in `evaluator_queue`: when hypothesis_agen
 **Score collection:** watchdog calls `get_post_rewrite_scores(agent_name, after_timestamp=baseline_sampled_at, n=5)`. These scores come from reflection_agent naturally scoring the agent as it is used in the normal workflow. Watchdog does NOT invoke the agent directly — it passively waits.
 
 **Decision logic (once N outputs collected OR timeout reached):**
-- Drop > 10%: `restore_instruction(agent_name, prev_version)` where `prev_version` = the most recent row in `agent_versions` for this agent where `version < current AND status IN ('stable', 'superseded')`. If no such row exists, restore `INSTRUCTION_STATIC` from the agent's `.py` file directly. Mark current version `rolled_back`. Mark the restored version back to `stable`. If restoring to INSTRUCTION_STATIC, insert a version 0 row if it doesn't already exist.
+- Drop > 10%: `restore_instruction(agent_name, prev_version)` where `prev_version` = the most recent row in `agent_versions` for this agent where `version < current AND status IN ('stable', 'superseded')`. If no such row exists, restore `INSTRUCTION_STATIC` from the agent's `.py` file directly. Mark current version `rolled_back`. Mark the restored version back to `stable`. If restoring to INSTRUCTION_STATIC, insert a version 0 row with `status='stable'` if it doesn't already exist. Version 0 with `status='stable'` causes `get_current_instruction()` to return its `instruction_text` from DB (which equals INSTRUCTION_STATIC — they are the same content). This keeps the dynamic loading path consistent: DB is always the authoritative source after version 0 is seeded.
 - Equal or better: mark version `stable`, mark all prior versions for this agent as `superseded`.
 - Timeout (0 outputs in 72h): mark `stable` with warning, log idle event (see timeout resolution above).
 
@@ -447,9 +467,17 @@ Confidence prioritization is embedded in `evaluator_queue`: when hypothesis_agen
 | "autoresearcher:batch_review" (supervisor) / "evaluate agents" / "quality review" | monitor | `evaluator_agent` |
 | "evolution status" / "version history" / "what changed" | query | `evaluator_agent` |
 | "improve [agent_name]" / "rewrite instruction" | manual | `hypothesis_agent` → (auto) `rewriter_agent` |
-| "rollback [agent_name]" / "restore version" | manual | `rollback_watchdog_agent` |
+| "rollback [agent_name]" / "restore version" | manual-restore | `rollback_watchdog_agent` |
 
 **Manual flow (hypothesis → rewriter):** When orchestrator routes to `hypothesis_agent` for a manual trigger, it automatically invokes `rewriter_agent` after `hypothesis_agent` completes (if confidence ≠ low). No user confirmation needed between hypothesis and rewrite steps. Orchestrator then invokes `rollback_watchdog_agent` automatically to monitor the result.
+
+**Manual restore flow ("rollback [agent_name]" / "restore version"):** `rollback_watchdog_agent` receives `(agent_name, target_version=None)` as direct parameters. It does NOT poll or wait — it immediately:
+1. Resolves target: if `target_version` specified, restore that version; if None, restore most recent `stable` or `superseded` version with version < current active version
+2. Calls `restore_instruction(agent_name, target_version)` — updates DB status and patches disk
+3. Releases rewrite lock if held
+4. Saves verdict to memory
+
+Manual restore bypasses all scoring, polling, grace periods, and guard checks (24h/30d). It is a user-commanded override. If no prior version exists, abort with: "No prior version found for [agent_name]. Cannot restore."
 
 **Memory protocol:**
 - Session start: `recall_past_outputs("autoresearcher_orchestrator")`
@@ -465,7 +493,7 @@ Confidence prioritization is embedded in `evaluator_queue`: when hypothesis_agen
 **Reflection loops:**
 - `autoresearcher_orchestrator`: one `make_reflection_agent()` instance for orchestrator-level quality
 - `evaluator_agent`: its own `make_reflection_agent()` for meta-evaluation of flagged lists
-- `hypothesis_agent`: its own `make_reflection_agent()` to score hypothesis quality before passing downstream. If hypothesis reflection score < 7, re-generate (max 2 cycles)
+- `hypothesis_agent`: its own `make_reflection_agent()` to score hypothesis quality before passing downstream. If hypothesis reflection score < 7, re-generate using the same agent_name, same bad samples, and same current instruction — only the LLM reasoning changes. Max 2 cycles. If both cycles score < 7: mark hypothesis confidence as `low`, route to DLQ, abort (do not proceed to rewriter).
 - `rewriter_agent`, `rollback_watchdog_agent`: inherit orchestrator reflection (one-shot, max 1 cycle)
 
 **Hypothesis reflection threshold:** `hypothesis_agent` uses threshold 7 (vs. standard 6) because hypotheses are higher-stakes than regular agent outputs — a low-quality hypothesis causes a disk write. The stricter threshold ensures only well-reasoned rewrites proceed.
