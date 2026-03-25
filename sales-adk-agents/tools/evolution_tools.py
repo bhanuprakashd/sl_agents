@@ -68,8 +68,14 @@ def patch_instruction(agent_file_path: str, new_instruction: str) -> None:
     if not path.exists():
         raise FileNotFoundError(f"Agent file not found: {path}")
 
-    # Validate syntax — compile the instruction text as a Python expression
-    compile(new_instruction, "<instruction>", "exec")
+    # Validate that embedding the instruction in a triple-quoted string is valid Python.
+    # This catches unescaped triple-quotes that would break the file.
+    try:
+        compile(f'x = """{new_instruction}"""', "<instruction>", "exec")
+    except SyntaxError as exc:
+        raise SyntaxError(
+            f"Proposed instruction would produce invalid Python when embedded: {exc}"
+        ) from exc
 
     content = path.read_text(encoding="utf-8")
 

@@ -25,6 +25,32 @@ def list_dlq() -> dict:
     return {"count": len(entries), "entries": entries}
 
 
+def log_to_dlq(agent_name: str, reason: str) -> dict:
+    """
+    Log an autoresearcher error to the dead letter queue.
+
+    Used by rewriter_agent and rollback_watchdog_agent to record non-retryable
+    failures (rate limit hits, file not found, syntax errors).
+
+    Args:
+        agent_name: The agent that triggered the error.
+        reason: Human-readable description of the failure.
+
+    Returns:
+        dict with logged=True and the recorded details.
+    """
+    import uuid
+    run_id = f"dlq-{agent_name}-{uuid.uuid4().hex[:8]}"
+    _db.push_dlq(
+        run_id=run_id,
+        pipeline_type="autoresearcher",
+        blocked_on=agent_name,
+        last_error=reason,
+        completed_steps=[],
+    )
+    return {"logged": True, "run_id": run_id, "agent_name": agent_name, "reason": reason}
+
+
 def get_run_status(run_id: str) -> dict:
     """
     Get the current status of a pipeline run.

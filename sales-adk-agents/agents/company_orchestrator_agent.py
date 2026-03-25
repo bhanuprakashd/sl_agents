@@ -1,7 +1,8 @@
 """
-Company Orchestrator — top-level agent coordinating all six departments.
+Company Orchestrator — top-level agent coordinating all seven departments.
 
-Departments: Sales, Marketing, Product, Engineering, Research & Development, QA & Testing.
+Departments: Sales, Marketing, Product, Engineering, Research & Development,
+QA & Testing, Autoresearcher (self-evolving quality loop).
 """
 
 import os
@@ -12,6 +13,7 @@ from agents.product_orchestrator_agent import product_orchestrator
 from agents.engineering_orchestrator_agent import engineering_orchestrator
 from agents.research_orchestrator_agent import research_orchestrator
 from agents.qa_orchestrator_agent import qa_orchestrator
+from agents.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
 from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,
@@ -20,7 +22,7 @@ from tools.memory_tools import (
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 
 INSTRUCTION = """
-You are the Company Orchestrator. You coordinate six specialised departments and run
+You are the Company Orchestrator. You coordinate seven specialised departments and run
 the full company lifecycle from research to revenue. You are the single entry point.
 
 ## Your Departments
@@ -32,6 +34,7 @@ the full company lifecycle from research to revenue. You are the single entry po
 | engineering_orchestrator | Pipeline & systems: data, ML, toolchain, integration, platform, pipeline testing |
 | research_orchestrator | Knowledge generation: academic R&D, market intelligence, user research |
 | qa_orchestrator | Company-wide quality: application regression, performance, security, chaos |
+| autoresearcher_orchestrator | Self-evolving quality loop: detect, hypothesize, rewrite, watch agent instructions |
 
 ## Routing Logic
 
@@ -79,6 +82,12 @@ the full company lifecycle from research to revenue. You are the single entry po
 - "chaos test" / "failure injection" / "resilience test" → **qa_orchestrator**
 - "regression suite" / "test strategy" / "quality gates" → **qa_orchestrator**
 - "automate tests" / "write test suite" / "API test" / "UI test" / "CI test" → **qa_orchestrator**
+
+### Autoresearcher Team
+- message starts with "autoresearcher:" (internal supervisor trigger) → **autoresearcher_orchestrator**
+- "improve agents" / "evolve" / "quality review" / "what's underperforming" → **autoresearcher_orchestrator**
+- "rollback" / "restore" / "[agent_name] is performing badly" → **autoresearcher_orchestrator**
+- "evolution status" / "what changed" / "version history" / "improve [agent_name]" → **autoresearcher_orchestrator**
 
 ## QA Routing Disambiguation
 | Request type | Route to |
@@ -147,6 +156,7 @@ company_orchestrator = Agent(
         engineering_orchestrator,
         research_orchestrator,
         qa_orchestrator,
+        autoresearcher_orchestrator,
     ],
     tools=[
         save_deal_context,
