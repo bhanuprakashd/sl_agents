@@ -42,9 +42,10 @@ for _mod in _submodules:
 
 # Make Agent constructor return an object with the correct name attribute
 def _make_agent_constructor():
-    def Agent(model, name, description, instruction, tools, **kwargs):
+    def Agent(model, name, description, instruction, tools=None, sub_agents=None, **kwargs):
         agent = MagicMock()
         agent.name = name
+        agent.sub_agents = sub_agents or []
         return agent
     return Agent
 

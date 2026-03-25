@@ -35,6 +35,32 @@ AGENT_TTL_DAYS: dict[str, Optional[float]] = {
     "qa_agent": None,
     "reflection_agent": None,       # meta-agent, never cached
     "company_orchestrator": None,   # router, never cached
+    # ── Engineering Department ────────────────────────────────────────────────
+    "engineering_orchestrator":       None,             # router, never cached
+    "solutions_architect_agent":      float("inf"),     # architecture decisions: manual reset only
+    "data_engineer_agent":            None,             # pipeline builds are per-run
+    "ml_engineer_agent":              None,             # pipeline builds are per-run
+    "systems_engineer_agent":         float("inf"),     # toolchain designs stable until changed
+    "integration_engineer_agent":     None,             # integrations are per-run
+    "platform_engineer_agent":        float("inf"),     # platform configs stable until changed
+    "sdet_agent":                     None,             # test runs are per-run
+    # ── Research & Development Department ────────────────────────────────────
+    "research_orchestrator":          None,             # router, never cached
+    "research_scientist_agent":       30,               # academic findings stable ~1 month
+    "ml_researcher_agent":            14,               # SOTA moves fast, refresh fortnightly
+    "applied_scientist_agent":        14,               # feasibility reassessed frequently
+    "data_scientist_agent":           7,                # metrics and experiments change weekly
+    "competitive_analyst_agent":      7,                # market landscape moves fast
+    "user_researcher_agent":          30,               # user insights stable ~1 month
+    "knowledge_manager_agent":        30,               # research briefs stable ~1 month
+    # ── QA & Testing Department ──────────────────────────────────────────────
+    "qa_orchestrator":                None,             # router, never cached
+    "test_architect_agent":           float("inf"),     # test strategy stable until changed
+    "test_automation_engineer_agent": None,             # test runs are per-run
+    "performance_engineer_agent":     7,                # performance baselines refresh weekly
+    "security_tester_agent":          7,                # security posture changes frequently
+    "qa_engineer_agent":              None,             # QA runs are per-run
+    "chaos_engineer_agent":           None,             # chaos experiments are per-run
     "_default": 7,                  # safety net for unlisted agents
 }
 
