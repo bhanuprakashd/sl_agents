@@ -2,7 +2,7 @@
 
 import os
 from google.adk.agents import Agent
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
 from tools.research_tools import search_company_web, enrich_company, find_contacts, search_news, deep_research
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -10,12 +10,14 @@ _MEDIUM_MCP_PATH = os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..
 _MEDIUM_MCP_PATH = os.path.abspath(_MEDIUM_MCP_PATH)
 _medium_mcp = None
 if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
-    _medium_mcp = MCPToolset(
-        connection_params=StdioServerParameters(
-            command="node",
-            args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
-            cwd=_MEDIUM_MCP_PATH,
-            env={**os.environ},
+    _medium_mcp = McpToolset(
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command="node",
+                args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
+                cwd=_MEDIUM_MCP_PATH,
+                env={**os.environ},
+            )
         )
     )
 

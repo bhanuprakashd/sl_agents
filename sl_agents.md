@@ -6,7 +6,7 @@
 2. [Architecture](#architecture)
 3. [System Components](#system-components)
    - [DeerFlow](#deerflow)
-   - [Sales ADK Agents](#aass_agents)
+   - [AASS Agents](#aass_agents)
    - [MCP Servers (GTM)](#mcp-servers-gtm)
    - [gstack (Claude Code Skills)](#gstack-claude-code-skills)
 4. [Agents Reference](#agents-reference)
@@ -25,11 +25,11 @@
 SL Agents is a multi-system autonomous AI platform combining:
 
 - **DeerFlow** — LangGraph-based super agent with sandbox execution, memory, and MCP tool support
-- **Sales ADK Agents** — Google ADK B2B sales and product engineering team (26 agents)
+- **AASS Agents** — Google ADK Autonomous AI Agent Company System — 8 departments with self-evolving loop (50+ agents)
 - **MCP Servers (GTM)** — 4 MCP servers exposing research, CRM, memory, and marketing tools
 - **gstack** — Claude Code skills library providing slash commands and a headless browser for QA
 
-The systems are integrated: DeerFlow provides deep research capabilities to the sales team via its LangGraph API, MCP servers bridge tooling across both agent runtimes, and gstack slash commands are available in any Claude Code session.
+The systems are integrated: DeerFlow provides deep research capabilities to the AASS agents via its LangGraph API, MCP servers bridge tooling across both agent runtimes, and gstack slash commands are available in any Claude Code session.
 
 ---
 
@@ -41,17 +41,27 @@ The systems are integrated: DeerFlow provides deep research capabilities to the 
 └───────────────┬──────────────────────────┬──────────────────────┘
                 │                          │
     ┌───────────▼──────────┐   ┌───────────▼──────────┐
-    │      DeerFlow        │   │   Sales ADK Agents   │
+    │      DeerFlow        │   │     AASS Agents      │
     │  (port 2026 via Nginx)│   │   (CLI / ADK API)    │
     │                      │   │                      │
     │  Lead Agent          │   │  company_orchestrator│
     │  ├─ 12 middlewares   │   │  ├─ sales_orchestrator│
-    │  ├─ Sandbox (bash,   │   │  │  └─ 7 sales agents│
-    │  │    file ops)      │   │  ├─ marketing_orches. │
-    │  ├─ Web search/fetch │   │  │  └─ 6 mktg agents │
-    │  ├─ Subagents        │   │  └─ product_orchestr. │
-    │  └─ MCP clients      │   │     └─ 7 prod agents │
-    └──────────┬───────────┘   └───────────┬──────────┘
+    │  ├─ Sandbox (bash,   │   │  │  (8 sales agents) │
+    │  │    file ops)      │   │  ├─ marketing_orches.│
+    │  ├─ Web search/fetch │   │  │  (7 mktg agents)  │
+    │  ├─ Subagents        │   │  ├─ product_orchestr.│
+    │  └─ MCP clients      │   │  │  (8 prod agents)  │
+    └──────────┬───────────┘   │  ├─ engineering_orch.│
+               │               │  │  (8 eng agents)   │
+               │               │  ├─ research_orches. │
+               │               │  │  (8 res agents)   │
+               │               │  ├─ qa_orchestrator  │
+               │               │  │  (7 qa agents)    │
+               │               │  └─ autoresearcher_  │
+               │               │     orchestrator     │
+               │               │     (self-evolving   │
+               │               │      loop, 5 agents) │
+               │               └───────────┬──────────┘
                │                           │
     ┌──────────▼───────────────────────────▼──────────┐
     │                MCP Servers (GTM)                  │
@@ -68,7 +78,7 @@ The systems are integrated: DeerFlow provides deep research capabilities to the 
 
 ### Data Flow
 
-1. User sends a request to DeerFlow or Sales ADK
+1. User sends a request to DeerFlow or AASS Agents
 2. Orchestrator routes to the appropriate specialist agent
 3. Agent calls tools (research, CRM, code gen, deployment)
 4. DeerFlow's `deep_research` tool calls DeerFlow LangGraph API for synthesized reports
@@ -134,22 +144,44 @@ deer-flow/
 
 ---
 
-### Sales ADK Agents
+### AASS Agents
 
 **Location**: `aass_agents/`
 
-Google ADK agent team covering B2B sales, marketing, and autonomous product engineering. 26 specialized agents organized into 3 orchestrated teams.
+Google ADK Autonomous AI Agent Company System — 8 departments with self-evolving loop. 50+ specialized agents organized into 8 orchestrated teams.
 
 **Key files:**
 ```
 aass_agents/
+├── __init__.py                      # root_agent = company_orchestrator
 ├── main.py                          # Entry point; exports root_agent
-├── agents/                          # 22 agent files
-├── tools/                           # 14 tool modules
+├── agents/
+│   ├── __init__.py                  # Backward-compatible re-exports
+│   ├── company_orchestrator_agent.py
+│   ├── _shared/reflection_agent.py
+│   ├── sales/          (8 agents)
+│   ├── marketing/      (7 agents)
+│   ├── product/        (8 agents)
+│   ├── engineering/    (8 agents)
+│   ├── research/       (8 agents)
+│   ├── qa/             (7 agents)
+│   └── autoresearcher/ (5 agents)
+├── tools/                           (15 tool modules incl. evolution_db, evolution_tools)
+├── dashboard/
+│   ├── server.py                    # FastAPI dashboard backend (REST + WebSocket)
+│   ├── graph_builder.py             # Static agent hierarchy for DAG visualization
+│   ├── instrumentation.py           # ADK callback hooks for execution event logging
+│   └── ui/                          # React + ReactFlow + TailwindCSS frontend
+│       ├── src/
+│       │   ├── App.tsx              # Root layout (DAG panel + sidebar + drawer)
+│       │   ├── api.ts               # Typed REST client
+│       │   ├── components/          # DAGPanel, RunHistory, RunSelector, AgentDrawer, AutoresearcherPanel
+│       │   └── hooks/               # useRunSocket (WebSocket), useGraphStatus (graph + events merger)
+│       ├── package.json
+│       └── vite.config.ts
 ├── shared/
-│   ├── memory_store.py              # SQLite deal memory (sales_memory.db)
-│   └── models.py                    # Pydantic models (DealContext, Proposal...)
 ├── requirements.txt
+├── pyproject.toml
 └── .env.example
 ```
 
@@ -160,6 +192,8 @@ aass_agents/
 | `python main.py` | Interactive CLI |
 | `python main.py --web` | ADK web UI |
 | `adk api_server main.py` | HTTP API server |
+| `uvicorn dashboard.server:app --port 8000` | Dashboard backend |
+| `cd dashboard/ui && npm run dev` | Dashboard frontend (dev) |
 
 On CLI startup: loads `.env`, then opens interactive loop with `company_orchestrator` as root agent.
 
@@ -169,7 +203,7 @@ On CLI startup: loads `.env`, then opens interactive loop with `company_orchestr
 
 **Location**: `mcp-servers/gtm/`
 
-Four stdio MCP servers that expose Sales ADK tools to any MCP-compatible client (including DeerFlow).
+Four stdio MCP servers that expose AASS Agents tools to any MCP-compatible client (including DeerFlow).
 
 ```
 mcp-servers/gtm/
@@ -236,7 +270,7 @@ bun run build
 | **General-Purpose Subagent** | Background research/execution | All tools except `task` |
 | **Bash Subagent** | Shell command specialist | `bash` only |
 
-### Sales ADK Agents
+### AASS Agents
 
 #### Top-Level
 | Agent | Role |
@@ -276,6 +310,50 @@ bun run build
 | **frontend_builder_agent** | Next.js + Tailwind UI + Vercel deploy | `code_gen_tools`, `vercel_tools` |
 | **qa_agent** | Smoke tests: root, health, auth endpoints | `http_tools` |
 
+#### Engineering Team
+| Agent | Role |
+|-------|------|
+| **engineering_orchestrator** | Routes engineering tasks |
+| **solutions_architect_agent** | System design, ADRs |
+| **data_engineer_agent** | Data pipelines, ETL |
+| **ml_engineer_agent** | ML model integration |
+| **systems_engineer_agent** | Infra, scaling |
+| **integration_engineer_agent** | API/service integrations |
+| **platform_engineer_agent** | CI/CD, developer tooling |
+| **sdet_agent** | Test strategy, automation frameworks |
+
+#### Research Team
+| Agent | Role |
+|-------|------|
+| **research_orchestrator** | Routes research tasks |
+| **research_scientist_agent** | Academic/technical research |
+| **ml_researcher_agent** | ML model evaluation, SOTA tracking |
+| **applied_scientist_agent** | Prototype experiments |
+| **data_scientist_agent** | Data analysis, insights |
+| **competitive_analyst_agent** | Competitor intelligence |
+| **user_researcher_agent** | User interviews, usability |
+| **knowledge_manager_agent** | Knowledge base curation |
+
+#### QA Team
+| Agent | Role |
+|-------|------|
+| **qa_orchestrator** | Routes QA tasks |
+| **test_architect_agent** | Test strategy, coverage plans |
+| **test_automation_engineer_agent** | Automated test suites |
+| **qa_engineer_agent** | Manual testing, bug reports |
+| **performance_engineer_agent** | Load testing, benchmarks |
+| **security_tester_agent** | OWASP, pen testing |
+| **chaos_engineer_agent** | Resilience/fault injection |
+
+#### Autoresearcher (Self-Evolving Loop)
+| Agent | Role |
+|-------|------|
+| **autoresearcher_orchestrator** | Coordinates the self-evolving loop |
+| **evaluator_agent** | Monitors quality scores from evolution.db |
+| **hypothesis_agent** | Generates improvement hypotheses |
+| **rewriter_agent** | Patches agent instructions atomically |
+| **rollback_watchdog_agent** | Detects regressions, auto-reverts |
+
 ---
 
 ## Tools Reference
@@ -298,7 +376,7 @@ bun run build
 | `task` | Delegate to subagent (background) | Thread pool |
 | `tool_search` | Search available tools by name/desc | Tool registry |
 
-### Sales ADK Research Tools (`tools/research_tools.py`)
+### AASS Agents Research Tools (`tools/research_tools.py`)
 
 | Tool | Description | Backend |
 |------|-------------|---------|
@@ -309,7 +387,7 @@ bun run build
 | `search_product_web` | SaaS products, GitHub repos, tech stacks | DuckDuckGo |
 | `deep_research` | Multi-step synthesized research report | DeerFlow LangGraph API (falls back to DuckDuckGo) |
 
-### Sales ADK CRM Tools (`tools/crm_tools.py`)
+### AASS Agents CRM Tools (`tools/crm_tools.py`)
 
 | Tool | Description | Backend |
 |------|-------------|---------|
@@ -323,7 +401,7 @@ bun run build
 | `hs_update_deal` | Update deal properties | HubSpot CRM API v3 |
 | `hs_create_task` | Create follow-up task | HubSpot CRM API v3 |
 
-### Sales ADK Marketing Tools (`tools/marketing_tools.py`)
+### AASS Agents Marketing Tools (`tools/marketing_tools.py`)
 
 | Tool | Description | Backend |
 |------|-------------|---------|
@@ -332,7 +410,7 @@ bun run build
 | `fetch_rss_feed` | Parse RSS/Atom feed | feedparser |
 | `search_audience_communities` | Find communities (Reddit, LinkedIn) | DuckDuckGo |
 
-### Sales ADK Infrastructure Tools
+### AASS Agents Infrastructure Tools
 
 | Tool | Description | Backend |
 |------|-------------|---------|
@@ -343,7 +421,7 @@ bun run build
 | `supabase_tools` | Project + DB provisioning | Supabase Management API |
 | `code_gen_tools` | Code generation utilities | Local |
 
-### Sales ADK Product Memory Tools (`tools/product_memory_tools.py`)
+### AASS Agents Product Memory Tools (`tools/product_memory_tools.py`)
 
 Pipeline state is tracked in SQLite (`product_pipeline.db`) — no external task tracking service needed.
 
@@ -352,6 +430,56 @@ Pipeline state is tracked in SQLite (`product_pipeline.db`) — no external task
 | `save_product_state(key, value)` | Persist a product pipeline state value |
 | `recall_product_state(key)` | Retrieve a stored product pipeline state value |
 | `log_step(step_name, details)` | Write a step entry to `product_step_log` table in `product_pipeline.db` |
+
+### AASS Agents Evolution Tools
+
+| Tool / Module | Description |
+|---------------|-------------|
+| `tools/evolution_db.py` | SQLite-backed score/patch history + execution tracking (`evolution.db`) |
+| `tools/evolution_tools.py` | Atomic instruction patching with rollback support |
+
+### AASS Agents Dashboard
+
+**Location:** `aass_agents/dashboard/`
+
+Live Airflow-DAG-style dashboard for monitoring agent pipeline execution in real-time.
+
+**Backend** (`dashboard/server.py` — FastAPI):
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/runs` | List last 20 pipeline runs |
+| `GET` | `/api/runs/{run_id}` | Run detail + all execution events |
+| `GET` | `/api/graph` | Static agent hierarchy (56 nodes, cached at startup) |
+| `GET` | `/api/evolution` | Autoresearcher queue, recent verdicts, version history |
+| `WS` | `/ws/runs/{run_id}` | Push execution events via WebSocket (500ms poll) |
+
+**Data layer** (extends `evolution_db.py`):
+
+| Table | Purpose |
+|-------|---------|
+| `execution_runs` | One row per pipeline invocation (id, trigger_input, status, timestamps) |
+| `execution_events` | One row per agent status change (agent_name, status, output_sample) |
+
+CRUD functions: `start_run`, `finish_run`, `get_run`, `list_runs`, `log_agent_start`, `log_agent_finish`, `get_run_events`, `get_new_events` — all with sync + async variants.
+
+**Instrumentation** (`dashboard/instrumentation.py`):
+
+Uses `contextvars.ContextVar` to thread `run_id` through ADK callbacks. All 8 orchestrators (company + 7 departments) are wired with `before_agent_callback` / `after_agent_callback`. Callbacks are no-ops when `RUN_ID_VAR` is not set (safe for unit tests and CLI usage).
+
+**Frontend** (`dashboard/ui/` — React + ReactFlow + TailwindCSS + Vite):
+
+| Component | Purpose |
+|-----------|---------|
+| `DAGPanel` | ReactFlow directed graph with colour-coded nodes and radial-pulse animation for running agents |
+| `RunHistory` | Sidebar list of recent runs with status icons and duration |
+| `RunSelector` | Dropdown to select active run |
+| `AgentDrawer` | Right-side drawer showing agent details on node click |
+| `AutoresearcherPanel` | Evaluator queue + last 5 rewrite verdicts |
+| `useRunSocket` | WebSocket hook with auto-reconnect (max 5 retries, 2s backoff) |
+| `useGraphStatus` | Merges static graph nodes with live execution event statuses |
+
+**Node colours:** pending (#94a3b8 grey), running (#3b82f6 blue + radial pulse), completed (#22c55e green), failed (#ef4444 red).
 
 ---
 
@@ -433,7 +561,7 @@ node dist/index.js   # run once to complete browser login → saves medium-sessi
 | Variable | Purpose | Used By |
 |----------|---------|---------|
 | `ANTHROPIC_API_KEY` | Claude API access | DeerFlow (if using Claude), `deep_research` tool |
-| `GOOGLE_API_KEY` | Gemini API access | Sales ADK (required for Gemini models) |
+| `GOOGLE_API_KEY` | Gemini API access | AASS Agents (required for Gemini models) |
 
 ### Optional — LLM Providers
 
@@ -445,7 +573,7 @@ node dist/index.js   # run once to complete browser login → saves medium-sessi
 | `MINIMAX_API_KEY` | MiniMax (OpenAI-compatible) |
 | `VOLCENGINE_API_KEY` | Volcengine / Doubao models |
 | `MOONSHOT_API_KEY` | Kimi models |
-| `MODEL_ID` | Override default model for Sales ADK (default: `gemini-2.0-flash`) |
+| `MODEL_ID` | Override default model for AASS Agents (default: `gemini-2.0-flash`) |
 
 ### Optional — Web & Research Tools
 
@@ -526,12 +654,14 @@ Starts 4 processes:
 
 Config is hot-reloaded from `config.yaml` on mtime change (no restart needed).
 
-### Sales ADK Agents
+### AASS Agents
 
 ```bash
 cd aass_agents
 cp .env.example .env   # fill in keys
 pip install -r requirements.txt
+# or with uv:
+uv sync
 
 python main.py          # interactive CLI
 python main.py --web    # ADK web UI
@@ -612,11 +742,24 @@ MCP servers and skills enabled state. Managed via:
 
 ### `aass_agents/.env`
 
-Copied from `.env.example`. Contains all API keys and configuration for Sales ADK. Loaded via `python-dotenv` at startup.
+Copied from `.env.example`. Contains all API keys and configuration for AASS Agents. Loaded via `python-dotenv` at startup.
 
-### `aass_agents/requirements.txt`
+### `aass_agents/requirements.txt` and `aass_agents/pyproject.toml`
 
-Core deps: `google-adk`, `duckduckgo-search`, `pydantic`, `python-dotenv`, `httpx`, `feedparser`, `pytrends`
+Core deps (latest versions):
+- `google-adk>=1.27.4`
+- `duckduckgo-search>=8.1.1`
+- `httpx>=0.28.1`
+- `pydantic>=2.12.5`
+- `python-dotenv>=1.2.2`
+- `pytrends>=4.9.2`
+- `feedparser>=6.0.12`
+- `fastapi>=0.135.2`
+- `uvicorn[standard]>=0.42.0` (includes WebSocket transport for dashboard)
+- `pytest>=9.0.2`
+- `pytest-asyncio>=1.3.0`
+
+`pyproject.toml` exists for uv users: `uv sync` installs all deps.
 
 ### `mcp-servers/gtm/requirements.txt`
 
@@ -631,13 +774,15 @@ Core deps: `mcp`, `duckduckgo-search`, `httpx`, `pydantic`, `pytrends`, `feedpar
 | 2026 | DeerFlow (Nginx proxy) | Main entry point for DeerFlow |
 | 2024 | DeerFlow LangGraph Server | Direct LangGraph API |
 | 8001 | DeerFlow Gateway API | Models, MCP, skills, memory management |
+| 8000 | AASS Dashboard Backend | FastAPI REST + WebSocket |
+| 5173 | AASS Dashboard Frontend | Vite dev server (proxies /api and /ws to 8000) |
 | 3000 | DeerFlow Frontend | Next.js UI |
 
 ---
 
 ## Integrations
 
-### DeerFlow ↔ Sales ADK (via `deep_research`)
+### DeerFlow ↔ AASS Agents (via `deep_research`)
 
 The `deep_research` tool in `tools/research_tools.py` calls DeerFlow's LangGraph API:
 
@@ -661,9 +806,9 @@ Each product pipeline agent (pm_agent, architect_agent, devops_agent, db_agent, 
 
 ### DeerFlow ↔ MCP Servers
 
-MCP servers bridge Sales ADK tools to DeerFlow via stdio. Enable in `extensions_config.json`. DeerFlow lazy-loads MCP tools on first use with mtime-based cache invalidation.
+MCP servers bridge AASS Agents tools to DeerFlow via stdio. Enable in `extensions_config.json`. DeerFlow lazy-loads MCP tools on first use with mtime-based cache invalidation.
 
-### Sales ADK + DeerFlow ↔ Medium MCP
+### AASS Agents + DeerFlow ↔ Medium MCP
 
 Medium is integrated via `MCPToolset` in 3 ADK agents and as a tool in `gtm-research` MCP server.
 
@@ -705,6 +850,12 @@ After setup, all agents that use Medium tools will connect automatically via the
 gstack slash commands are loaded automatically by Claude Code from `~/.claude/skills/gstack` (symlinked to `deer-flow/skills/gstack`). No explicit configuration is required in a session — commands like `/ship`, `/review`, `/qa`, `/investigate` are available immediately.
 
 The `/qa` and `/qa-only` commands use the headless Chromium `browse` binary at `deer-flow/skills/gstack/browse/dist/browse` for visual page verification and screenshot-based test assertions.
+
+### AASS Dashboard ↔ AASS Agents (via instrumentation)
+
+The dashboard tracks pipeline execution via thin ADK callbacks wired into all 8 orchestrators. When `company_orchestrator` starts processing, `instrumentation.py` creates a new `execution_run` and sets `RUN_ID_VAR` via `contextvars.ContextVar`. Each department orchestrator logs `execution_events` (start/finish) to `evolution.db` via the same context variable. The dashboard's WebSocket endpoint polls `execution_events` at 500ms intervals and pushes new events to connected React clients.
+
+The dashboard also exposes the autoresearcher's `evaluator_queue`, `agent_versions` (recent verdicts), and version history through the `/api/evolution` endpoint — providing a unified view of both pipeline execution and self-evolution state.
 
 ### IM Channels ↔ DeerFlow
 

@@ -34,29 +34,33 @@ structured PRD (Product Requirements Document).
 - data_model entities should be realistic for a free-tier single database
 """
 
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _RESEARCH_SERVER = os.path.abspath(os.path.join(_HERE, "..", "..", "mcp-servers", "gtm", "research_server.py"))
 
 # DeerFlow research tools come from the MCP research_server process
-_research_mcp = MCPToolset(
-    connection_params=StdioServerParameters(
-        command="python",
-        args=[_RESEARCH_SERVER],
-        env={**os.environ},
+_research_mcp = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command="python",
+            args=[_RESEARCH_SERVER],
+            env={**os.environ},
+        )
     )
 )
 
 _MEDIUM_MCP_PATH = os.path.abspath(os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..", "medium-mcp-server"))
 _medium_mcp = None
 if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
-    _medium_mcp = MCPToolset(
-        connection_params=StdioServerParameters(
-            command="node",
-            args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
-            cwd=_MEDIUM_MCP_PATH,
-            env={**os.environ},
+    _medium_mcp = McpToolset(
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command="node",
+                args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
+                cwd=_MEDIUM_MCP_PATH,
+                env={**os.environ},
+            )
         )
     )
 

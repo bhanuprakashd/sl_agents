@@ -8,6 +8,7 @@ import os
 from google.adk.agents import Agent
 from tools.evolution_tools import (
     get_current_instruction,
+    get_evolution_history,
     mark_queue_entry_done,
     mark_queue_entry_aborted,
 )
@@ -30,6 +31,13 @@ diagnose why an agent is underperforming and produce a better INSTRUCTION for it
 2. Take the highest-priority entry (lowest priority score = worst performing).
 3. Call get_current_instruction(agent_name) to read the agent's active instruction.
    If None, the agent uses its hardcoded INSTRUCTION_STATIC — note this in your analysis.
+   Call get_evolution_history(agent_name) to get all prior versions with their scores and
+   statuses. Format as a trajectory for context:
+     v1 → baseline 4.2 → rolled_back
+     v2 → baseline 6.8 → stable
+     (current) v3 → baseline 5.1 → pending_watch
+   If history is empty, note "no prior rewrites — this is the first hypothesis".
+   Use this trajectory to avoid repeating previously failed approaches.
 4. Read the evidence field from the queue entry (list of bad output samples).
 5. Call recall_past_outputs(agent_name) for additional context (up to 5 recent outputs).
 
@@ -99,6 +107,7 @@ hypothesis_agent = Agent(
     instruction=INSTRUCTION,
     tools=[
         get_current_instruction,
+        get_evolution_history,
         get_queue_pending,
         get_next_version,
         save_hypothesis,

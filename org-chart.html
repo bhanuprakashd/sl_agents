@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AASS Agents Org Chart</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    padding: 32px 16px 64px;
+    min-width: 1200px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 40px;
+  }
+
+  /* ── ROOT ── */
+  .root-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+  .root-node {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 0 24px rgba(99,102,241,0.4);
+    position: relative;
+    z-index: 1;
+  }
+  .root-node .role { font-size: 10px; font-weight: 400; opacity: 0.8; margin-top: 2px; }
+
+  /* ── CONNECTOR FROM ROOT DOWN ── */
+  .root-stem {
+    display: flex;
+    justify-content: center;
+  }
+  .root-stem::before {
+    content: '';
+    width: 2px;
+    height: 28px;
+    background: #334155;
+    display: block;
+  }
+
+  /* ── DEPARTMENTS ROW ── */
+  .dept-connector {
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+  .dept-connector::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: #334155;
+  }
+  .dept-stems {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0 10%;
+  }
+  .dept-stem {
+    width: 2px;
+    height: 24px;
+    background: #334155;
+  }
+
+  /* ── DEPARTMENT COLUMNS ── */
+  .depts-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 0 4%;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .dept {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Dept header node */
+  .dept-node {
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+    max-width: 136px;
+    line-height: 1.3;
+    border: 1.5px solid;
+    position: relative;
+    z-index: 1;
+  }
+  .dept-node .tag {
+    font-size: 9px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-top: 2px;
+    display: block;
+  }
+
+  /* Color themes per dept */
+  .sales .dept-node      { background:#0f2d1f; border-color:#22c55e; color:#86efac; }
+  .marketing .dept-node  { background:#1a1a2e; border-color:#a78bfa; color:#c4b5fd; }
+  .product .dept-node    { background:#1c1917; border-color:#f97316; color:#fdba74; }
+  .engineering .dept-node{ background:#0c1a2e; border-color:#38bdf8; color:#7dd3fc; }
+  .research .dept-node   { background:#1e1a0e; border-color:#fbbf24; color:#fde68a; }
+  .qa .dept-node         { background:#1a0e1e; border-color:#e879f9; color:#f0abfc; }
+  .autoresearch .dept-node{ background:#0e1a1a; border-color:#2dd4bf; color:#5eead4; }
+  .skillforge .dept-node { background:#1a0e0e; border-color:#f87171; color:#fca5a5; }
+
+  /* stem under dept node */
+  .dept-inner-stem {
+    width: 2px;
+    height: 16px;
+    background: #334155;
+  }
+
+  /* agent list */
+  .agents {
+    width: 100%;
+    max-width: 136px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .agent {
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 10px;
+    color: #cbd5e1;
+    background: #1e293b;
+    border-left: 2px solid #334155;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .agent.shared {
+    background: #162032;
+    color: #64748b;
+    border-left-color: #1e3a5f;
+    font-style: italic;
+  }
+  .agent.new {
+    border-left-color: #f87171;
+    background: #1f1010;
+  }
+
+  /* color left border per dept */
+  .sales      .agent { border-left-color: #22c55e; }
+  .marketing  .agent { border-left-color: #a78bfa; }
+  .product    .agent { border-left-color: #f97316; }
+  .engineering .agent{ border-left-color: #38bdf8; }
+  .research   .agent { border-left-color: #fbbf24; }
+  .qa         .agent { border-left-color: #e879f9; }
+  .autoresearch .agent{ border-left-color: #2dd4bf; }
+  .skillforge .agent { border-left-color: #f87171; }
+
+  .shared-override { border-left-color: #334155 !important; }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #64748b;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  /* ── COUNTS ── */
+  .counts {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: #475569;
+  }
+  .counts span { color: #94a3b8; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>AASS Agents — Organization Chart</h1>
+<p class="subtitle">Google ADK multi-agent pipeline · company_orchestrator as root</p>
+
+<!-- ROOT -->
+<div class="root-row">
+  <div class="root-node">
+    company_orchestrator
+    <div class="role">Root · routes all requests</div>
+  </div>
+</div>
+<div class="root-stem"></div>
+
+<!-- HORIZONTAL BAR + STEMS -->
+<div class="dept-connector">
+  <div class="dept-stems">
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+    <div class="dept-stem"></div>
+  </div>
+</div>
+
+<!-- DEPARTMENTS -->
+<div class="depts-row">
+
+  <!-- SALES -->
+  <div class="dept sales">
+    <div class="dept-node">sales_orchestrator<span class="tag">Sales</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">lead_researcher</div>
+      <div class="agent">outreach_composer</div>
+      <div class="agent">sales_call_prep</div>
+      <div class="agent">objection_handler</div>
+      <div class="agent">proposal_generator</div>
+      <div class="agent">crm_updater</div>
+      <div class="agent">deal_analyst</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- MARKETING -->
+  <div class="dept marketing">
+    <div class="dept-node">marketing_orchestrator<span class="tag">Marketing</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">audience_builder</div>
+      <div class="agent">campaign_composer</div>
+      <div class="agent">content_strategist</div>
+      <div class="agent">seo_analyst</div>
+      <div class="agent">campaign_analyst</div>
+      <div class="agent">brand_voice</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- PRODUCT -->
+  <div class="dept product">
+    <div class="dept-node">product_orchestrator<span class="tag">Product</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">pm_agent</div>
+      <div class="agent">architect_agent</div>
+      <div class="agent">devops_agent</div>
+      <div class="agent">db_agent</div>
+      <div class="agent">backend_builder</div>
+      <div class="agent">frontend_builder</div>
+      <div class="agent">qa_agent</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- ENGINEERING -->
+  <div class="dept engineering">
+    <div class="dept-node">engineering_orchestrator<span class="tag">Engineering</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">solutions_architect</div>
+      <div class="agent">data_engineer</div>
+      <div class="agent">ml_engineer</div>
+      <div class="agent">systems_engineer</div>
+      <div class="agent">integration_engineer</div>
+      <div class="agent">platform_engineer</div>
+      <div class="agent">sdet</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- RESEARCH -->
+  <div class="dept research">
+    <div class="dept-node">research_orchestrator<span class="tag">Research</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">research_scientist</div>
+      <div class="agent">ml_researcher</div>
+      <div class="agent">applied_scientist</div>
+      <div class="agent">data_scientist</div>
+      <div class="agent">competitive_analyst</div>
+      <div class="agent">user_researcher</div>
+      <div class="agent">knowledge_manager</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- QA -->
+  <div class="dept qa">
+    <div class="dept-node">qa_orchestrator<span class="tag">QA</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">test_architect</div>
+      <div class="agent">test_automation_eng</div>
+      <div class="agent">performance_engineer</div>
+      <div class="agent">security_tester</div>
+      <div class="agent">qa_engineer</div>
+      <div class="agent">chaos_engineer</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- AUTORESEARCHER -->
+  <div class="dept autoresearch">
+    <div class="dept-node">autoresearcher_orchestrator<span class="tag">AutoResearch</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent">evaluator</div>
+      <div class="agent">hypothesis</div>
+      <div class="agent">rewriter</div>
+      <div class="agent">rollback_watchdog</div>
+      <div class="agent shared shared-override">reflection_agent</div>
+    </div>
+  </div>
+
+  <!-- SKILL FORGE -->
+  <div class="dept skillforge">
+    <div class="dept-node">skill_forge_orchestrator<span class="tag">Skill Forge ✦ new</span></div>
+    <div class="dept-inner-stem"></div>
+    <div class="agents">
+      <div class="agent new">intent_parser</div>
+      <div class="agent new">research_swarm</div>
+      <div class="agent new">expert_synthesizer</div>
+      <div class="agent new">skill_drafter</div>
+      <div class="agent new">critic_panel</div>
+      <div class="agent new">red_team</div>
+      <div class="agent new">iteration</div>
+      <div class="agent new">promoter</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Root orchestrator</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Sales</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Marketing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Product</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Engineering</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> Research</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e879f9"></div> QA</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div> AutoResearch</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Skill Forge (new)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1e293b; border:1px solid #334155"></div> Shared agent</div>
+</div>
+
+<div class="counts">
+  <span>1</span> root &nbsp;·&nbsp; <span>8</span> orchestrators &nbsp;·&nbsp; <span>55</span> specialist agents &nbsp;·&nbsp; <span>64</span> total nodes
+</div>
+
+</body>
+</html>

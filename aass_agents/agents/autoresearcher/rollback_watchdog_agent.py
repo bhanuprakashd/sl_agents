@@ -49,10 +49,11 @@ Your job is to evaluate pending rewrites and decide: keep (stable) or revert (ro
       → Call release_rewrite_lock(agent_name).
       → Log: "Version {version} marked stable by extended timeout (0 outputs in 72h)."
 
-   D. 1-4 outputs AND elapsed < 48h:
-      → Use available outputs for early decision (proceed to step 5).
+   D. 1-2 outputs AND elapsed < 48h:
+      → Too few samples. Skip this entry (wait for more invocations).
+      → Log: "Waiting — only N/3 minimum samples collected."
 
-   E. 5+ outputs OR elapsed ≥ 48h with ≥ 1 output:
+   E. ≥ 3 outputs OR elapsed ≥ 48h with ≥ 1 output:
       → Proceed to step 5 for normal decision.
 
 5. Compute avg_post = mean(post_rewrite_scores).

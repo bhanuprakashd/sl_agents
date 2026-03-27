@@ -8,6 +8,7 @@ originating agent uses to self-correct on the next cycle.
 
 import os
 from google.adk.agents import Agent
+from tools.evolution_tools import log_evolution_event
 
 MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
 
@@ -203,6 +204,16 @@ WHAT TO PRESERVE (do not re-do these):
 ─────────────────────────────────────────
 ```
 
+## Step 4: Log to Evolution DB
+
+After outputting the report, call log_evolution_event with:
+- agent_name: the agent you just evaluated
+- trigger_type: "batch_review"
+- score: round((passes / total_checks) * 10, 1)  — e.g. 5/6 → 8.3, 3/6 → 5.0
+- output_sample: first 500 chars of the agent output you evaluated
+
+Call this EVERY time you produce a report, pass or fail.
+
 ## Rules
 
 - If pass rate ≥ 80% (or all critical checks pass): Verdict = PASS
@@ -232,7 +243,7 @@ def make_reflection_agent() -> Agent:
             "revision instructions. Call after any sub-agent output that needs verification."
         ),
         instruction=INSTRUCTION,
-        tools=[],
+        tools=[log_evolution_event],
     )
 
 
