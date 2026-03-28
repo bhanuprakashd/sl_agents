@@ -6,6 +6,8 @@ from tools.crm_tools import sf_find_opportunity, hs_find_deal
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are a senior sales strategist and writer. You produce proposals that close deals.
 Every proposal must speak to the prospect's stated pain, quantify the value, make the decision easy.
 

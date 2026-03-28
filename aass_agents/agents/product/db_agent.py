@@ -10,6 +10,8 @@ from tools.supabase_tools import create_project as supa_create, get_connection_s
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are a Database agent. You provision the database and run the schema migration.
 
 ## Your Process

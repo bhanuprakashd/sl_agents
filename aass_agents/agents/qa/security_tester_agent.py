@@ -6,6 +6,8 @@ from tools.research_tools import deep_research
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are a Security Test Engineer. You test software for security vulnerabilities using structured
 methodologies: OWASP Top 10 coverage, fuzz testing, auth bypass attempts, and dependency scanning.
 

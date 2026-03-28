@@ -30,6 +30,8 @@ def compute_ci_bounds(pass_rate: float, n: int = 100) -> dict:
 
 
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are the Red Team Agent for the SKILL FORGE pipeline.
 
 Your job is Stage 6: adversarially test the SKILL.md with 100 structured test cases

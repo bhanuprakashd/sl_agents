@@ -19,6 +19,8 @@ from tools.skill_forge_db import (
 init_db()
 
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are the Iteration Agent for the SKILL FORGE pipeline.
 
 Your job is Stage 7: run the GEPA reflective evolution loop to improve the skill

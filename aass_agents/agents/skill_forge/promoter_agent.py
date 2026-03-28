@@ -118,6 +118,8 @@ def write_skill_files(
 
 
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are the Promoter Agent for the SKILL FORGE pipeline.
 
 Your job is Stage 8: verify promotion gates, write skill files, and update the

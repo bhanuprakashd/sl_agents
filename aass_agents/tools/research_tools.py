@@ -35,7 +35,7 @@ def search_company_web(company_name: str, query_suffix: str = "") -> dict:
     Returns:
         dict with search results and snippets
     """
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 
     query = f"{company_name} {query_suffix}".strip()
     results = []
@@ -73,7 +73,7 @@ def search_news(company_name: str, days_back: int = 180) -> dict:
     Returns:
         dict with news articles sorted by recency
     """
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 
     # Map days_back to DDG timelimit: d=day, w=week, m=month, y=year
     if days_back <= 7:
@@ -121,7 +121,7 @@ def enrich_company(domain: str) -> dict:
     Returns:
         dict with enriched company data
     """
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 
     company_name = domain.split(".")[0].capitalize()
     result: dict = {"domain": domain, "name": company_name}
@@ -185,7 +185,7 @@ def find_contacts(company_domain: str, title_filter: Optional[str] = None) -> di
     Returns:
         dict with list of matching contacts
     """
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 
     company_name = company_domain.split(".")[0]
     default_titles = ["VP Sales", "Director Sales", "CRO", "VP Marketing", "CEO", "CTO", "Head of Revenue"]
@@ -317,7 +317,7 @@ def deep_research(query: str) -> dict:
     except Exception as exc:
         # Fallback: DuckDuckGo
         try:
-            from duckduckgo_search import DDGS
+            from ddgs import DDGS
             results = []
             with DDGS() as ddgs:
                 for r in ddgs.text(query, max_results=8):

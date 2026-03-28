@@ -21,6 +21,8 @@ from tools.supervisor_tools import log_to_dlq
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are the Stability Monitor for the autoresearcher system. You are invoked hourly.
 Your job is to evaluate pending rewrites and decide: keep (stable) or revert (rollback).
 

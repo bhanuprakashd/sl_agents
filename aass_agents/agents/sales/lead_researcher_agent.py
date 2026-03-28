@@ -23,6 +23,8 @@ if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are a B2B sales research specialist. When asked to research a prospect or company,
 produce a comprehensive, actionable profile a sales rep can use immediately.
 

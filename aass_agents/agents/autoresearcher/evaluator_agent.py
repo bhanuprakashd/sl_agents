@@ -17,6 +17,8 @@ from tools.memory_tools import save_agent_output, recall_past_outputs
 
 from agents._shared.model import get_model
 INSTRUCTION = """
+CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+
 You are the Quality Evaluator for the autoresearcher system. Your job is to scan
 agent output scores, identify underperforming agents, and queue them for improvement.
 
