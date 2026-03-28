@@ -12,9 +12,10 @@ Then open: http://localhost:8080
 import asyncio
 import json
 import os
+import time
 import uuid
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional as Opt
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -29,11 +30,23 @@ from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 
 from main import root_agent
-from tools.supervisor_db import init_supervisor_tables
+from tools.supervisor_db import (
+    init_supervisor_tables,
+    _get_conn as sup_conn,
+    get_circuit,
+    upsert_circuit,
+    list_dlq_entries,
+    get_run,
+    AGENT_TTL_DAYS,
+)
+from tools.skill_forge_db import SKILL_FORGE_DB_PATH
+from tools.evolution_db import EVOLUTION_DB_PATH
 
 init_supervisor_tables()
 
 app = FastAPI(title="SL Agents API", docs_url="/api/docs")
+
+_start_time = time.time()
 
 app.add_middleware(
     CORSMiddleware,
@@ -164,6 +177,64 @@ async def get_status():
         "status": "running",
         "model": os.getenv("MODEL_ID", "gemini-2.0-flash"),
         "agent": root_agent.name,
+    }
+
+
+# ── Task 1: Expanded status & supervisor stats ────────────────────────────────
+
+@app.get("/api/status/live")
+async def status_live():
+    """Expanded status for the top bar."""
+    conn = sup_conn()
+    try:
+        active_runs = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_runs WHERE status IN ('pending', 'running')"
+        ).fetchone()[0]
+        open_breakers = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_circuit_breakers WHERE state = 'open'"
+        ).fetchone()[0]
+        dlq_count = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_dlq"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    return {
+        "status": "operational",
+        "model": os.getenv("MODEL_ID", "gemini-2.0-flash"),
+        "agent": "company_orchestrator",
+        "agent_count": 62,
+        "department_count": 9,
+        "active_runs": active_runs,
+        "open_breakers": open_breakers,
+        "dlq_count": dlq_count,
+        "uptime_seconds": int(time.time() - _start_time),
+    }
+
+
+@app.get("/api/supervisor/stats")
+async def supervisor_stats():
+    """KPI summary for the dashboard command center."""
+    conn = sup_conn()
+    try:
+        active_runs = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_runs WHERE status IN ('pending', 'running')"
+        ).fetchone()[0]
+        open_breakers = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_circuit_breakers WHERE state = 'open'"
+        ).fetchone()[0]
+        dlq_count = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_dlq"
+        ).fetchone()[0]
+        events_24h = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_events WHERE created_at > datetime('now', '-1 day')"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    return {
+        "active_runs": active_runs,
+        "open_breakers": open_breakers,
+        "dlq_count": dlq_count,
+        "events_24h": events_24h,
     }
 
 
