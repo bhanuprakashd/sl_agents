@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GTM Agent Team — Architecture</title>
+<title>SL Agent OS — Architecture</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -163,12 +163,13 @@
 <header>
   <div class="logo">🚀</div>
   <div>
-    <h1>GTM Agent Team</h1>
-    <p>Sales + Marketing · Google ADK · Full Revenue Cycle</p>
+    <h1>SL Agent OS</h1>
+    <p>8 Departments · 60+ Agents · Google ADK · Autonomous Company Operations</p>
   </div>
   <div class="badges">
-    <span class="badge badge-sales">Sales Team · 8 agents</span>
-    <span class="badge badge-mkt">Marketing Team · 6 agents</span>
+    <span class="badge badge-sales">8 Orchestrators</span>
+    <span class="badge badge-mkt">60+ Specialists</span>
+    <span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">FastAPI · SSE · Claude Code</span>
   </div>
 </header>
 
@@ -188,208 +189,132 @@
 <!-- ══════════════ ARCHITECTURE ══════════════ -->
 <div id="architecture" class="tab-content active">
   <div class="section-label">System Design</div>
-  <h2>GTM Architecture</h2>
-  <p class="subtitle">A Company Orchestrator coordinates two autonomous teams — Sales and Marketing — with structured handoff protocols and shared long-term memory.</p>
+  <h2>SL Agent OS Architecture</h2>
+  <p class="subtitle">A Company Orchestrator coordinates eight autonomous departments — Sales, Marketing, Product, Engineering, Research, QA, Autoresearcher, and Skill Forge — with structured handoff protocols and shared memory.</p>
 
   <div id="arch-diagram">
-    <svg width="960" height="640" viewBox="0 0 960 640" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+    <svg width="960" height="560" viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
       <defs>
         <marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#4b5563"/></marker>
-        <marker id="arr-s" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#3b82f6"/></marker>
-        <marker id="arr-m" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#a855f7"/></marker>
+        <marker id="arr-i" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#6366f1"/></marker>
         <marker id="arr-g" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#22c55e"/></marker>
-        <marker id="arr-r" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#ef4444"/></marker>
       </defs>
 
-      <!-- USER -->
-      <rect x="380" y="8" width="200" height="40" rx="20" fill="#1e2332" stroke="#4b5563" stroke-width="1.5"/>
-      <text x="480" y="25" text-anchor="middle" fill="#9ca3af" font-size="9" font-weight="700" letter-spacing="1">USER / GTM TEAM</text>
-      <text x="480" y="40" text-anchor="middle" fill="#e2e8f0" font-size="12">Sales Rep · Marketer · Manager</text>
+      <!-- COMPANY ORCHESTRATOR (center hub) -->
+      <rect x="330" y="36" width="300" height="64" rx="14" fill="#1a1340" stroke="#6366f1" stroke-width="2.5"/>
+      <text x="480" y="58" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="700" letter-spacing="1">COMPANY ORCHESTRATOR</text>
+      <text x="480" y="76" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="700">company_orchestrator</text>
+      <text x="480" y="92" text-anchor="middle" fill="#6b7280" font-size="10">Routes · Coordinates · Delegates · Synthesizes</text>
 
-      <!-- Arrow: user → company orch -->
-      <line x1="480" y1="48" x2="480" y2="80" stroke="#4b5563" stroke-width="1.5" marker-end="url(#arr)"/>
+      <!-- ── ROW 1 department boxes ── -->
 
-      <!-- COMPANY ORCHESTRATOR (tier 1) -->
-      <rect x="290" y="82" width="380" height="56" rx="12" fill="#1a1340" stroke="#6366f1" stroke-width="2"/>
-      <text x="480" y="103" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="700" letter-spacing="1">COMPANY GTM ORCHESTRATOR</text>
-      <text x="480" y="120" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">company_orchestrator</text>
-      <text x="480" y="134" text-anchor="middle" fill="#6b7280" font-size="10">Routes · MQL Handoff · Win/Loss Feedback · GTM Card</text>
+      <!-- Sales (col 1, row 1) -->
+      <line x1="380" y1="100" x2="116" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
+      <rect x="14" y="150" width="200" height="80" rx="10" fill="#0d1a38" stroke="#3b82f6" stroke-width="1.8"/>
+      <text x="114" y="170" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700" letter-spacing="1">SALES</text>
+      <text x="114" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">sales_orchestrator</text>
+      <text x="114" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · research · outreach</text>
+      <text x="114" y="214" text-anchor="middle" fill="#6b7280" font-size="9">calls · CRM · proposals</text>
 
-      <!-- Arrow: orch → sales orch -->
-      <path d="M400,138 Q280,160 240,186" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arr-s)"/>
-      <!-- Arrow: orch → mkt orch -->
-      <path d="M560,138 Q680,160 720,186" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#arr-m)"/>
+      <!-- Marketing (col 2, row 1) -->
+      <line x1="420" y1="100" x2="334" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
+      <rect x="232" y="150" width="200" height="80" rx="10" fill="#1a0a38" stroke="#a855f7" stroke-width="1.8"/>
+      <text x="332" y="170" text-anchor="middle" fill="#c084fc" font-size="9" font-weight="700" letter-spacing="1">MARKETING</text>
+      <text x="332" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">marketing_orchestrator</text>
+      <text x="332" y="200" text-anchor="middle" fill="#6b7280" font-size="9">7 agents · campaigns · content</text>
+      <text x="332" y="214" text-anchor="middle" fill="#6b7280" font-size="9">SEO · brand · audience</text>
 
-      <!-- SALES ORCHESTRATOR (tier 2 left) -->
-      <rect x="80" y="188" width="300" height="52" rx="10" fill="#0d1a38" stroke="#3b82f6" stroke-width="1.8"/>
-      <text x="230" y="207" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="700" letter-spacing="1">SALES ORCHESTRATOR</text>
-      <text x="230" y="223" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">sales_orchestrator</text>
-      <text x="230" y="236" text-anchor="middle" fill="#6b7280" font-size="10">Research · Outreach · Calls · CRM · Pipeline</text>
+      <!-- Product (col 3, row 1) -->
+      <line x1="540" y1="100" x2="626" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
+      <rect x="524" y="150" width="200" height="80" rx="10" fill="#071a12" stroke="#10b981" stroke-width="1.8"/>
+      <text x="624" y="170" text-anchor="middle" fill="#6ee7b7" font-size="9" font-weight="700" letter-spacing="1">PRODUCT</text>
+      <text x="624" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">product_orchestrator</text>
+      <text x="624" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · PM · frontend</text>
+      <text x="624" y="214" text-anchor="middle" fill="#6b7280" font-size="9">backend · DB · DevOps · QA</text>
 
-      <!-- MARKETING ORCHESTRATOR (tier 2 right) -->
-      <rect x="580" y="188" width="300" height="52" rx="10" fill="#1a0a38" stroke="#a855f7" stroke-width="1.8"/>
-      <text x="730" y="207" text-anchor="middle" fill="#c084fc" font-size="10" font-weight="700" letter-spacing="1">MARKETING ORCHESTRATOR</text>
-      <text x="730" y="223" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">marketing_orchestrator</text>
-      <text x="730" y="236" text-anchor="middle" fill="#6b7280" font-size="10">Audience · Campaigns · Content · SEO · Analytics</text>
+      <!-- Engineering (col 4, row 1) -->
+      <line x1="580" y1="100" x2="844" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
+      <rect x="742" y="150" width="204" height="80" rx="10" fill="#1a1305" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="844" y="170" text-anchor="middle" fill="#fcd34d" font-size="9" font-weight="700" letter-spacing="1">ENGINEERING</text>
+      <text x="844" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">engineering_orchestrator</text>
+      <text x="844" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · solutions arch</text>
+      <text x="844" y="214" text-anchor="middle" fill="#6b7280" font-size="9">data · ML · platform · SDET</text>
 
-      <!-- SALES AGENTS (tier 3 left) — 7 agents -->
-      <!-- x: 28, 108, 188, 268, 348, 28+320=348... let me spread 7 agents -->
-      <!-- positions: x = 16,96,176,256,336 for 5, then 16,96 for 2 more = 7 at y=296 & y=370 -->
-      <!-- Actually let me do 4 top row + 3 bottom row -->
-      <!-- Row 1: 4 agents at y=296 -->
-      <!-- Row 2: 3 agents at y=364 -->
+      <!-- ── ROW 2 department boxes ── -->
 
-      <!-- arrows from sales orch to agents -->
-      <line x1="130" y1="240" x2="50" y2="288" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="175" y1="240" x2="145" y2="288" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="220" y1="240" x2="235" y2="288" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="265" y1="240" x2="320" y2="288" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="310" y1="240" x2="54" y2="358" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="325" y1="240" x2="144" y2="358" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
-      <line x1="345" y1="240" x2="234" y2="358" stroke="#3b82f6" stroke-width="1" marker-end="url(#arr-s)" opacity="0.6"/>
+      <!-- Research (col 1, row 2) -->
+      <line x1="380" y1="100" x2="116" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
+      <rect x="14" y="350" width="200" height="80" rx="10" fill="#041a1a" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="114" y="370" text-anchor="middle" fill="#5eead4" font-size="9" font-weight="700" letter-spacing="1">RESEARCH</text>
+      <text x="114" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">research_orchestrator</text>
+      <text x="114" y="400" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · science · ML</text>
+      <text x="114" y="414" text-anchor="middle" fill="#6b7280" font-size="9">data science · competitive</text>
 
-      <!-- Sales agents row 1 (4) -->
-      <rect x="14" y="290" width="72" height="54" rx="8" fill="#0a1828" stroke="#3b82f6" stroke-width="1"/>
-      <text x="50" y="310" text-anchor="middle" fill="#3b82f6" font-size="14">🔍</text>
-      <text x="50" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Lead</text>
-      <text x="50" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Researcher</text>
+      <!-- QA (col 2, row 2) -->
+      <line x1="430" y1="100" x2="332" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
+      <rect x="232" y="350" width="200" height="80" rx="10" fill="#1a0505" stroke="#ef4444" stroke-width="1.8"/>
+      <text x="332" y="370" text-anchor="middle" fill="#fca5a5" font-size="9" font-weight="700" letter-spacing="1">QA</text>
+      <text x="332" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">qa_orchestrator</text>
+      <text x="332" y="400" text-anchor="middle" fill="#6b7280" font-size="9">7 agents · test arch</text>
+      <text x="332" y="414" text-anchor="middle" fill="#6b7280" font-size="9">automation · perf · security</text>
 
-      <rect x="104" y="290" width="72" height="54" rx="8" fill="#1a1505" stroke="#f59e0b" stroke-width="1"/>
-      <text x="140" y="310" text-anchor="middle" fill="#f59e0b" font-size="14">✉️</text>
-      <text x="140" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Outreach</text>
-      <text x="140" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Composer</text>
+      <!-- Autoresearcher (col 3, row 2) -->
+      <line x1="530" y1="100" x2="624" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
+      <rect x="524" y="350" width="200" height="80" rx="10" fill="#1a0d02" stroke="#f97316" stroke-width="1.8"/>
+      <text x="624" y="370" text-anchor="middle" fill="#fdba74" font-size="9" font-weight="700" letter-spacing="1">AUTORESEARCHER</text>
+      <text x="624" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">autoresearcher_orchestrator</text>
+      <text x="624" y="400" text-anchor="middle" fill="#6b7280" font-size="9">5 agents · hypothesis</text>
+      <text x="624" y="414" text-anchor="middle" fill="#6b7280" font-size="9">eval · rewrite · watchdog</text>
 
-      <rect x="194" y="290" width="72" height="54" rx="8" fill="#0a1828" stroke="#3b82f6" stroke-width="1"/>
-      <text x="230" y="310" text-anchor="middle" fill="#3b82f6" font-size="14">📋</text>
-      <text x="230" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Call</text>
-      <text x="230" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Prep</text>
+      <!-- Skill Forge (col 4, row 2) -->
+      <line x1="570" y1="100" x2="844" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
+      <rect x="742" y="350" width="204" height="80" rx="10" fill="#0e0c1a" stroke="#6366f1" stroke-width="1.8"/>
+      <text x="844" y="370" text-anchor="middle" fill="#a5b4fc" font-size="9" font-weight="700" letter-spacing="1">SKILL FORGE</text>
+      <text x="844" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">forge_orchestrator</text>
+      <text x="844" y="400" text-anchor="middle" fill="#6b7280" font-size="9">9 agents · intent parse</text>
+      <text x="844" y="414" text-anchor="middle" fill="#6b7280" font-size="9">research · draft · critique · promote</text>
 
-      <rect x="284" y="290" width="72" height="54" rx="8" fill="#1a0e05" stroke="#f97316" stroke-width="1"/>
-      <text x="320" y="310" text-anchor="middle" fill="#f97316" font-size="14">🛡️</text>
-      <text x="320" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Objection</text>
-      <text x="320" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Handler</text>
+      <!-- SHARED MEMORY (bottom center) -->
+      <rect x="240" y="460" width="260" height="44" rx="10" fill="#0a1505" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="370" y="480" text-anchor="middle" fill="#22c55e" font-size="9" font-weight="700" letter-spacing="1">SHARED MEMORY</text>
+      <text x="370" y="496" text-anchor="middle" fill="#86efac" font-size="9">deal_memory · query_history · skill_forge.db</text>
 
-      <!-- Sales agents row 2 (3) -->
-      <rect x="14" y="360" width="72" height="54" rx="8" fill="#150a2a" stroke="#a855f7" stroke-width="1"/>
-      <text x="50" y="380" text-anchor="middle" fill="#a855f7" font-size="14">📄</text>
-      <text x="50" y="395" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Proposal</text>
-      <text x="50" y="407" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Generator</text>
+      <!-- CLAUDE CODE (bottom right) -->
+      <rect x="524" y="460" width="220" height="44" rx="10" fill="#0e0c1a" stroke="#6366f1" stroke-width="1.5"/>
+      <text x="634" y="480" text-anchor="middle" fill="#a5b4fc" font-size="9" font-weight="700" letter-spacing="1">CLAUDE CODE EXECUTION</text>
+      <text x="634" y="496" text-anchor="middle" fill="#818cf8" font-size="9">build_and_run · open_in_browser · subprocess</text>
 
-      <rect x="104" y="360" width="72" height="54" rx="8" fill="#041a18" stroke="#14b8a6" stroke-width="1"/>
-      <text x="140" y="380" text-anchor="middle" fill="#14b8a6" font-size="14">🗄️</text>
-      <text x="140" y="395" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">CRM</text>
-      <text x="140" y="407" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Updater</text>
-
-      <rect x="194" y="360" width="72" height="54" rx="8" fill="#1a0514" stroke="#ec4899" stroke-width="1"/>
-      <text x="230" y="380" text-anchor="middle" fill="#ec4899" font-size="14">📊</text>
-      <text x="230" y="395" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Deal</text>
-      <text x="230" y="407" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Analyst</text>
-
-      <!-- Reflection agent (below sales orch, right side) -->
-      <rect x="320" y="360" width="72" height="54" rx="8" fill="#1a0a0a" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,2"/>
-      <text x="356" y="380" text-anchor="middle" fill="#ef4444" font-size="14">🔁</text>
-      <text x="356" y="395" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="600">Reflection</text>
-      <text x="356" y="407" text-anchor="middle" fill="#fca5a5" font-size="10">Agent</text>
-
-      <!-- MARKETING AGENTS (tier 3 right) -->
-      <!-- arrows from marketing orch -->
-      <line x1="640" y1="240" x2="624" y2="288" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-      <line x1="685" y1="240" x2="714" y2="288" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-      <line x1="730" y1="240" x2="804" y2="288" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-      <line x1="775" y1="240" x2="894" y2="288" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-      <line x1="800" y1="240" x2="624" y2="358" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-      <line x1="820" y1="240" x2="714" y2="358" stroke="#a855f7" stroke-width="1" marker-end="url(#arr-m)" opacity="0.6"/>
-
-      <!-- Marketing agents row 1 (4) -->
-      <rect x="584" y="290" width="72" height="54" rx="8" fill="#0d1a2e" stroke="#10b981" stroke-width="1"/>
-      <text x="620" y="310" text-anchor="middle" fill="#10b981" font-size="14">🎯</text>
-      <text x="620" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Audience</text>
-      <text x="620" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Builder</text>
-
-      <rect x="674" y="290" width="72" height="54" rx="8" fill="#1a1505" stroke="#f59e0b" stroke-width="1"/>
-      <text x="710" y="310" text-anchor="middle" fill="#f59e0b" font-size="14">📣</text>
-      <text x="710" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Campaign</text>
-      <text x="710" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Composer</text>
-
-      <rect x="764" y="290" width="72" height="54" rx="8" fill="#0a1828" stroke="#3b82f6" stroke-width="1"/>
-      <text x="800" y="310" text-anchor="middle" fill="#3b82f6" font-size="14">✍️</text>
-      <text x="800" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Content</text>
-      <text x="800" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Strategist</text>
-
-      <rect x="854" y="290" width="72" height="54" rx="8" fill="#0d1a2e" stroke="#14b8a6" stroke-width="1"/>
-      <text x="890" y="310" text-anchor="middle" fill="#14b8a6" font-size="14">🔎</text>
-      <text x="890" y="325" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">SEO</text>
-      <text x="890" y="337" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Analyst</text>
-
-      <!-- Marketing agents row 2 (2) -->
-      <rect x="584" y="360" width="72" height="54" rx="8" fill="#1a0514" stroke="#ec4899" stroke-width="1"/>
-      <text x="620" y="380" text-anchor="middle" fill="#ec4899" font-size="14">📈</text>
-      <text x="620" y="395" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Campaign</text>
-      <text x="620" y="407" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Analyst</text>
-
-      <rect x="674" y="360" width="72" height="54" rx="8" fill="#1a1505" stroke="#f97316" stroke-width="1"/>
-      <text x="710" y="380" text-anchor="middle" fill="#f97316" font-size="14">🎨</text>
-      <text x="710" y="395" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Brand</text>
-      <text x="710" y="407" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="600">Voice</text>
-
-      <!-- HANDOFF arrows (between teams) -->
-      <!-- MQL: Marketing → Sales -->
-      <path d="M580,214 Q480,250 380,214" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arr-g)"/>
-      <rect x="420" y="228" width="120" height="20" rx="10" fill="#0a1505" stroke="#22c55e" stroke-width="1"/>
-      <text x="480" y="242" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="700">MQL HANDOFF →</text>
-
-      <!-- Win/Loss: Sales → Marketing -->
-      <path d="M380,224 Q480,268 580,224" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arr)"/>
-      <rect x="420" y="254" width="120" height="20" rx="10" fill="#1a1505" stroke="#f59e0b" stroke-width="1"/>
-      <text x="480" y="268" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="700">← WIN/LOSS</text>
-
-      <!-- TOOLS ROW -->
-      <rect x="14" y="432" width="378" height="38" rx="8" fill="#14102a" stroke="#7c3aed" stroke-width="1"/>
-      <text x="203" y="447" text-anchor="middle" fill="#a78bfa" font-size="9" font-weight="700" letter-spacing="1">SALES TOOLS</text>
-      <text x="203" y="462" text-anchor="middle" fill="#8b5cf6" font-size="9">sf_find · sf_update · sf_log_call · hs_find_deal · hs_update_deal · hs_create_task</text>
-
-      <rect x="404" y="432" width="542" height="38" rx="8" fill="#0a1a20" stroke="#0d9488" stroke-width="1"/>
-      <text x="675" y="447" text-anchor="middle" fill="#5eead4" font-size="9" font-weight="700" letter-spacing="1">MARKETING + RESEARCH TOOLS</text>
-      <text x="675" y="462" text-anchor="middle" fill="#14b8a6" font-size="9">search_company_web · search_news · find_contacts · get_trending_topics · search_competitor_content · fetch_rss_feed · search_audience_communities</text>
-
-      <!-- MEMORY STORE (bottom) -->
-      <rect x="280" y="490" width="400" height="48" rx="10" fill="#0a1505" stroke="#22c55e" stroke-width="1.5"/>
-      <text x="480" y="510" text-anchor="middle" fill="#22c55e" font-size="9" font-weight="700" letter-spacing="1">SHARED LONG-TERM MEMORY</text>
-      <text x="480" y="525" text-anchor="middle" fill="#86efac" font-size="11">SQLite · deal_memory · query_history · Both teams read/write</text>
-      <text x="480" y="538" text-anchor="middle" fill="#4ade80" font-size="9">save_deal_context · recall_deal_context · save_agent_output · recall_past_outputs</text>
-
-      <!-- Memory arrows -->
-      <path d="M290,138 Q200,300 282,488" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-g)" opacity="0.6"/>
-      <path d="M670,138 Q760,300 678,488" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-g)" opacity="0.6"/>
-
-      <!-- LEGEND -->
-      <rect x="14" y="555" width="932" height="76" rx="8" fill="#1a1d27" stroke="#2e3347" stroke-width="1"/>
-      <text x="30" y="573" fill="#6b7280" font-size="10" font-weight="700">LEGEND</text>
-      <circle cx="80" cy="584" r="5" fill="#6366f1"/>
-      <text x="90" y="588" fill="#9ca3af" font-size="10">GTM Orchestrator</text>
-      <circle cx="200" cy="584" r="5" fill="#3b82f6"/>
-      <text x="210" y="588" fill="#9ca3af" font-size="10">Sales Team</text>
-      <circle cx="295" cy="584" r="5" fill="#a855f7"/>
-      <text x="305" y="588" fill="#9ca3af" font-size="10">Marketing Team</text>
-      <circle cx="415" cy="584" r="5" fill="#22c55e"/>
-      <text x="425" y="588" fill="#9ca3af" font-size="10">Shared Memory</text>
-      <line x1="510" y1="580" x2="540" y2="580" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
-      <text x="548" y="588" fill="#9ca3af" font-size="10">MQL Handoff</text>
-      <line x1="630" y1="580" x2="660" y2="580" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
-      <text x="668" y="588" fill="#9ca3af" font-size="10">Win/Loss Feedback</text>
-      <line x1="780" y1="580" x2="810" y2="580" stroke="#4b5563" stroke-width="1.5" stroke-dasharray="4,2"/>
-      <text x="818" y="588" fill="#9ca3af" font-size="10">Reflection gate</text>
-
-      <text x="30" y="608" fill="#9ca3af" font-size="10">Teams share: ICP data · Prospect research · Customer profiles · Objection insights · Win/loss reasons · Campaign context</text>
+      <!-- memory arrows from orch -->
+      <path d="M410,100 Q310,400 242,460" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-g)" opacity="0.5"/>
+      <path d="M550,100 Q640,400 632,458" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-i)" opacity="0.5"/>
     </svg>
   </div>
 
+  <div style="display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)">
+    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:0.05em">Claude Code Execution</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">build_and_run · open_in_browser · subprocess</div>
+    </div>
+    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#4ade80;letter-spacing:0.05em">SQLite Memory</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">deal_memory · query_history · skill_forge.db</div>
+    </div>
+    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#93c5fd;letter-spacing:0.05em">FastAPI + SSE</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">REST API · live streaming · dashboard</div>
+    </div>
+    <div style="flex:1;padding:12px 18px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#fcd34d;letter-spacing:0.05em">OpenRouter LiteLLM</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">nemotron-3-super · gemini-2.0-flash fallback</div>
+    </div>
+  </div>
+
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-num" style="color:var(--indigo-light)">3</div><div class="stat-label">Orchestrators</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--sales)">8</div><div class="stat-label">Sales Agents</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--marketing)">6</div><div class="stat-label">Marketing Agents</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--emerald)">18</div><div class="stat-label">Tools</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">$0</div><div class="stat-label">Required API Cost</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--indigo-light)">9</div><div class="stat-label">Orchestrators</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--blue)">60+</div><div class="stat-label">Specialist Agents</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--emerald)">8</div><div class="stat-label">Departments</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">30+</div><div class="stat-label">Tools</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">SSE</div><div class="stat-label">Live Streaming</div></div>
   </div>
 </div>
 
@@ -397,12 +322,18 @@
 <div id="agents" class="tab-content">
   <div class="section-label">Agent Reference</div>
   <h2>All Agents</h2>
-  <p class="subtitle">17 agents across Sales, Marketing, and shared infrastructure.</p>
+  <p class="subtitle">60+ agents across 8 departments — all coordinated by a single Company Orchestrator.</p>
   <div class="team-filter">
-    <button class="filter-btn active-all" onclick="filterAgents('all',this)">All (17)</button>
-    <button class="filter-btn" onclick="filterAgents('meta',this)">Orchestrators (3)</button>
-    <button class="filter-btn" onclick="filterAgents('sales',this)">Sales Team (8)</button>
-    <button class="filter-btn" onclick="filterAgents('marketing',this)">Marketing Team (6)</button>
+    <button class="filter-btn active-all" onclick="filterAgents('all',this)">All (60+)</button>
+    <button class="filter-btn" onclick="filterAgents('meta',this)">Orchestrators (9)</button>
+    <button class="filter-btn" onclick="filterAgents('sales',this)">Sales (8)</button>
+    <button class="filter-btn" onclick="filterAgents('marketing',this)">Marketing (7)</button>
+    <button class="filter-btn" onclick="filterAgents('product',this)">Product (8)</button>
+    <button class="filter-btn" onclick="filterAgents('engineering',this)">Engineering (8)</button>
+    <button class="filter-btn" onclick="filterAgents('research',this)">Research (8)</button>
+    <button class="filter-btn" onclick="filterAgents('qa',this)">QA (7)</button>
+    <button class="filter-btn" onclick="filterAgents('autoresearcher',this)">Autoresearcher (5)</button>
+    <button class="filter-btn" onclick="filterAgents('forge',this)">Skill Forge (9)</button>
   </div>
   <div class="agents-grid" id="agents-grid"></div>
 </div>
@@ -451,6 +382,70 @@
       </div>
       <div style="margin-top:14px;font-size:12px;color:var(--muted)">Routes to: <strong>audience_builder</strong> (ICP update) · <strong>content_strategist</strong> (case study or objection content) · <strong>campaign_composer</strong> (messaging fix)</div>
     </div>
+
+    <div class="handoff-card" style="border-color:rgba(20,184,166,0.3)">
+      <div class="handoff-title">
+        <span class="handoff-arrow">🟦</span>
+        Research → Sales / Marketing
+        <span style="font-size:12px;background:rgba(20,184,166,0.1);color:#5eead4;padding:2px 10px;border-radius:20px;border:1px solid rgba(20,184,166,0.3)">Competitive Intelligence</span>
+      </div>
+      <p class="handoff-desc">Triggered when <strong>competitive_analyst_agent</strong> or <strong>research_scientist_agent</strong> produces a validated intelligence package. Passes through reflection_agent quality gate before routing. Sales receives battle cards; Marketing receives messaging update briefs.</p>
+      <div class="handoff-fields">
+        <div class="handoff-field" style="border-color:#14b8a6">Competitor name · product comparison · pricing data</div>
+        <div class="handoff-field" style="border-color:#14b8a6">Differentiators + weaknesses to exploit</div>
+        <div class="handoff-field" style="border-color:#3b82f6">Sales: battle card — objection responses per competitor</div>
+        <div class="handoff-field" style="border-color:#a855f7">Marketing: positioning + messaging update brief</div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Requires reflection-check before routing. Routes to <strong>objection_handler_agent</strong> (sales) and <strong>brand_voice_agent</strong> + <strong>campaign_composer_agent</strong> (marketing).</div>
+    </div>
+
+    <div class="handoff-card" style="border-color:rgba(16,185,129,0.3)">
+      <div class="handoff-title">
+        <span class="handoff-arrow">🟩</span>
+        Product → Marketing
+        <span style="font-size:12px;background:rgba(16,185,129,0.1);color:#6ee7b7;padding:2px 10px;border-radius:20px;border:1px solid rgba(16,185,129,0.3)">GTM Auto-Trigger</span>
+      </div>
+      <p class="handoff-desc">When <strong>product_orchestrator</strong> ships a feature or product, it auto-routes to <strong>marketing_orchestrator</strong> with a structured GTM brief. Marketing launches a coordinated campaign without manual handoff.</p>
+      <div class="handoff-fields">
+        <div class="handoff-field" style="border-color:#10b981">product_name · live_url · version</div>
+        <div class="handoff-field" style="border-color:#10b981">core_features (list) · target_persona</div>
+        <div class="handoff-field" style="border-color:#f59e0b">technical_summary — for content_strategist</div>
+        <div class="handoff-field" style="border-color:#a855f7">suggested_campaign_angle · launch_priority</div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Triggers: <strong>campaign_composer_agent</strong> (launch copy) · <strong>content_strategist_agent</strong> (blog/docs) · <strong>seo_analyst_agent</strong> (keyword targeting)</div>
+    </div>
+
+    <div class="handoff-card" style="border-color:rgba(239,68,68,0.3)">
+      <div class="handoff-title">
+        <span class="handoff-arrow">🔴</span>
+        QA → Engineering / Product
+        <span style="font-size:12px;background:rgba(239,68,68,0.1);color:#fca5a5;padding:2px 10px;border-radius:20px;border:1px solid rgba(239,68,68,0.3)">Quality Gates</span>
+      </div>
+      <p class="handoff-desc">Triggered when <strong>qa_orchestrator</strong> completes a test cycle. PASS status notifies the originating team and clears the build for the next stage. CRITICAL DEFECT blocks release and routes back with a structured defect report.</p>
+      <div class="handoff-fields">
+        <div class="handoff-field" style="border-color:#22c55e">PASS → notify originating team · cleared for next stage</div>
+        <div class="handoff-field" style="border-color:#ef4444">CRITICAL DEFECT → block release · route back to team</div>
+        <div class="handoff-field" style="border-color:#f59e0b">defect_id · severity · component · reproduction_steps</div>
+        <div class="handoff-field" style="border-color:#3b82f6">test_coverage_report · performance_baseline · security_findings</div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Routes to: <strong>engineering_orchestrator</strong> (defect fix) · <strong>product_orchestrator</strong> (release decision) based on originating team.</div>
+    </div>
+
+    <div class="handoff-card" style="border-color:rgba(249,115,22,0.3)">
+      <div class="handoff-title">
+        <span class="handoff-arrow">🟠</span>
+        Autoresearcher → All Departments
+        <span style="font-size:12px;background:rgba(249,115,22,0.1);color:#fdba74;padding:2px 10px;border-radius:20px;border:1px solid rgba(249,115,22,0.3)">Evolution</span>
+      </div>
+      <p class="handoff-desc">The <strong>autoresearcher_orchestrator</strong> periodically evaluates agent instruction quality, generates hypotheses for improvement, and rewrites agent prompts. The rollback watchdog monitors for regressions and auto-reverts if quality drops.</p>
+      <div class="handoff-fields">
+        <div class="handoff-field" style="border-color:#f97316">hypothesis — proposed instruction improvement</div>
+        <div class="handoff-field" style="border-color:#f97316">target_agent · current_version · proposed_version</div>
+        <div class="handoff-field" style="border-color:#22c55e">evaluation_score · quality_delta · confidence</div>
+        <div class="handoff-field" style="border-color:#ef4444">rollback_trigger — auto-revert on regression detection</div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Continuously evolves all 60+ agents. <strong>rollback_watchdog_agent</strong> monitors every deployment and reverts within one cycle if quality signal drops below threshold.</div>
+    </div>
   </div>
 
   <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Shared Context — What Both Teams Know</h3>
@@ -471,7 +466,7 @@
 <div id="workflow" class="tab-content">
   <div class="section-label">End-to-End GTM</div>
   <h2>Full GTM Workflow</h2>
-  <p class="subtitle">14-step revenue cycle from audience building to win/loss feedback loop.</p>
+  <p class="subtitle">Full autonomous company workflow — from research to revenue, code execution to skill generation.</p>
   <div class="workflow-teams" id="workflow-container"></div>
 </div>
 
@@ -479,17 +474,42 @@
 <div id="stack" class="tab-content">
   <div class="section-label">Dependencies</div>
   <h2>Tech Stack</h2>
-  <p class="subtitle">All research and marketing tools use free, open-source backends.</p>
+  <p class="subtitle">Full open-source stack powering 60+ agents across 8 departments with live streaming and sandboxed code execution.</p>
 
   <div class="stack-section">
     <h3>Core</h3>
     <table>
       <thead><tr><th>Package</th><th>Purpose</th><th>License</th></tr></thead>
       <tbody>
-        <tr><td class="mono">google-adk ≥0.5.0</td><td>Multi-agent orchestration framework</td><td><span class="pill pill-free">Apache 2.0</span></td></tr>
-        <tr><td class="mono">pydantic ≥2.0</td><td>Data models (DealContext, MQL packages, etc.)</td><td><span class="pill pill-free">MIT</span></td></tr>
+        <tr><td class="mono">google-adk &gt;= 1.28.0</td><td>Multi-agent orchestration framework</td><td><span class="pill pill-free">Apache 2.0</span></td></tr>
+        <tr><td class="mono">fastapi + uvicorn</td><td>REST API + SSE streaming</td><td><span class="pill pill-free">MIT</span></td></tr>
+        <tr><td class="mono">litellm</td><td>OpenRouter / multi-model LLM bridge</td><td><span class="pill pill-free">MIT</span></td></tr>
+        <tr><td class="mono">pydantic &gt;= 2.0</td><td>Data models</td><td><span class="pill pill-free">MIT</span></td></tr>
         <tr><td class="mono">python-dotenv</td><td>Environment configuration</td><td><span class="pill pill-free">BSD</span></td></tr>
-        <tr><td class="mono">httpx ≥0.27</td><td>HTTP client for CRM + external APIs</td><td><span class="pill pill-free">BSD</span></td></tr>
+        <tr><td class="mono">httpx &gt;= 0.27</td><td>HTTP client</td><td><span class="pill pill-free">BSD</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stack-section">
+    <h3>Execution Layer</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Purpose</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Claude Code CLI</td><td>Sandboxed code execution in <span class="mono">claude_works/</span></td><td><span class="pill pill-free">--dangerously-skip-permissions --add-dir</span></td></tr>
+        <tr><td>SQLite WAL</td><td>Skill forge DB + deal memory + query history</td><td><span class="pill pill-free">stdlib</span></td></tr>
+        <tr><td><span class="mono">subprocess</span></td><td>Claude Code process management</td><td><span class="pill pill-free">stdlib</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stack-section">
+    <h3>AI Models</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Role</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">nvidia/nemotron-3-super-120b-a12b:free</td><td>Primary model via OpenRouter / LiteLLM</td><td><span class="pill pill-free">Free</span></td></tr>
+        <tr><td class="mono">gemini-2.0-flash</td><td>Fallback model</td><td><span class="pill pill-free">Free tier</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -522,11 +542,12 @@
   <div class="stack-section">
     <h3>Memory &amp; Persistence</h3>
     <table>
-      <thead><tr><th>Layer</th><th>Implementation</th><th>Shared?</th></tr></thead>
+      <thead><tr><th>Layer</th><th>Implementation</th><th>Used by</th></tr></thead>
       <tbody>
         <tr><td>Session memory</td><td>ADK InMemorySessionService</td><td>Per-session</td></tr>
-        <tr><td>Long-term deal memory</td><td>SQLite stdlib — <span class="mono">deal_memory</span> table</td><td>Both teams</td></tr>
-        <tr><td>Agent output history</td><td>SQLite stdlib — <span class="mono">query_history</span> table</td><td>Both teams</td></tr>
+        <tr><td>Long-term deal memory</td><td>SQLite stdlib — <span class="mono">deal_memory</span> table</td><td>All departments</td></tr>
+        <tr><td>Agent output history</td><td>SQLite stdlib — <span class="mono">query_history</span> table</td><td>All departments</td></tr>
+        <tr><td><span class="mono">skill_forge.db</span></td><td>SQLite WAL — forge_sessions, skill_versions, battle_test_results, staging_registry</td><td>Skill Forge pipeline</td></tr>
       </tbody>
     </table>
   </div>
