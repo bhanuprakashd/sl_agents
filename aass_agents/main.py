@@ -67,12 +67,13 @@ def _after_agent_callback(callback_context):
     return None  # pass response through unchanged
 
 
-# Attach callbacks to root agent — ADK v1.27+ uses canonical_*_callbacks lists
-company_orchestrator.canonical_before_agent_callbacks = [_before_agent_callback]
-company_orchestrator.canonical_after_agent_callbacks = [_after_agent_callback]
+# Attach callbacks via model_copy (Pydantic v2 — fields are immutable after construction)
+root_agent = company_orchestrator.model_copy(update={
+    "before_agent_callback": _before_agent_callback,
+    "after_agent_callback": _after_agent_callback,
+})
 
-# Export root_agent for ADK CLI and web UI discovery
-root_agent = company_orchestrator
+# root_agent already set above via model_copy
 
 
 def _generate_orgchart():
