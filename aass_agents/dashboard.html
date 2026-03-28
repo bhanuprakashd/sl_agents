@@ -829,8 +829,1217 @@ const AGENTS = [
 function getAgentsByDept(dept) { return AGENTS.filter(a => a.dept === dept); }
 function getAgent(name) { return AGENTS.find(a => a.name === name); }
 
-// ── View Registry (populated by subsequent tasks) ─────────────────────────
+// ── View Renderers ────────────────────────────────────────────────────────
 const views = {};
+
+views.dashboard = async function() {
+  const el = $('#view-dashboard');
+  const stats = await API.get('/api/supervisor/stats') || { active_runs: 0, open_breakers: 0, dlq_count: 0, events_24h: 0 };
+  const forgeData = await API.get('/api/forge/registry');
+  const forgeCount = forgeData?.skills?.length || 0;
+
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Command Center</div>
+      <div class="view-subtitle">Real-time overview of all 62 agents across 9 departments</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card" onclick="navigate('agents')" style="cursor:pointer">
+        <div class="kpi-value" style="color:var(--indigo-light)">62</div>
+        <div class="kpi-label">Total Agents</div>
+        <div class="kpi-card" style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--indigo);border-radius:12px 0 0 12px;padding:0"></div>
+      </div>
+      <div class="kpi-card" onclick="navigate('orgchart')" style="cursor:pointer">
+        <div class="kpi-value" style="color:var(--info)">9</div>
+        <div class="kpi-label">Departments</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--info);border-radius:12px 0 0 12px"></div>
+      </div>
+      <div class="kpi-card" onclick="navigate('pipeline')" style="cursor:pointer">
+        <div class="kpi-value ${stats.active_runs > 0 ? 'pulse' : ''}" style="color:var(--success)">${stats.active_runs}</div>
+        <div class="kpi-label">Active Runs</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--success);border-radius:12px 0 0 12px"></div>
+      </div>
+      <div class="kpi-card" onclick="navigate('supervisor')" style="cursor:pointer">
+        <div class="kpi-value" style="color:${stats.open_breakers > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.open_breakers}</div>
+        <div class="kpi-label">Breakers Open</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${stats.open_breakers > 0 ? 'var(--danger)' : 'var(--success)'};border-radius:12px 0 0 12px"></div>
+      </div>
+      <div class="kpi-card" onclick="navigate('supervisor')" style="cursor:pointer">
+        <div class="kpi-value" style="color:${stats.dlq_count > 0 ? 'var(--warning)' : 'var(--success)'}">${stats.dlq_count}</div>
+        <div class="kpi-label">DLQ Entries</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${stats.dlq_count > 0 ? 'var(--warning)' : 'var(--success)'};border-radius:12px 0 0 12px"></div>
+      </div>
+      <div class="kpi-card" onclick="navigate('forge')" style="cursor:pointer">
+        <div class="kpi-value" style="color:var(--forge)">${forgeCount}</div>
+        <div class="kpi-label">Forged Skills</div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--forge);border-radius:12px 0 0 12px"></div>
+      </div>
+    </div>
+    ${stats.open_breakers > 0 ? '<div class="alert-banner alert-danger">&#9888; Circuit breakers open — check Supervisor for details</div>' : ''}
+    ${stats.dlq_count > 0 ? '<div class="alert-banner alert-warning">&#9888; Dead letter queue has blocked pipelines</div>' : ''}
+    <div class="dept-grid" id="dept-health-grid"></div>
+    <div class="two-col">
+      <div class="glass-card">
+        <div class="glass-card-header">
+          <div class="glass-card-title">Live Event Stream</div>
+          <a style="font-size:11px;color:var(--indigo-light);cursor:pointer" onclick="navigate('supervisor')">View all &rarr;</a>
+        </div>
+        <div id="dash-events" style="max-height:320px;overflow-y:auto">
+          <div class="empty-state"><div class="empty-state-text">Loading events...</div></div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="glass-card-header">
+          <div class="glass-card-title">Active Pipelines</div>
+          <a style="font-size:11px;color:var(--indigo-light);cursor:pointer" onclick="navigate('pipeline')">View all &rarr;</a>
+        </div>
+        <div id="dash-runs" style="max-height:320px;overflow-y:auto">
+          <div class="empty-state"><div class="empty-state-text">Loading runs...</div></div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Render dept health cards
+  const statusData = await API.get('/api/agents/status') || [];
+  const statusMap = {};
+  statusData.forEach(a => { statusMap[a.name] = a; });
+  const deptGrid = $('#dept-health-grid');
+  html(deptGrid, DEPTS.map(d => {
+    const agents = getAgentsByDept(d.id);
+    const hasOpen = agents.some(a => statusMap[a.name]?.circuit_state === 'open');
+    const hasHalf = agents.some(a => statusMap[a.name]?.circuit_state === 'half-open');
+    const dot = hasOpen ? 'var(--danger)' : hasHalf ? 'var(--warning)' : 'var(--success)';
+    return `<div class="dept-card" onclick="navigate('agents')">
+      <div style="height:3px;background:${d.color};border-radius:3px 3px 0 0;margin:-16px -16px 12px -16px"></div>
+      <div class="dept-card-header">
+        <span class="dept-card-name">${d.name}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span class="dept-card-count">${agents.length} agents</span>
+          <span class="status-dot" style="background:${dot};width:6px;height:6px"></span>
+        </span>
+      </div>
+      <div class="dept-card-agents">${agents.map(a => a.name.replace(/_agent$/, '').replace(/_/g, ' ')).join(', ')}</div>
+    </div>`;
+  }).join(''));
+
+  // Load events
+  const events = await API.get('/api/supervisor/events?limit=20') || [];
+  html($('#dash-events'), events.length === 0
+    ? '<div class="empty-state"><div class="empty-state-text">No recent activity — run a prompt from Console or Company Pipeline</div></div>'
+    : events.map(e => `<div style="display:flex;gap:8px;padding:6px 0;font-size:11px;border-bottom:1px solid var(--border)">
+        <span style="color:var(--muted);min-width:55px;font-variant-numeric:tabular-nums">${relTime(e.created_at)}</span>
+        <span class="${eventBadgeClass(e.event_type)}">${e.event_type}</span>
+        <span style="color:${deptColor(getAgent(e.agent_name)?.dept)};font-family:monospace">${e.agent_name}</span>
+      </div>`).join('')
+  );
+
+  // Load runs
+  const runs = await API.get('/api/supervisor/runs?limit=10') || [];
+  html($('#dash-runs'), runs.length === 0
+    ? '<div class="empty-state"><div class="empty-state-text">No active pipelines</div></div>'
+    : `<table class="data-table"><thead><tr><th>Run ID</th><th>Type</th><th>Status</th><th>Step</th><th>Started</th></tr></thead><tbody>
+      ${runs.map(r => `<tr style="cursor:pointer" onclick="navigate('pipeline')">
+        <td class="mono">${truncate(r.run_id, 12)}</td>
+        <td><span class="dept-badge dept-shared">${r.pipeline_type || '—'}</span></td>
+        <td><span class="${pillClass(r.status)}">${r.status}</span></td>
+        <td>${r.current_step || 0}/${r.total_steps || '?'}</td>
+        <td style="color:var(--muted)">${relTime(r.created_at)}</td>
+      </tr>`).join('')}
+      </tbody></table>`
+  );
+};
+
+views.agents = async function() {
+  const el = $('#view-agents');
+  const statusData = await API.get('/api/agents/status') || [];
+  const statusMap = {};
+  statusData.forEach(a => { statusMap[a.name] = a; });
+
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Agents</div>
+      <div class="view-subtitle">All 62 agents across 9 departments</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <div class="filter-chips" id="agent-filters">
+        <button class="filter-chip active" data-dept="all">All (62)</button>
+        ${DEPTS.map(d => `<button class="filter-chip" data-dept="${d.id}">${d.name} (${d.agents})</button>`).join('')}
+      </div>
+      <input class="input" id="agent-search" placeholder="Search agents..." style="max-width:240px">
+    </div>
+    <div class="agent-grid" id="agent-grid"></div>
+  `);
+
+  function renderAgents(filter = 'all', search = '') {
+    const filtered = AGENTS.filter(a => {
+      if (filter !== 'all' && a.dept !== filter) return false;
+      if (search && !a.name.includes(search) && !a.title.toLowerCase().includes(search) && !a.tools.some(t => t.includes(search))) return false;
+      return true;
+    });
+    html($('#agent-grid'), filtered.map(a => {
+      const st = statusMap[a.name] || {};
+      const circuitState = st.circuit_state || 'closed';
+      const ttlLabel = a.ttl === 'inf' ? '∞' : a.ttl === null ? 'per-run' : a.ttl + 'd';
+      return `<div class="agent-card">
+        <div class="agent-card-top">
+          <div class="agent-card-icon" style="background:${deptColor(a.dept)}22">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${deptColor(a.dept)}" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="agent-card-name">${a.title}</div>
+            <div class="agent-card-desc">${a.desc}</div>
+          </div>
+          <span class="${deptClass(a.dept)} dept-badge">${a.dept}</span>
+        </div>
+        <div class="agent-card-status">
+          <div class="agent-card-status-item">
+            <span class="status-dot" style="width:6px;height:6px;background:${circuitState === 'open' ? 'var(--danger)' : circuitState === 'half-open' ? 'var(--warning)' : 'var(--success)'}"></span>
+            <span class="agent-card-status-label">Status</span>
+            <span>${circuitState === 'closed' ? 'Healthy' : circuitState}</span>
+          </div>
+          <div class="agent-card-status-item">
+            <span class="agent-card-status-label">TTL</span>
+            <span>${ttlLabel}</span>
+          </div>
+          <div class="agent-card-status-item">
+            <span class="agent-card-status-label">Circuit</span>
+            <span class="${pillClass(circuitState)}">${circuitState}</span>
+          </div>
+        </div>
+        <div class="agent-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="agent-card-section">
+              <div class="agent-card-section-title">Inputs</div>
+              <ul class="agent-card-list">${a.inputs.map(i => `<li style="border-color:${deptColor(a.dept)}">${i}</li>`).join('')}</ul>
+            </div>
+            <div class="agent-card-section">
+              <div class="agent-card-section-title">Outputs</div>
+              <ul class="agent-card-list">${a.outputs.map(o => `<li style="border-color:${deptColor(a.dept)}">${o}</li>`).join('')}</ul>
+            </div>
+          </div>
+          ${a.tools.length ? `<div class="agent-card-section">
+            <div class="agent-card-section-title">Tools</div>
+            <div class="agent-card-tools">${a.tools.map(t => `<span class="tool-chip">${t}</span>`).join('')}</div>
+          </div>` : ''}
+          ${a.reflection ? '<div class="agent-card-reflection">Reflection gate enabled — outputs verified for completeness, specificity, correctness</div>' : ''}
+        </div>
+      </div>`;
+    }).join(''));
+  }
+
+  renderAgents();
+
+  // Filter handlers
+  $$('#agent-filters .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#agent-filters .filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAgents(btn.dataset.dept, $('#agent-search').value.toLowerCase());
+    });
+  });
+  $('#agent-search').addEventListener('input', (e) => {
+    const active = $('.filter-chip.active', $('#agent-filters'));
+    renderAgents(active?.dataset.dept || 'all', e.target.value.toLowerCase());
+  });
+};
+
+views.console = function() {
+  const el = $('#view-console');
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Console</div>
+      <div class="view-subtitle">Run prompts — the agent team handles it autonomously</div>
+    </div>
+    <div class="console-input-row">
+      <input class="input" id="console-input" placeholder="Type any instruction — the agent team handles it autonomously..."
+        onkeydown="if(event.key==='Enter')runConsole()">
+      <button class="btn btn-primary" onclick="runConsole()">Run</button>
+      <button class="btn btn-ghost" onclick="clearConsole()">Clear</button>
+    </div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:11px;color:var(--muted)">Session: <span class="mono">${S.sessionId.slice(0,8)}</span></span>
+      <button class="btn btn-ghost btn-sm" onclick="S.sessionId=crypto.randomUUID();navigate('console')">New Session</button>
+    </div>
+    <div class="console-panes">
+      <div class="console-pane">
+        <div class="console-pane-header">
+          <span class="console-pane-title">Agent Activity</span>
+          <span style="font-size:11px;color:var(--muted)" id="console-event-count">${S.consoleEvents.length} events</span>
+        </div>
+        <div class="console-pane-body" id="console-events-body">
+          ${S.consoleEvents.length === 0
+            ? '<div class="empty-state"><div class="empty-state-text">Run a prompt to see agent activity</div></div>'
+            : S.consoleEvents.map(renderConsoleEvent).join('')}
+        </div>
+      </div>
+      <div class="console-pane">
+        <div class="console-pane-header">
+          <span class="console-pane-title">Final Output</span>
+          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(S.consoleOutput)">Copy</button>
+        </div>
+        <div class="console-pane-body" id="console-output-body">
+          ${S.consoleOutput ? `<div class="console-output-content">${S.consoleOutput}</div>` : '<div class="empty-state"><div class="empty-state-text">Output will appear here...</div></div>'}
+        </div>
+      </div>
+    </div>
+    <div class="console-status-bar">
+      <span style="display:flex;align-items:center;gap:6px">
+        <span class="status-dot ${S.consoleRunning ? 'pulse' : ''}" style="width:6px;height:6px;background:${S.consoleRunning ? 'var(--indigo)' : 'var(--muted)'}"></span>
+        <span>${S.consoleRunning ? 'Running...' : 'Idle'}</span>
+      </span>
+      <span id="console-active-agent" style="font-family:monospace;color:var(--indigo-light)"></span>
+      <span id="console-timer"></span>
+    </div>
+  `);
+};
+
+function renderConsoleEvent(e) {
+  const agentColor = deptColor(getAgent(e.agent)?.dept);
+  const types = {
+    agent_text: { border: agentColor, icon: '' },
+    tool_call: { border: 'var(--info)', icon: '&#128295;' },
+    tool_result: { border: 'var(--success)', icon: '&#10003;' },
+    final: { border: 'var(--success)', icon: '&#10004;' },
+    error: { border: 'var(--danger)', icon: '&#10007;' },
+  };
+  const t = types[e.type] || { border: 'var(--muted)', icon: '' };
+  const isIndented = e.type === 'tool_result';
+  return `<div class="console-event" style="border-left-color:${t.border};${isIndented ? 'padding-left:28px' : ''}">
+    <span class="console-event-time">${e.time || ''}</span>
+    <span class="console-event-agent" style="color:${agentColor}">${e.agent || ''}</span>
+    <span class="console-event-text">${e.text || ''}</span>
+  </div>`;
+}
+
+function clearConsole() {
+  S.consoleEvents = [];
+  S.consoleOutput = '';
+  S.consoleRunning = false;
+  if (S.sseController) { S.sseController.abort(); S.sseController = null; }
+  navigate('console');
+}
+
+async function runConsole() {
+  const input = $('#console-input');
+  if (!input) return;
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  S.consoleEvents = [];
+  S.consoleOutput = '';
+  S.consoleRunning = true;
+  navigate('console');
+
+  const startTime = Date.now();
+  const timerEl = $('#console-timer');
+  const timerInt = setInterval(() => {
+    if (timerEl) timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  }, 100);
+
+  S.sseController = new AbortController();
+  try {
+    const resp = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, session_id: S.sessionId }),
+      signal: S.sseController.signal,
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+          if (data.type === 'agent_text' || data.type === 'tool_call' || data.type === 'tool_result') {
+            S.consoleEvents.push({ type: data.type, agent: data.agent || '', text: data.text || data.tool || '', time: elapsed });
+          } else if (data.type === 'final') {
+            S.consoleOutput = data.text || '';
+            S.consoleEvents.push({ type: 'final', agent: data.agent || '', text: 'Final output received', time: elapsed });
+          } else if (data.type === 'error') {
+            S.consoleEvents.push({ type: 'error', agent: '', text: data.text || 'Error occurred', time: elapsed });
+          }
+          // Update UI
+          const evBody = $('#console-events-body');
+          if (evBody) {
+            evBody.innerHTML = S.consoleEvents.map(renderConsoleEvent).join('');
+            evBody.scrollTop = evBody.scrollHeight;
+          }
+          const outBody = $('#console-output-body');
+          if (outBody && S.consoleOutput) {
+            outBody.innerHTML = `<div class="console-output-content">${S.consoleOutput}</div>`;
+          }
+          const activeAgent = $('#console-active-agent');
+          if (activeAgent && data.agent) activeAgent.textContent = data.agent;
+          const countEl = $('#console-event-count');
+          if (countEl) countEl.textContent = S.consoleEvents.length + ' events';
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      S.consoleEvents.push({ type: 'error', agent: '', text: 'Connection failed: ' + e.message, time: '0s' });
+    }
+  }
+
+  S.consoleRunning = false;
+  clearInterval(timerInt);
+  const statusDot = $('.console-status-bar .status-dot');
+  if (statusDot) { statusDot.classList.remove('pulse'); statusDot.style.background = 'var(--muted)'; }
+  const statusText = $('.console-status-bar span:first-child span:last-child');
+  if (statusText) statusText.textContent = 'Done';
+}
+
+views.pipeline = async function() {
+  const el = $('#view-pipeline');
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Company Pipeline</div>
+      <div class="view-subtitle">End-to-end autonomous orchestration — any department, any workflow</div>
+    </div>
+    <div class="pipeline-launcher">
+      <div class="console-input-row">
+        <input class="input" id="pipeline-input" placeholder="Describe what you want to build, research, or create..."
+          style="font-size:15px;padding:14px 18px" onkeydown="if(event.key==='Enter')runPipeline()">
+        <button class="btn btn-primary" style="padding:14px 24px;font-size:14px" onclick="runPipeline()">Run Autonomous</button>
+      </div>
+      <div class="pipeline-launcher-chips">
+        <span class="pipeline-chip" onclick="$('#pipeline-input').value='Build a SaaS todo app with auth and billing'">Build a SaaS app</span>
+        <span class="pipeline-chip" onclick="$('#pipeline-input').value='Research competitor landscape for AI code editors'">Research competitor X</span>
+        <span class="pipeline-chip" onclick="$('#pipeline-input').value='Forge a skill for Django REST API patterns'">Forge a skill</span>
+        <span class="pipeline-chip" onclick="$('#pipeline-input').value='Full GTM launch for our new analytics product'">Full GTM launch</span>
+        <span class="pipeline-chip" onclick="$('#pipeline-input').value='Evaluate and improve underperforming agents'">Improve agent quality</span>
+      </div>
+    </div>
+    <div class="pipeline-viz" id="pipeline-viz">
+      <div style="text-align:center;padding:40px">
+        <svg width="600" height="300" viewBox="0 0 600 300" id="pipeline-idle-svg"></svg>
+        <div style="margin-top:16px;font-size:13px;color:var(--muted)">Run a prompt to see the autonomous orchestration flow</div>
+      </div>
+    </div>
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <div class="glass-card-title">Pipeline History</div>
+      </div>
+      <div id="pipeline-history">
+        <div class="empty-state"><div class="empty-state-text">Loading...</div></div>
+      </div>
+    </div>
+  `);
+
+  // Draw idle architecture diagram
+  drawIdlePipeline();
+
+  // Load history
+  const runs = await API.get('/api/supervisor/runs?limit=20') || [];
+  html($('#pipeline-history'), runs.length === 0
+    ? '<div class="empty-state"><div class="empty-state-text">No pipeline runs yet</div></div>'
+    : `<table class="data-table"><thead><tr><th>Run ID</th><th>Type</th><th>Status</th><th>Steps</th><th>Started</th></tr></thead><tbody>
+      ${runs.map(r => `<tr>
+        <td class="mono">${truncate(r.run_id, 12)}</td>
+        <td>${r.pipeline_type || '—'}</td>
+        <td><span class="${pillClass(r.status)}">${r.status}</span></td>
+        <td>${r.current_step || 0}/${r.total_steps || '?'}</td>
+        <td style="color:var(--muted)">${relTime(r.created_at)}</td>
+      </tr>`).join('')}
+      </tbody></table>`
+  );
+};
+
+function drawIdlePipeline() {
+  const svg = $('#pipeline-idle-svg');
+  if (!svg) return;
+  const cx = 300, cy = 130, r = 110;
+  const depts = DEPTS.filter(d => d.id !== 'shared');
+  let paths = '';
+  const nodes = depts.map((d, i) => {
+    const angle = (i / depts.length) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    paths += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${d.color}" stroke-opacity="0.2" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    return `<g style="cursor:pointer" onclick="navigate('workflows')">
+      <circle cx="${x}" cy="${y}" r="28" fill="${d.color}22" stroke="${d.color}" stroke-width="1.5"/>
+      <text x="${x}" y="${y + 1}" text-anchor="middle" dominant-baseline="middle" fill="${d.color}" font-size="8" font-weight="700">${d.name.slice(0, 6).toUpperCase()}</text>
+      <text x="${x}" y="${y + 42}" text-anchor="middle" fill="#64748b" font-size="9">${d.agents} agents</text>
+    </g>`;
+  });
+  svg.innerHTML = `
+    ${paths}
+    <circle cx="${cx}" cy="${cy}" r="36" fill="var(--indigo)22" stroke="var(--indigo)" stroke-width="2"/>
+    <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="var(--indigo-light)" font-size="9" font-weight="700">COMPANY</text>
+    <text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="var(--indigo-light)" font-size="8">ORCHESTRATOR</text>
+    ${nodes.join('')}
+  `;
+}
+
+function runPipeline() {
+  const input = $('#pipeline-input');
+  if (!input || !input.value.trim()) return;
+  // Reuse console's SSE runner but from pipeline input
+  S.consoleEvents = [];
+  S.consoleOutput = '';
+  S.consoleRunning = true;
+  const prompt = input.value.trim();
+
+  // Switch to console for live view
+  $('#console-input') && ($('#console-input').value = prompt);
+  navigate('console');
+  setTimeout(() => runConsole(), 100);
+}
+
+views.orgchart = async function() {
+  const el = $('#view-orgchart');
+  const statusData = await API.get('/api/agents/status') || [];
+  const statusMap = {};
+  statusData.forEach(a => { statusMap[a.name] = a; });
+
+  html(el, `
+    <div class="orgchart-toolbar">
+      <div class="filter-chips" id="org-dept-filter">
+        <button class="filter-chip active" data-dept="all">All</button>
+        ${DEPTS.map(d => `<button class="filter-chip" data-dept="${d.id}">${d.name}</button>`).join('')}
+      </div>
+      <input class="input" id="org-search" placeholder="Search agent..." style="max-width:200px">
+    </div>
+    <div class="orgchart-container">
+      <svg class="orgchart-canvas" id="orgchart-svg"></svg>
+      <div class="orgchart-controls">
+        <button onclick="orgZoom(1.2)" title="Zoom in">+</button>
+        <button onclick="orgZoom(0.8)" title="Zoom out">−</button>
+        <button onclick="orgFit()" title="Fit to screen">⊡</button>
+      </div>
+    </div>
+  `);
+
+  drawOrgChart(statusMap);
+
+  // Search
+  $('#org-search').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    $$('#orgchart-svg .org-node').forEach(n => {
+      const name = n.dataset.agent || '';
+      const match = !q || name.includes(q);
+      n.style.opacity = match ? '1' : '0.15';
+    });
+  });
+
+  // Dept filter
+  $$('#org-dept-filter .filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#org-dept-filter .filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const dept = btn.dataset.dept;
+      $$('#orgchart-svg .org-node').forEach(n => {
+        const d = n.dataset.dept || '';
+        n.style.opacity = (dept === 'all' || d === dept) ? '1' : '0.15';
+      });
+      $$('#orgchart-svg .org-line').forEach(l => {
+        l.style.opacity = dept === 'all' ? '1' : '0.15';
+      });
+    });
+  });
+};
+
+let orgScale = 1, orgPanX = 0, orgPanY = 0;
+
+function orgZoom(factor) {
+  orgScale *= factor;
+  const g = $('#orgchart-svg > g');
+  if (g) g.setAttribute('transform', `translate(${orgPanX},${orgPanY}) scale(${orgScale})`);
+}
+function orgFit() {
+  orgScale = 1; orgPanX = 0; orgPanY = 0;
+  const g = $('#orgchart-svg > g');
+  if (g) g.setAttribute('transform', 'translate(0,0) scale(1)');
+}
+
+function drawOrgChart(statusMap) {
+  const svg = $('#orgchart-svg');
+  if (!svg) return;
+  const W = svg.clientWidth || 1200;
+
+  // Layout: company_orch at top, 8 dept orchs below, leaf agents below each
+  const topY = 40;
+  const deptY = 140;
+  const leafY = 260;
+  const depts = DEPTS.filter(d => d.id !== 'shared');
+  const deptSpacing = (W - 80) / depts.length;
+  let lines = '';
+  let nodes = '';
+
+  // Company orchestrator
+  const ccx = W / 2;
+  nodes += orgNode(ccx, topY, 'company_orchestrator', 'Company Orchestrator', 'shared', statusMap);
+
+  depts.forEach((d, i) => {
+    const dx = 40 + i * deptSpacing + deptSpacing / 2;
+    const orchName = d.id === 'forge' ? 'forge_orchestrator' : d.id + '_orchestrator';
+
+    // Line from company to dept orch
+    lines += `<line class="org-line" x1="${ccx}" y1="${topY + 30}" x2="${dx}" y2="${deptY - 10}" stroke="${d.color}" stroke-opacity="0.3" stroke-width="1.5"/>`;
+
+    // Dept orchestrator
+    nodes += orgNode(dx, deptY, orchName, d.name + ' Orch.', d.id, statusMap);
+
+    // Leaf agents
+    const leaves = AGENTS.filter(a => a.dept === d.id && !a.name.includes('orchestrator'));
+    const leafSpacing = Math.min(deptSpacing / (leaves.length + 1), 50);
+    const startX = dx - (leaves.length - 1) * leafSpacing / 2;
+
+    leaves.forEach((a, j) => {
+      const lx = startX + j * leafSpacing;
+      const ly = leafY + (j % 2) * 50; // stagger
+      lines += `<line class="org-line" x1="${dx}" y1="${deptY + 30}" x2="${lx}" y2="${ly - 10}" stroke="${d.color}" stroke-opacity="0.15" stroke-width="1"/>`;
+      nodes += orgNode(lx, ly, a.name, a.title, a.dept, statusMap, true);
+    });
+  });
+
+  svg.innerHTML = `<g transform="translate(${orgPanX},${orgPanY}) scale(${orgScale})">${lines}${nodes}</g>`;
+
+  // Pan support
+  let dragging = false, lastX = 0, lastY = 0;
+  svg.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+  svg.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    orgPanX += e.clientX - lastX;
+    orgPanY += e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    const g = svg.querySelector('g');
+    if (g) g.setAttribute('transform', `translate(${orgPanX},${orgPanY}) scale(${orgScale})`);
+  });
+  svg.addEventListener('mouseup', () => { dragging = false; });
+  svg.addEventListener('mouseleave', () => { dragging = false; });
+  svg.addEventListener('wheel', e => { e.preventDefault(); orgZoom(e.deltaY < 0 ? 1.1 : 0.9); });
+
+  // Click to open agent detail
+  $$('#orgchart-svg .org-node').forEach(n => {
+    n.addEventListener('click', () => {
+      const agent = getAgent(n.dataset.agent);
+      if (agent) openAgentPanel(agent, statusMap);
+    });
+  });
+}
+
+function orgNode(x, y, name, label, dept, statusMap, small = false) {
+  const st = statusMap[name] || {};
+  const state = st.circuit_state || 'closed';
+  const dotColor = state === 'open' ? 'var(--danger)' : state === 'half-open' ? 'var(--warning)' : 'var(--success)';
+  const w = small ? 70 : 90;
+  const h = small ? 36 : 44;
+  const dc = deptColor(dept);
+  return `<g class="org-node" data-agent="${name}" data-dept="${dept}" style="cursor:pointer">
+    <rect x="${x - w/2}" y="${y - h/2}" width="${w}" height="${h}" rx="8"
+      fill="var(--elevated)" stroke="${dc}" stroke-width="1.5" stroke-opacity="0.5"/>
+    <rect x="${x - w/2}" y="${y - h/2}" width="${w}" height="3" rx="2" fill="${dc}" opacity="0.7"/>
+    <text x="${x}" y="${y + (small ? 2 : -2)}" text-anchor="middle" dominant-baseline="middle"
+      fill="var(--text)" font-size="${small ? 7 : 8}" font-weight="700">${label.length > 14 ? label.slice(0,12) + '..' : label}</text>
+    ${!small ? `<text x="${x}" y="${y + 10}" text-anchor="middle" fill="var(--muted)" font-size="6">${name.replace(/_agent$/, '').replace(/_/g, ' ')}</text>` : ''}
+    <circle cx="${x + w/2 - 8}" cy="${y - h/2 + 8}" r="3" fill="${dotColor}"/>
+  </g>`;
+}
+
+function openAgentPanel(agent, statusMap) {
+  const st = statusMap[agent.name] || {};
+  const ttlLabel = agent.ttl === 'inf' ? '∞ (manual reset)' : agent.ttl === null ? 'Per-run' : agent.ttl + ' days';
+  openPanel(`
+    <h3 style="font-size:16px;margin-bottom:4px">${agent.title}</h3>
+    <span class="${deptClass(agent.dept)} dept-badge" style="margin-bottom:16px;display:inline-block">${agent.dept}</span>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:20px">${agent.desc}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div class="glass-card" style="padding:12px">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">STATUS</div>
+        <span class="${pillClass(st.circuit_state || 'closed')}">${st.circuit_state || 'closed'}</span>
+      </div>
+      <div class="glass-card" style="padding:12px">
+        <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">TTL</div>
+        <span style="font-size:13px">${ttlLabel}</span>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">INPUTS</div>
+      <ul style="list-style:none;font-size:12px">${agent.inputs.map(i => `<li style="padding:3px 0;padding-left:10px;border-left:2px solid ${deptColor(agent.dept)};color:var(--text-secondary)">${i}</li>`).join('')}</ul>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">OUTPUTS</div>
+      <ul style="list-style:none;font-size:12px">${agent.outputs.map(o => `<li style="padding:3px 0;padding-left:10px;border-left:2px solid ${deptColor(agent.dept)};color:var(--text-secondary)">${o}</li>`).join('')}</ul>
+    </div>
+    ${agent.tools.length ? `<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">TOOLS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${agent.tools.map(t => `<span class="tool-chip">${t}</span>`).join('')}</div>
+    </div>` : ''}
+    ${agent.reflection ? '<div class="agent-card-reflection" style="margin-bottom:16px">Reflection gate enabled — 3-dimension check: completeness, specificity, correctness</div>' : ''}
+    <div style="font-size:11px;color:var(--muted)">Failures: ${st.failure_count || 0} · Last invoked: ${relTime(st.last_invoked)}</div>
+  `);
+}
+
+views.workflows = function() {
+  const el = $('#view-workflows');
+  const WORKFLOWS = {
+    sales: { name: 'Sales Pipeline', steps: [
+      { n: 1, agent: 'audience_builder_agent', title: 'MQL from Marketing', desc: 'Tier 1 MQL package with ICP score, intent signal, outreach angle', output: 'Prospect profile', handoff: true },
+      { n: 2, agent: 'outreach_composer_agent', title: 'Outreach', desc: 'Cold email + LinkedIn DM from research dossier', output: 'Cold email, LinkedIn DM' },
+      { n: 3, agent: null, title: 'Wait for Response', desc: 'Prospect responds or follow-up triggered', output: 'Response signal', handoff: true },
+      { n: 4, agent: 'sales_call_prep_agent', title: 'Call Prep', desc: 'Call brief, MEDDIC discovery questions, talk track', output: 'Call brief' },
+      { n: 5, agent: 'objection_handler_agent', title: 'Objection Handling', desc: 'Real-time ACCA framework responses during call', output: 'ACCA responses' },
+      { n: 6, agent: 'crm_updater_agent', title: 'CRM Update', desc: 'Log call notes, update deal stage, create follow-up tasks', output: 'CRM updated' },
+      { n: 7, agent: 'outreach_composer_agent', title: 'Follow-up', desc: 'Post-call follow-up email with action items', output: 'Follow-up sent' },
+      { n: 8, agent: 'proposal_generator_agent', title: 'Proposal', desc: 'Generate proposal, ROI model, one-pager', output: 'Proposal + ROI' },
+      { n: 9, agent: 'crm_updater_agent', title: 'CRM Proposal Log', desc: 'Log proposal sent, set next step', output: 'Pipeline updated' },
+      { n: 10, agent: 'deal_analyst_agent', title: 'Pipeline Review', desc: 'Deal health scores, forecast, win probability', output: 'Pipeline report' },
+    ]},
+    marketing: { name: 'Marketing Pipeline', steps: [
+      { n: 1, agent: 'audience_builder_agent', title: 'Audience Segmentation', desc: 'ICP segments, lead scoring models, MQL packages', output: 'ICP segments + MQL packages' },
+      { n: 2, agent: 'campaign_composer_agent', title: 'Campaign Creation', desc: 'Email sequence, ad copy, landing page', output: 'Campaign assets' },
+      { n: 3, agent: 'brand_voice_agent', title: 'Brand Review', desc: 'Voice consistency review against brand guidelines', output: 'Approved copy' },
+      { n: 4, agent: 'seo_analyst_agent', title: 'SEO Strategy', desc: 'Keyword research, content gap analysis, on-page recs', output: 'Keyword strategy' },
+      { n: 5, agent: 'content_strategist_agent', title: 'Content Planning', desc: 'Content pillars, article briefs, LinkedIn calendar', output: 'Content calendar' },
+      { n: 6, agent: null, title: 'MQL Handoff to Sales', desc: 'Qualified leads packaged and handed to sales team', output: 'MQL packages', handoff: true },
+      { n: 7, agent: 'campaign_analyst_agent', title: 'Performance Review', desc: 'Attribution analysis, A/B test results, optimization recs', output: 'Performance report' },
+      { n: 8, agent: 'campaign_composer_agent', title: 'Wave 2 Optimization', desc: 'Optimized second wave based on performance data', output: 'Optimized campaign' },
+    ]},
+    product: { name: 'Product Build Pipeline', steps: [
+      { n: 1, agent: 'pm_agent', title: 'PRD', desc: 'Product requirements document from idea', output: 'PRD' },
+      { n: 2, agent: 'architect_agent', title: 'Architecture', desc: 'System design, component diagrams, file tree, ADRs', output: 'Architecture doc' },
+      { n: 3, agent: 'devops_agent', title: 'Infra Setup', desc: 'GitHub repo + Railway + Supabase provisioning', output: 'Live infrastructure' },
+      { n: 4, agent: 'db_agent', title: 'Database', desc: 'SQL schema design, migrations, seed data', output: 'Database ready' },
+      { n: 5, agent: 'devops_agent', title: 'Env Injection', desc: 'Inject DATABASE_URL and env vars to services', output: 'Env configured' },
+      { n: 6, agent: 'backend_builder_agent', title: 'Backend', desc: 'FastAPI server — models, routes, auth, CRUD', output: 'Backend deployed' },
+      { n: 7, agent: 'frontend_builder_agent', title: 'Frontend', desc: 'Next.js 14 + Tailwind — pages, components, API integration', output: 'Frontend deployed' },
+      { n: 8, agent: 'qa_agent', title: 'QA Smoke Test', desc: 'Smoke test live deployment — health, auth, CRUD', output: 'QA report + live URL' },
+    ]},
+    engineering: { name: 'Engineering Pipeline', steps: [
+      { n: 1, agent: 'solutions_architect_agent', title: 'System Design', desc: 'Architecture decisions, system diagrams, ADRs', output: 'System design doc' },
+      { n: 2, agent: 'data_engineer_agent', title: 'Data Pipeline', desc: 'ETL/ELT spec, streaming architecture, feature stores', output: 'Pipeline spec' },
+      { n: 3, agent: 'ml_engineer_agent', title: 'ML Pipeline', desc: 'Training pipeline, inference config, model serving', output: 'ML pipeline' },
+      { n: 4, agent: 'systems_engineer_agent', title: 'Toolchain', desc: 'EDA toolchains, compiler pipelines, embedded builds', output: 'Build toolchain' },
+      { n: 5, agent: 'integration_engineer_agent', title: 'Integrations', desc: 'API connectors, middleware, service mesh config', output: 'Integration layer' },
+      { n: 6, agent: 'platform_engineer_agent', title: 'Platform', desc: 'IaC templates, CI/CD pipelines, container orchestration', output: 'Platform config' },
+      { n: 7, agent: 'sdet_agent', title: 'Integration Tests', desc: 'Pipeline validation, smoke tests, regression suites', output: 'Test results' },
+    ]},
+    research: { name: 'Research Pipeline', steps: [
+      { n: 1, agent: 'research_scientist_agent', title: 'Literature Review', desc: 'Academic survey, key findings, research gaps', output: 'Literature review' },
+      { n: 2, agent: 'ml_researcher_agent', title: 'SOTA Benchmarks', desc: 'State-of-the-art analysis, model comparisons', output: 'SOTA report' },
+      { n: 3, agent: 'applied_scientist_agent', title: 'Feasibility', desc: 'Feasibility report, research-to-product brief', output: 'Feasibility report' },
+      { n: 4, agent: 'data_scientist_agent', title: 'Experiment Design', desc: 'A/B test plan, statistical framework, metrics', output: 'Experiment spec' },
+      { n: 5, agent: 'competitive_analyst_agent', title: 'Market Analysis', desc: 'Competitor profiles, battle cards, market trends', output: 'Competitive intel' },
+      { n: 6, agent: 'user_researcher_agent', title: 'User Research', desc: 'Interview guides, usability frameworks, personas', output: 'User insights' },
+      { n: 7, agent: 'knowledge_manager_agent', title: 'Synthesis', desc: 'Cross-domain synthesis, knowledge base update', output: 'Synthesis brief' },
+    ]},
+    qa: { name: 'QA Pipeline', steps: [
+      { n: 1, agent: 'test_architect_agent', title: 'Test Strategy', desc: 'Test strategy, quality gates, framework selection', output: 'Test strategy' },
+      { n: 2, agent: 'test_automation_engineer_agent', title: 'Automation', desc: 'Automated test suites, CI/CD config, regression', output: 'Test suites' },
+      { n: 3, agent: 'performance_engineer_agent', title: 'Load Testing', desc: 'Load test scenarios, benchmark baselines, SLA validation', output: 'Performance baselines' },
+      { n: 4, agent: 'security_tester_agent', title: 'Security Testing', desc: 'OWASP top 10, penetration testing, fuzz testing', output: 'Security report' },
+      { n: 5, agent: 'qa_engineer_agent', title: 'Manual QA', desc: 'Exploratory testing, bug reports, UAT sign-off', output: 'Bug reports + UAT' },
+      { n: 6, agent: 'chaos_engineer_agent', title: 'Chaos Engineering', desc: 'Failure injection, resilience testing, recovery validation', output: 'Chaos report' },
+    ]},
+    autoresearcher: { name: 'Evolution Cycle', steps: [
+      { n: 1, agent: 'evaluator_agent', title: 'EVALUATE', desc: 'Scan unprocessed events, detect underperforming agents, build priority queue. DB: evolution_events, evaluator_queue', output: 'Priority queue of agents to improve' },
+      { n: 2, agent: 'hypothesis_agent', title: 'HYPOTHESIZE', desc: 'Root cause analysis, propose new instruction text. DB: hypotheses', output: 'Hypothesis + proposed instruction' },
+      { n: 3, agent: 'rewriter_agent', title: 'REWRITE', desc: 'Atomic instruction patch (temp file + rename). Guard: syntax validation + embedding test. DB: agent_versions, rewrite_locks', output: 'Patched agent (status: pending_watch)' },
+      { n: 4, agent: 'rollback_watchdog_agent', title: 'ROLLBACK WATCHDOG', desc: 'Monitor post-rewrite scores vs baseline. If score < baseline: rollback. DB: agent_versions', output: 'stable OR rolled_back' },
+    ]},
+    forge: { name: 'Skill Forge Pipeline', steps: [
+      { n: 1, agent: 'intent_parser_agent', title: 'UNDERSTAND', desc: 'Parse user intent into TaskSpec (name, domain, skill_type, success_definition)', output: 'TaskSpec JSON' },
+      { n: 2, agent: 'research_swarm_agent', title: 'RESEARCH', desc: '3 parallel researchers: domain expert, benchmark researcher, technique researcher', output: 'Research bundles + citations' },
+      { n: 3, agent: 'expert_synthesizer_agent', title: 'SYNTHESIZE', desc: 'Synthesize into constitutional principles, gold examples, failure modes', output: 'Expert blueprint' },
+      { n: 4, agent: 'skill_drafter_agent', title: 'DRAFT', desc: 'Generate SKILL.md content (versioned)', output: 'SKILL.md v0' },
+      { n: 5, agent: 'critic_panel_agent', title: 'CRITIQUE', desc: '3-critic panel (Domain, Instruction Quality, Edge Case). A-HMAD evaluation. Gate: >= 7.5', output: 'Critique + composite score' },
+      { n: 6, agent: 'red_team_agent', title: 'BATTLE-TEST', desc: '100 test cases: common, edge, adversarial, regression', output: 'Battle test report (pass rate + CI)' },
+      { n: 7, agent: 'iteration_agent', title: 'ITERATE', desc: 'GEPA loop (Generate, Evaluate, Plan, Act). Max 10 iterations. Gate: composite >= 8.5', output: 'Improved SKILL.md' },
+      { n: 8, agent: 'promoter_agent', title: 'PROMOTE', desc: 'Statistical gates check, write to file system, register in staging_registry', output: 'Staged skill entry' },
+    ]},
+  };
+
+  const tabs = Object.keys(WORKFLOWS);
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Workflows</div>
+      <div class="view-subtitle">End-to-end pipelines for every department</div>
+    </div>
+    <div class="sub-tabs" id="workflow-tabs">
+      ${tabs.map((t, i) => `<button class="sub-tab ${i === 0 ? 'active' : ''}" data-wf="${t}">${WORKFLOWS[t].name.replace(' Pipeline', '').replace(' Cycle', '')}</button>`).join('')}
+    </div>
+    <div id="workflow-content"></div>
+  `);
+
+  function renderWorkflow(key) {
+    const wf = WORKFLOWS[key];
+    const isAutoresearcher = key === 'autoresearcher';
+
+    if (isAutoresearcher) {
+      html($('#workflow-content'), `
+        <div class="glass-card" style="text-align:center;padding:32px">
+          <div class="view-title" style="font-size:16px;margin-bottom:16px">${wf.name}</div>
+          <svg width="500" height="260" viewBox="0 0 500 260" style="margin:0 auto">
+            <defs><marker id="arrowR" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--autoresearcher)"/></marker></defs>
+            <rect x="40" y="40" width="140" height="60" rx="10" fill="var(--elevated)" stroke="var(--autoresearcher)" stroke-width="1.5"/>
+            <text x="110" y="65" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">EVALUATE</text>
+            <text x="110" y="82" text-anchor="middle" fill="var(--muted)" font-size="9">evaluator_agent</text>
+            <line x1="180" y1="70" x2="280" y2="70" stroke="var(--autoresearcher)" stroke-width="1.5" marker-end="url(#arrowR)"/>
+            <text x="230" y="60" text-anchor="middle" fill="var(--muted)" font-size="8">underperformance</text>
+            <rect x="280" y="40" width="140" height="60" rx="10" fill="var(--elevated)" stroke="var(--autoresearcher)" stroke-width="1.5"/>
+            <text x="350" y="65" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">HYPOTHESIZE</text>
+            <text x="350" y="82" text-anchor="middle" fill="var(--muted)" font-size="9">hypothesis_agent</text>
+            <line x1="350" y1="100" x2="350" y2="150" stroke="var(--autoresearcher)" stroke-width="1.5" marker-end="url(#arrowR)"/>
+            <text x="370" y="130" fill="var(--muted)" font-size="8">hypothesis ready</text>
+            <rect x="280" y="150" width="140" height="60" rx="10" fill="var(--elevated)" stroke="var(--autoresearcher)" stroke-width="1.5"/>
+            <text x="350" y="175" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">REWRITE</text>
+            <text x="350" y="192" text-anchor="middle" fill="var(--muted)" font-size="9">rewriter_agent</text>
+            <line x1="280" y1="180" x2="180" y2="180" stroke="var(--autoresearcher)" stroke-width="1.5" marker-end="url(#arrowR)"/>
+            <text x="230" y="170" text-anchor="middle" fill="var(--muted)" font-size="8">patch applied</text>
+            <rect x="40" y="150" width="140" height="60" rx="10" fill="var(--elevated)" stroke="var(--autoresearcher)" stroke-width="1.5"/>
+            <text x="110" y="175" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="700">WATCHDOG</text>
+            <text x="110" y="192" text-anchor="middle" fill="var(--muted)" font-size="9">rollback_watchdog</text>
+            <line x1="110" y1="150" x2="110" y2="100" stroke="var(--autoresearcher)" stroke-width="1.5" marker-end="url(#arrowR)"/>
+            <text x="80" y="130" fill="var(--success)" font-size="8">stable</text>
+            <text x="130" y="130" fill="var(--danger)" font-size="8">rollback</text>
+          </svg>
+          <div style="margin-top:16px;font-size:12px;color:var(--text-secondary)">Continuous self-improvement cycle — agents automatically evolve their own instructions</div>
+        </div>
+        <div style="margin-top:16px">${wf.steps.map(s => renderStep(s, key)).join('')}</div>
+      `);
+      return;
+    }
+
+    html($('#workflow-content'), `
+      <div class="glass-card" style="padding:24px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:20px">${wf.name}</div>
+        <div class="step-flow">${wf.steps.map(s => renderStep(s, key)).join('')}</div>
+      </div>
+    `);
+  }
+
+  function renderStep(step, wfKey) {
+    const dept = DEPTS.find(d => d.id === wfKey);
+    const color = dept?.color || 'var(--muted)';
+    return `<div class="step-item">
+      <div class="step-line">
+        <div class="step-circle" style="border-color:${step.handoff ? 'var(--warning)' : color};color:${step.handoff ? 'var(--warning)' : color}">${step.n}</div>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step-content${step.handoff ? ' handoff' : ''}">
+        <div class="step-title">${step.title}</div>
+        ${step.agent ? `<div class="step-agent" onclick="navigate('agents')">${step.agent}</div>` : ''}
+        <div class="step-desc">${step.desc}</div>
+        <div class="step-output">&rarr; ${step.output}</div>
+      </div>
+    </div>`;
+  }
+
+  renderWorkflow(tabs[0]);
+
+  $$('#workflow-tabs .sub-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#workflow-tabs .sub-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderWorkflow(btn.dataset.wf);
+    });
+  });
+};
+
+views.handoffs = function() {
+  const el = $('#view-handoffs');
+  const HANDOFFS = [
+    { from: 'Marketing', fromDept: 'marketing', to: 'Sales', toDept: 'sales', name: 'MQL Handoff', desc: 'Tier 1 MQL packages with ICP score, intent signal, outreach angle', fields: ['Company name', 'Contact', 'ICP score', 'Intent signal', 'Pain point', 'Channel recommendation', 'Content engaged'] },
+    { from: 'Sales', fromDept: 'sales', to: 'Marketing', toDept: 'marketing', name: 'Win/Loss Feedback', desc: 'Deal outcomes feeding back to improve marketing', fields: ['Deal outcome', 'Objections encountered', 'Competitor mentioned', 'Content that helped', 'ICP profile update'] },
+    { from: 'Research', fromDept: 'research', to: 'Sales & Marketing', toDept: 'sales', name: 'Competitive Intel', desc: 'Competitor profiles, battle cards, positioning briefs', fields: ['Competitor profile', 'Battle card', 'Positioning brief', 'Market trend', 'Threat assessment'] },
+    { from: 'Product', fromDept: 'product', to: 'Marketing', toDept: 'marketing', name: 'GTM Auto-Trigger', desc: 'New product launch triggers marketing campaigns', fields: ['Product name', 'Live URL', 'Feature list', 'Target persona', 'Campaign angle'] },
+    { from: 'QA', fromDept: 'qa', to: 'Engineering & Product', toDept: 'engineering', name: 'Quality Gates', desc: 'PASS clears next stage. CRITICAL DEFECT blocks + structured report', fields: ['Gate result (PASS/FAIL)', 'Defect severity', 'Defect description', 'Steps to reproduce', 'Affected component'] },
+    { from: 'Autoresearcher', fromDept: 'autoresearcher', to: 'All Departments', toDept: 'shared', name: 'Evolution Updates', desc: 'Agent instruction improvements propagated system-wide', fields: ['Target agent', 'Hypothesis', 'Versions (old/new)', 'Evaluation score', 'Rollback trigger'] },
+  ];
+  const SHARED_CTX = [
+    { data: 'Company Profiles', created: 'lead_researcher', used: 'All Sales, Marketing', storage: 'sales_memory.db' },
+    { data: 'ICP Scores', created: 'audience_builder', used: 'outreach_composer, campaign_composer', storage: 'Session context' },
+    { data: 'Objections Log', created: 'objection_handler', used: 'campaign_composer, brand_voice', storage: 'query_history' },
+    { data: 'Win/Loss Data', created: 'crm_updater', used: 'audience_builder, content_strategist', storage: 'deal_memory' },
+    { data: 'Proposals', created: 'proposal_generator', used: 'deal_analyst, campaign_analyst', storage: 'query_history' },
+    { data: 'Campaign Assets', created: 'campaign_composer', used: 'content_strategist, seo_analyst', storage: 'Session context' },
+  ];
+
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Handoffs</div>
+      <div class="view-subtitle">Cross-team protocols and shared context</div>
+    </div>
+    <div class="handoff-grid">
+      ${HANDOFFS.map(h => `<div class="handoff-card">
+        <div class="handoff-header">
+          <span class="${deptClass(h.fromDept)} dept-badge">${h.from}</span>
+          <span class="handoff-arrow">&rarr;</span>
+          <span class="${deptClass(h.toDept)} dept-badge">${h.to}</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">${h.name}</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px">${h.desc}</div>
+        <ul class="handoff-fields">${h.fields.map(f => `<li style="border-color:${deptColor(h.fromDept)}">${f}</li>`).join('')}</ul>
+      </div>`).join('')}
+    </div>
+    <div class="glass-card">
+      <div class="glass-card-header"><div class="glass-card-title">Shared Context</div></div>
+      <table class="data-table"><thead><tr><th>Data</th><th>Created By</th><th>Used By</th><th>Storage</th></tr></thead><tbody>
+      ${SHARED_CTX.map(c => `<tr><td style="font-weight:600">${c.data}</td><td class="mono" style="color:var(--indigo-light)">${c.created}</td><td style="color:var(--text-secondary)">${c.used}</td><td class="mono">${c.storage}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `);
+};
+
+views.forge = async function() {
+  const el = $('#view-forge');
+  const STAGES = [
+    { n: 1, name: 'UNDERSTAND', agent: 'intent_parser', gate: '' },
+    { n: 2, name: 'RESEARCH', agent: 'research_swarm', gate: '' },
+    { n: 3, name: 'SYNTHESIZE', agent: 'expert_synth.', gate: '' },
+    { n: 4, name: 'DRAFT', agent: 'skill_drafter', gate: '' },
+    { n: 5, name: 'CRITIQUE', agent: 'critic_panel', gate: '>= 7.5' },
+    { n: 6, name: 'BATTLE-TEST', agent: 'red_team', gate: 'CI >= 0.80' },
+    { n: 7, name: 'ITERATE', agent: 'iteration', gate: '>= 8.5' },
+    { n: 8, name: 'PROMOTE', agent: 'promoter', gate: 'kappa >= 0.70' },
+  ];
+
+  const forgeData = await API.get('/api/forge/registry');
+  const skills = forgeData?.skills || [];
+
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Skill Forge</div>
+      <div class="view-subtitle">Autonomous skill generation pipeline — 8 stages from intent to production</div>
+    </div>
+    <div class="glass-card" style="margin-bottom:24px">
+      <div class="glass-card-title" style="margin-bottom:12px">How to trigger</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Run any of these from the Console:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <code style="background:var(--elevated);padding:4px 10px;border-radius:4px;font-size:11px;color:var(--forge)">"Forge a skill for Django REST API patterns"</code>
+        <code style="background:var(--elevated);padding:4px 10px;border-radius:4px;font-size:11px;color:var(--forge)">"Create a skill for React testing"</code>
+      </div>
+    </div>
+    <div class="forge-pipeline">
+      ${STAGES.map((s, i) => `
+        <div class="forge-stage">
+          <div class="forge-stage-num">${s.n}</div>
+          <div class="forge-stage-name">${s.name}</div>
+          <div class="forge-stage-agent">${s.agent}</div>
+          ${s.gate ? `<div class="forge-stage-gate">Gate: ${s.gate}</div>` : ''}
+        </div>
+        ${i < STAGES.length - 1 ? '<div class="forge-connector">&rarr;</div>' : ''}
+      `).join('')}
+    </div>
+    <div class="score-grid">
+      <div class="score-card"><div class="score-value">0.35</div><div class="score-label">Correctness</div></div>
+      <div class="score-card"><div class="score-value">0.25</div><div class="score-label">Robustness</div></div>
+      <div class="score-card"><div class="score-value">0.20</div><div class="score-label">Clarity</div></div>
+      <div class="score-card"><div class="score-value">0.20</div><div class="score-label">Domain Accuracy</div></div>
+    </div>
+    <div class="glass-card">
+      <div class="glass-card-header">
+        <div class="glass-card-title">Staged Skills Registry</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('forge')">Refresh</button>
+      </div>
+      ${skills.length === 0 ? '<div class="empty-state"><div class="empty-state-text">No staged skills yet — forge one from the Console</div></div>' :
+      `<table class="data-table"><thead><tr><th>Name</th><th>Domain</th><th>Dept</th><th>Score</th><th>Runs</th><th>Status</th></tr></thead><tbody>
+      ${skills.map(s => `<tr>
+        <td style="font-weight:600">${s.name}</td><td>${s.domain}</td>
+        <td><span class="${deptClass(s.department)} dept-badge">${s.department}</span></td>
+        <td style="color:var(--forge)">${s.composite_score?.toFixed(2) || '—'}</td>
+        <td>${s.production_runs || 0}</td>
+        <td><span class="${s.needs_review ? 'pill pill-pending_watch' : 'pill pill-stable'}">${s.needs_review ? 'Needs Review' : 'Staged'}</span></td>
+      </tr>`).join('')}
+      </tbody></table>`}
+    </div>
+  `);
+};
+
+views.ramp = function() {
+  const el = $('#view-ramp');
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">RAMP</div>
+      <div class="view-subtitle">Reflection, Memory, Planning — the research methodology powering all agents</div>
+    </div>
+    <div class="ramp-grid">
+      <div class="ramp-card">
+        <div style="font-size:32px;margin-bottom:12px;opacity:0.8">&#128270;</div>
+        <div class="ramp-title">Reflection Loop</div>
+        <div class="ramp-desc">3-layer quality enforcement: every critical agent output is evaluated on completeness, specificity, and correctness. If 2+ checks fail, the reflection agent re-evaluates and the source agent regenerates (max 2 cycles).</div>
+        <div class="ramp-metric">+28pp accuracy improvement</div>
+      </div>
+      <div class="ramp-card">
+        <div style="font-size:32px;margin-bottom:12px;opacity:0.8">&#128451;</div>
+        <div class="ramp-title">Long-Term Memory</div>
+        <div class="ramp-desc">Shared SQLite store for deal context, query history, and cross-team learning. Agents recall past interactions and build on previous work instead of starting from scratch each session.</div>
+        <div class="ramp-metric">+20pp recall improvement</div>
+      </div>
+      <div class="ramp-card">
+        <div style="font-size:32px;margin-bottom:12px;opacity:0.8">&#9989;</div>
+        <div class="ramp-title">Output Verification</div>
+        <div class="ramp-desc">Tool-level verification at system boundaries: DuckDuckGo scoring for research quality, MQL validation for lead packages, schema validation for generated code. Prevents bad data propagation.</div>
+        <div class="ramp-metric">Prevents bad data propagation</div>
+      </div>
+      <div class="ramp-card">
+        <div style="font-size:32px;margin-bottom:12px;opacity:0.8">&#9881;</div>
+        <div class="ramp-title">Agent Evolution</div>
+        <div class="ramp-desc">Autoresearcher self-improvement loop: evaluator detects underperformance, hypothesis generator diagnoses root cause, rewriter patches instructions atomically, watchdog validates or rolls back.</div>
+        <div class="ramp-metric">Continuous quality improvement across 62 agents</div>
+      </div>
+    </div>
+  `);
+};
+
+views.techstack = function() {
+  const el = $('#view-techstack');
+  const sections = [
+    { title: 'Core Dependencies', rows: [
+      ['google-adk', 'Agent Development Kit — orchestration framework'],
+      ['fastapi', 'API server with SSE streaming'],
+      ['litellm', 'Unified LLM interface (OpenAI-compatible)'],
+      ['pydantic', 'Data validation and settings management'],
+      ['python-dotenv', 'Environment variable loading'],
+      ['httpx', 'Async HTTP client'],
+    ]},
+    { title: 'Execution Layer', rows: [
+      ['Claude Code CLI', 'Sandboxed local builds (claude_works/)'],
+      ['SQLite WAL', 'Write-ahead logging for concurrent DB access'],
+      ['subprocess', 'Local build execution'],
+    ]},
+    { title: 'AI Models', rows: [
+      ['gemini-2.0-flash', 'Primary model (configurable via MODEL_ID)'],
+      ['claude-sonnet-4-6', 'Code generation (code_gen_tools)'],
+      ['claude-haiku-4-5', 'Lightweight code tasks'],
+    ]},
+    { title: 'Research & Marketing Tools', rows: [
+      ['DuckDuckGo (ddgs)', 'Web search, news search, company research'],
+      ['Google Trends', 'Trending topic discovery'],
+      ['RSS / feedparser', 'Feed aggregation for content strategy'],
+    ]},
+    { title: 'Deployment Tools', rows: [
+      ['GitHub API', 'Repo creation, file push, management'],
+      ['Vercel', 'Frontend deployment (Next.js)'],
+      ['Railway', 'Backend deployment (FastAPI)'],
+      ['Supabase', 'Managed PostgreSQL + auth'],
+      ['NeonDB', 'Serverless PostgreSQL'],
+    ]},
+    { title: 'Document Ingestion', rows: [
+      ['PDF (pdfplumber)', 'Page-level text extraction'],
+      ['DOCX (python-docx)', 'Paragraph extraction'],
+      ['Markdown / TXT', 'Direct text reading'],
+      ['HTML (BeautifulSoup)', 'Tag-stripped text extraction'],
+      ['XLSX / CSV', 'Tabular data to markdown tables'],
+    ]},
+    { title: 'Code Generation', rows: [
+      ['Claude API', 'Direct Anthropic API for code generation'],
+      ['generate_fastapi_backend()', 'Full FastAPI server generation'],
+      ['generate_nextjs_frontend()', 'Full Next.js app generation'],
+      ['generate_db_schema()', 'SQL schema generation'],
+    ]},
+    { title: 'CRM Integrations', rows: [
+      ['Salesforce', 'find_opportunity, update_opportunity, log_call, get_pipeline, create_task'],
+      ['HubSpot', 'find_deal, update_deal, log_note, create_task'],
+    ]},
+    { title: 'Databases (4 SQLite files, 19 tables)', rows: [
+      ['sales_memory.db', 'deal_memory, query_history'],
+      ['supervisor tables', 'supervisor_runs, supervisor_events, supervisor_circuit_breakers, supervisor_dlq, supervisor_output_validity'],
+      ['skill_forge.db', 'forge_sessions, research_bundles, skill_versions, battle_test_results, staging_registry'],
+      ['evolution.db', 'agent_versions, evolution_events, hypotheses, evaluator_queue, rewrite_locks'],
+      ['product_pipeline.db', 'product_pipeline_state, product_step_log'],
+    ]},
+    { title: 'Memory & Persistence', rows: [
+      ['Session memory', 'ADK InMemorySessionService (per-run)'],
+      ['Deal memory', 'Persistent per-company deal context'],
+      ['Query history', 'Timestamped per-agent output log'],
+      ['Product state', 'Pipeline-scoped product lifecycle'],
+      ['Skill forge state', 'Skill generation pipeline state'],
+      ['Evolution state', 'Agent instruction version history'],
+    ]},
+    { title: 'Environment Variables', rows: [
+      ['ANTHROPIC_API_KEY', 'Claude API (code generation)'],
+      ['GITHUB_TOKEN', 'GitHub API (repo scope)'],
+      ['VERCEL_TOKEN', 'Vercel deployments'],
+      ['RAILWAY_TOKEN', 'Railway deployments'],
+      ['SUPABASE_ACCESS_TOKEN', 'Supabase management'],
+      ['NEONDB_API_KEY', 'NeonDB provisioning'],
+      ['SALESFORCE_ACCESS_TOKEN', 'Salesforce OAuth'],
+      ['HUBSPOT_API_KEY', 'HubSpot API'],
+      ['MODEL_ID', 'LLM model (default: gemini-2.0-flash)'],
+    ]},
+  ];
+
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Tech Stack</div>
+      <div class="view-subtitle">Dependencies, databases, integrations, and infrastructure</div>
+    </div>
+    ${sections.map(s => `<div class="tech-section">
+      <div class="tech-section-title">${s.title}</div>
+      <div class="glass-card" style="padding:0;overflow:hidden">
+        <table class="data-table"><tbody>
+        ${s.rows.map(r => `<tr><td style="font-weight:600;min-width:180px;font-family:monospace;font-size:11px;color:var(--indigo-light)">${r[0]}</td><td style="color:var(--text-secondary)">${r[1]}</td></tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>`).join('')}
+  `);
+};
+
+views.supervisor = async function() {
+  const el = $('#view-supervisor');
+  html(el, `
+    <div class="view-header">
+      <div class="view-title">Supervisor</div>
+      <div class="view-subtitle">Full system observability — circuit breakers, DLQ, pipeline runs, events, evolution</div>
+    </div>
+    <div class="sub-tabs" id="sup-tabs">
+      <button class="sub-tab active" data-tab="overview">Overview</button>
+      <button class="sub-tab" data-tab="circuits">Circuit Breakers</button>
+      <button class="sub-tab" data-tab="dlq">Dead Letter Queue</button>
+      <button class="sub-tab" data-tab="runs">Pipeline Runs</button>
+      <button class="sub-tab" data-tab="events">Event Log</button>
+      <button class="sub-tab" data-tab="evolution">Evolution History</button>
+    </div>
+    <div id="sup-content"></div>
+  `);
+
+  async function renderSupTab(tab) {
+    const c = $('#sup-content');
+    if (tab === 'overview') {
+      const stats = await API.get('/api/supervisor/stats') || {};
+      html(c, `
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-value" style="color:${stats.open_breakers > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.open_breakers || 0}</div><div class="kpi-label">Open Breakers</div></div>
+          <div class="kpi-card"><div class="kpi-value" style="color:${stats.dlq_count > 0 ? 'var(--warning)' : 'var(--success)'}">${stats.dlq_count || 0}</div><div class="kpi-label">DLQ Entries</div></div>
+          <div class="kpi-card"><div class="kpi-value" style="color:var(--indigo-light)">${stats.active_runs || 0}</div><div class="kpi-label">Active Runs</div></div>
+          <div class="kpi-card"><div class="kpi-value" style="color:var(--text-secondary)">${stats.events_24h || 0}</div><div class="kpi-label">Events (24h)</div></div>
+        </div>
+        ${stats.open_breakers > 0 ? '<div class="alert-banner alert-danger">Circuit breakers are open — some agents are rate-limited</div>' : ''}
+        ${stats.dlq_count > 0 ? '<div class="alert-banner alert-warning">Dead letter queue has blocked pipelines that need attention</div>' : ''}
+        ${!stats.open_breakers && !stats.dlq_count ? '<div class="alert-banner alert-success">All systems nominal</div>' : ''}
+      `);
+
+    } else if (tab === 'circuits') {
+      const circuits = await API.get('/api/supervisor/circuits') || [];
+      html(c, `
+        <div class="glass-card" style="padding:0;overflow:auto;max-height:calc(100vh - 280px)">
+          <table class="data-table"><thead><tr><th>Agent</th><th>Department</th><th>State</th><th>Failures</th><th>Last Failure</th><th>Opened At</th><th>Action</th></tr></thead><tbody>
+          ${(circuits.length > 0 ? circuits : AGENTS.filter(a => !a.name.includes('orchestrator')).map(a => ({ agent_name: a.name, state: 'closed', failure_count: 0 }))).map(r => {
+            const agent = getAgent(r.agent_name);
+            return `<tr style="${r.state === 'open' ? 'background:rgba(239,68,68,0.05)' : ''}">
+              <td class="mono">${r.agent_name}</td>
+              <td><span class="${deptClass(agent?.dept)} dept-badge">${agent?.dept || '—'}</span></td>
+              <td><span class="${pillClass(r.state)}">${r.state || 'closed'}</span></td>
+              <td>${r.failure_count || 0}</td>
+              <td style="color:var(--muted)">${relTime(r.last_failure_at)}</td>
+              <td style="color:var(--muted)">${relTime(r.opened_at)}</td>
+              <td>${r.state === 'open' ? `<button class="btn btn-danger btn-sm" onclick="resetCircuit('${r.agent_name}')">Reset</button>` : ''}</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table>
+        </div>
+      `);
+
+    } else if (tab === 'dlq') {
+      const dlq = await API.get('/api/supervisor/dlq') || [];
+      html(c, dlq.length === 0
+        ? '<div class="alert-banner alert-success" style="margin-top:16px">No blocked pipelines</div>'
+        : `<div class="glass-card" style="padding:0;overflow:auto">
+            <table class="data-table"><thead><tr><th>Run ID</th><th>Type</th><th>Blocked On</th><th>Error</th><th>Steps Done</th><th>Created</th><th>Action</th></tr></thead><tbody>
+            ${dlq.map(d => `<tr>
+              <td class="mono">${truncate(d.run_id, 12)}</td>
+              <td>${d.pipeline_type || '—'}</td>
+              <td class="mono" style="color:var(--warning)">${d.blocked_on || '—'}</td>
+              <td class="truncate" title="${d.last_error || ''}">${truncate(d.last_error, 40)}</td>
+              <td>${d.completed_steps_json ? JSON.parse(d.completed_steps_json).length : 0}</td>
+              <td style="color:var(--muted)">${relTime(d.created_at)}</td>
+              <td><button class="btn btn-primary btn-sm" onclick="resumeDlq('${d.run_id}')">Resume</button></td>
+            </tr>`).join('')}
+            </tbody></table>
+          </div>`
+      );
+
+    } else if (tab === 'runs') {
+      const runs = await API.get('/api/supervisor/runs?limit=50') || [];
+      html(c, `
+        <div class="glass-card" style="padding:0;overflow:auto;max-height:calc(100vh - 280px)">
+          <table class="data-table"><thead><tr><th>Run ID</th><th>Type</th><th>Status</th><th>Step</th><th>Created</th><th>Updated</th></tr></thead><tbody>
+          ${runs.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">No pipeline runs</td></tr>' :
+          runs.map(r => `<tr style="cursor:pointer" onclick="navigate('pipeline')">
+            <td class="mono">${truncate(r.run_id, 12)}</td>
+            <td>${r.pipeline_type || '—'}</td>
+            <td><span class="${pillClass(r.status)}">${r.status}</span></td>
+            <td>${r.current_step || 0}/${r.total_steps || '?'}</td>
+            <td style="color:var(--muted)">${relTime(r.created_at)}</td>
+            <td style="color:var(--muted)">${relTime(r.updated_at)}</td>
+          </tr>`).join('')}
+          </tbody></table>
+        </div>
+      `);
+
+    } else if (tab === 'events') {
+      const events = await API.get('/api/supervisor/events?limit=100') || [];
+      html(c, `
+        <div class="glass-card" style="padding:0;overflow:auto;max-height:calc(100vh - 280px)">
+          <table class="data-table"><thead><tr><th>Time</th><th>Run ID</th><th>Agent</th><th>Event</th><th>Payload</th></tr></thead><tbody>
+          ${events.length === 0 ? '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">No events</td></tr>' :
+          events.map(e => {
+            const agent = getAgent(e.agent_name);
+            return `<tr>
+              <td style="color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap">${relTime(e.created_at)}</td>
+              <td class="mono">${truncate(e.run_id, 8)}</td>
+              <td style="color:${deptColor(agent?.dept)};font-family:monospace;font-size:11px">${e.agent_name}</td>
+              <td><span class="${eventBadgeClass(e.event_type)}">${e.event_type}</span></td>
+              <td class="truncate mono" title="${e.payload_json || ''}">${truncate(e.payload_json, 50)}</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table>
+        </div>
+      `);
+
+    } else if (tab === 'evolution') {
+      const evo = await API.get('/api/supervisor/evolution') || [];
+      html(c, `
+        <div class="glass-card" style="padding:0;overflow:auto;max-height:calc(100vh - 280px)">
+          <table class="data-table"><thead><tr><th>Agent</th><th>Version</th><th>Status</th><th>Score</th><th>Hypothesis</th><th>Confidence</th><th>Created</th></tr></thead><tbody>
+          ${evo.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">No evolution history — run autoresearcher to start evolving agents</td></tr>' :
+          evo.map(e => `<tr>
+            <td class="mono">${e.agent_name}</td>
+            <td>v${e.version}</td>
+            <td><span class="${pillClass(e.status)}">${e.status}</span></td>
+            <td>${e.score_baseline?.toFixed(2) || '—'}</td>
+            <td class="truncate" title="${e.hypothesis_text || ''}">${truncate(e.hypothesis_text, 40)}</td>
+            <td>${e.confidence || '—'}</td>
+            <td style="color:var(--muted)">${relTime(e.created_at)}</td>
+          </tr>`).join('')}
+          </tbody></table>
+        </div>
+      `);
+    }
+  }
+
+  renderSupTab('overview');
+
+  $$('#sup-tabs .sub-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#sup-tabs .sub-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderSupTab(btn.dataset.tab);
+    });
+  });
+};
+
+// ── Supervisor Actions ──────────────────────────────────────────────────
+async function resetCircuit(agent) {
+  await API.post(`/api/supervisor/circuits/${agent}/reset`);
+  views.supervisor();
+}
+async function resumeDlq(runId) {
+  await API.post(`/api/supervisor/dlq/${runId}/resume`);
+  views.supervisor();
+}
 
 // ── Polling Manager ───────────────────────────────────────────────────────
 function startPolling() {
