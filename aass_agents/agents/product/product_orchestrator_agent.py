@@ -16,6 +16,7 @@ from agents.product.qa_agent import qa_agent
 from agents._shared.reflection_agent import make_reflection_agent
 reflection_agent = make_reflection_agent()
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
+from tools.claude_code_tools import build_and_run, open_in_browser
 
 from agents._shared.model import get_model
 INSTRUCTION = """
@@ -104,5 +105,5 @@ product_orchestrator = Agent(
         qa_agent,
         reflection_agent,
     ],
-    tools=[save_product_state, recall_product_state, log_step],
+    tools=[save_product_state, recall_product_state, log_step, build_and_run, open_in_browser],
 )

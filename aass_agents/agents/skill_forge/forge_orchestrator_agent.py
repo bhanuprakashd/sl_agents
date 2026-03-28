@@ -14,6 +14,7 @@ from agents.skill_forge.critic_panel_agent import critic_panel_agent
 from agents.skill_forge.red_team_agent import red_team_agent
 from agents.skill_forge.iteration_agent import iteration_agent
 from agents.skill_forge.promoter_agent import promoter_agent
+from tools.claude_code_tools import build_and_run, open_in_browser
 from tools.skill_forge_db import (
     init_db,
     get_session_sync,
@@ -122,6 +123,8 @@ forge_orchestrator = Agent(
         update_session_stage_sync,
         update_session_status_sync,
         list_staged_skills_sync,
+        build_and_run,
+        open_in_browser,
     ],
     sub_agents=[
         intent_parser_agent,
