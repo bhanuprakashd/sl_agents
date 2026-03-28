@@ -4,6 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web, search_news
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -49,5 +50,5 @@ competitive_analyst_agent = Agent(
         "Authoritative source for competitor data consumed by Sales and Marketing."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, search_news],
+    tools=[deep_research, search_company_web, search_news, read_document, read_document_pages, list_documents, search_document],
 )

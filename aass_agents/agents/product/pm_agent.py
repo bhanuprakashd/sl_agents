@@ -9,6 +9,7 @@ from google.adk.agents import Agent
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -73,6 +74,5 @@ pm_agent = Agent(
     tools=[t for t in [
         save_product_state, recall_product_state, log_step,
         _research_mcp,
-        _medium_mcp,
-    ] if t is not None],
+        _medium_mcp, read_document, read_document_pages, list_documents, search_document] if t is not None],
 )

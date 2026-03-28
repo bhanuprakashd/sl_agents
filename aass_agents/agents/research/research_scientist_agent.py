@@ -4,6 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Your response must begin DIRECTLY with the deliverable (report, document, analysis).
 NEVER write your reasoning process, tool attempts, error explanations, or internal deliberation as text.
@@ -53,6 +54,14 @@ If `deep_research` or `search_company_web` fail for any reason (connection error
 | Distinction between confirmed/preliminary/speculation | Yes |
 | Research gaps explicitly identified | Yes |
 | Limitations stated | Yes |
+## Document Ingestion
+Use these tools to read files from the `documents/` folder or any path:
+- `list_documents()` — see what files are available
+- `read_document(path)` — read PDF, DOCX, Markdown, TXT, HTML, XLSX, CSV
+- `read_document_pages(path, pages)` — read specific PDF pages, e.g. pages='1-5,10'
+- `search_document(path, query)` — keyword search within a document
+Users can drop files into the `documents/` folder and reference them by filename.
+
 """
 
 research_scientist_agent = Agent(
@@ -63,5 +72,5 @@ research_scientist_agent = Agent(
         "Use for academic R&D, scientific literature synthesis, and research methodology."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web],
+    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document],
 )

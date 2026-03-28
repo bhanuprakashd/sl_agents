@@ -7,6 +7,7 @@ from tools.research_tools import deep_research, search_company_web
 from tools.engineering_tools import create_pipeline_spec
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -54,5 +55,5 @@ solutions_architect_agent = Agent(
         "and pipeline specs. Use for system design, technology selection, and architecture review."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, deep_research, search_company_web, create_pipeline_spec],
+    tools=[generate_code, deep_research, search_company_web, create_pipeline_spec, read_document, read_document_pages, list_documents, search_document],
 )

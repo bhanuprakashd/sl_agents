@@ -5,6 +5,7 @@ from tools.research_tools import deep_research, search_company_web
 from tools.code_gen_tools import generate_code
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -50,5 +51,5 @@ applied_scientist_agent = Agent(
         "PoC plans. Use when evaluating whether a research idea can become a product feature."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, generate_code],
+    tools=[deep_research, search_company_web, generate_code, read_document, read_document_pages, list_documents, search_document],
 )

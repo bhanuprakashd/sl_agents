@@ -4,6 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
 from agents._shared.model import get_model
+from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -40,6 +41,14 @@ produce cross-domain synthesis reports.
 | Contradictions between sources flagged | Yes |
 | Clear "so what" — implications for the reader | Yes |
 | Audience identified: who should act on this | Yes |
+## Document Ingestion
+Use these tools to read files from the `documents/` folder or any path:
+- `list_documents()` — see what files are available
+- `read_document(path)` — read PDF, DOCX, Markdown, TXT, HTML, XLSX, CSV
+- `read_document_pages(path, pages)` — read specific PDF pages, e.g. pages='1-5,10'
+- `search_document(path, query)` — keyword search within a document
+Users can drop files into the `documents/` folder and reference them by filename.
+
 """
 
 knowledge_manager_agent = Agent(
@@ -50,5 +59,5 @@ knowledge_manager_agent = Agent(
         "Use to consolidate findings from R&D, competitive intel, and user research into actionable briefs."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web],
+    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document],
 )
