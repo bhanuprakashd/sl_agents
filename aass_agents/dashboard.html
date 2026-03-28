@@ -3,1148 +3,844 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SL Agent OS — Architecture</title>
+<title>SL Agent OS — Command Center</title>
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #222636;
-    --border: #2e3347;
-    --text: #e2e8f0;
-    --muted: #8892a4;
-    --indigo: #6366f1;
-    --indigo-light: #818cf8;
-    --emerald: #10b981;
-    --amber: #f59e0b;
-    --blue: #3b82f6;
-    --red: #ef4444;
-    --purple: #a855f7;
-    --teal: #14b8a6;
-    --pink: #ec4899;
-    --orange: #f97316;
-    --sales: #3b82f6;
-    --marketing: #a855f7;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+/* ── CSS Variables ─────────────────────────────────────────────────────── */
+:root {
+  --bg: #0a0b10;
+  --surface: #12131a;
+  --elevated: #1a1c28;
+  --elevated2: #222538;
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --muted: #64748b;
+  --indigo: #6366f1;
+  --indigo-light: #818cf8;
+  --indigo-glow: rgba(99,102,241,0.15);
+  /* Department colors */
+  --sales: #3b82f6;
+  --marketing: #a855f7;
+  --product: #10b981;
+  --engineering: #f59e0b;
+  --research: #14b8a6;
+  --qa: #ef4444;
+  --autoresearcher: #f97316;
+  --forge: #ec4899;
+  --shared: #6366f1;
+  /* Semantic */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 64px;
+  --topbar-height: 48px;
+  --transition: 200ms ease;
+}
 
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 20px 48px;
-    display: flex; align-items: center; gap: 16px;
-    background: var(--surface);
-  }
-  .logo { width: 40px; height: 40px; background: linear-gradient(135deg, var(--sales), var(--marketing)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  header h1 { font-size: 20px; font-weight: 700; }
-  header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .badges { margin-left: auto; display: flex; gap: 8px; }
-  .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-  .badge-sales { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
-  .badge-mkt { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; }
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  overflow: hidden;
+  height: 100vh;
+}
 
-  nav { display: flex; gap: 4px; padding: 16px 48px 0; border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
-  nav button { background: none; border: none; color: var(--muted); padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
-  nav button.active { color: var(--indigo-light); border-bottom-color: var(--indigo); }
-  nav button:hover:not(.active) { color: var(--text); }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-  main { padding: 40px 48px; max-width: 1600px; margin: 0 auto; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
+/* ── Animations ────────────────────────────────────────────────────────── */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes dotTravel { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
-  h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+/* ── Layout ────────────────────────────────────────────────────────────── */
+.app { display: grid; grid-template-rows: var(--topbar-height) 1fr; grid-template-columns: var(--sidebar-width) 1fr; height: 100vh; transition: grid-template-columns var(--transition); }
+.app.collapsed { grid-template-columns: var(--sidebar-collapsed) 1fr; }
 
-  /* ── Team filter bar ── */
-  .team-filter { display: flex; gap: 8px; margin-bottom: 24px; }
-  .filter-btn { padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.2s; }
-  .filter-btn.active-all { border-color: var(--indigo); color: var(--indigo-light); background: rgba(99,102,241,0.1); }
-  .filter-btn.active-sales { border-color: var(--sales); color: #93c5fd; background: rgba(59,130,246,0.1); }
-  .filter-btn.active-marketing { border-color: var(--marketing); color: #c084fc; background: rgba(168,85,247,0.1); }
+/* ── Top Bar ───────────────────────────────────────────────────────────── */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 100;
+}
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+.topbar-logo-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--indigo), var(--marketing));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.topbar-logo-icon svg { width: 16px; height: 16px; fill: white; }
+.topbar-logo-text { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+.topbar-logo-sub { font-size: 10px; color: var(--muted); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; margin-left: 8px; }
+.topbar-center { display: flex; gap: 12px; flex: 1; justify-content: center; flex-wrap: wrap; }
+.topbar-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.topbar-chip .chip-value { color: var(--text); }
+.topbar-chip.alert { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+.topbar-chip.alert .chip-value { color: var(--danger); }
+.topbar-right { display: flex; align-items: center; gap: 12px; min-width: 140px; justify-content: flex-end; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.status-dot.error { background: var(--danger); }
+.status-dot.pulse { animation: pulse 2s ease-in-out infinite; }
+.topbar-time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  /* ── Architecture diagram ── */
-  #arch-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; margin-bottom: 32px; overflow-x: auto; }
-  #arch-diagram svg { display: block; margin: 0 auto; }
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.sidebar {
+  background: rgba(18,19,26,0.85);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width var(--transition);
+}
+.sidebar-nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid transparent;
+}
+.nav-item:hover { color: var(--text-secondary); background: rgba(255,255,255,0.04); }
+.nav-item.active {
+  color: var(--text);
+  background: var(--indigo-glow);
+  border-color: rgba(99,102,241,0.2);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 25%; height: 50%;
+  width: 3px;
+  background: var(--indigo);
+  border-radius: 0 3px 3px 0;
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active svg { opacity: 1; }
+.nav-label { overflow: hidden; text-overflow: ellipsis; }
+.app.collapsed .nav-label { display: none; }
+.app.collapsed .nav-item { justify-content: center; padding: 10px; }
 
-  /* ── Stats ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
-  .stat-num { font-size: 30px; font-weight: 800; }
-  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.collapse-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all var(--transition);
+}
+.collapse-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.collapse-btn svg { width: 16px; height: 16px; transition: transform var(--transition); }
+.app.collapsed .collapse-btn svg { transform: rotate(180deg); }
+.version-badge { font-size: 10px; color: var(--muted); background: var(--elevated); padding: 2px 8px; border-radius: 4px; }
+.app.collapsed .version-badge { display: none; }
 
-  /* ── Agent cards ── */
-  .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 20px; }
-  .agent-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
-  .agent-card:hover { border-color: var(--accent-color, #6366f1); transform: translateY(-2px); }
-  .agent-card[data-team="sales"] { --accent-color: var(--sales); }
-  .agent-card[data-team="marketing"] { --accent-color: var(--marketing); }
-  .agent-card[data-team="meta"] { --accent-color: var(--indigo); }
-  .agent-card.hidden { display: none; }
+/* ── Main Content ──────────────────────────────────────────────────────── */
+.main-content {
+  overflow-y: auto;
+  padding: 28px 32px;
+  background: var(--bg);
+}
+.view { display: none; animation: fadeIn 300ms ease; }
+.view.active { display: block; }
 
-  .agent-header { padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
-  .agent-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
-  .agent-title { font-weight: 700; font-size: 14px; }
-  .agent-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
-  .agent-team-badge { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; }
+/* ── Component: Glass Card ─────────────────────────────────────────────── */
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all var(--transition);
+}
+.glass-card:hover { border-color: var(--border-strong); }
+.glass-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.glass-card-title { font-size: 14px; font-weight: 600; }
+.glass-card-subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-  .agent-body { padding: 16px 20px; }
-  .io-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-  .io-block label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
-  .io-list { display: flex; flex-direction: column; gap: 3px; }
-  .io-item { font-size: 11px; padding: 4px 9px; border-radius: 5px; background: var(--surface2); border: 1px solid var(--border); }
-  .tools-row { margin-top: 12px; }
-  .tools-row label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
-  .tools-list { display: flex; flex-wrap: wrap; gap: 5px; }
-  .tool-chip { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25); color: #c084fc; font-family: monospace; }
-  .reflection-box { margin-top: 10px; padding: 9px 11px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; }
-  .reflection-box .r-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ef4444; margin-bottom: 3px; }
-  .reflection-box .r-text { font-size: 11px; color: #9ca3af; line-height: 1.5; }
+/* ── Component: KPI Card ───────────────────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.kpi-value { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.kpi-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-icon { position: absolute; top: 16px; right: 16px; opacity: 0.15; }
+.kpi-icon svg { width: 32px; height: 32px; }
 
-  /* ── Handoff section ── */
-  .handoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
-  .handoff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-  .handoff-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
-  .handoff-arrow { font-size: 20px; }
-  .handoff-desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
-  .handoff-fields { display: flex; flex-direction: column; gap: 6px; }
-  .handoff-field { font-size: 12px; padding: 6px 12px; background: var(--surface2); border-radius: 6px; border-left: 3px solid; }
+/* ── Component: Status Pill ────────────────────────────────────────────── */
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.pill-closed { background: rgba(16,185,129,0.12); color: #34d399; }
+.pill-open { background: rgba(239,68,68,0.12); color: #f87171; }
+.pill-half-open { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.pill-running { background: rgba(99,102,241,0.12); color: #818cf8; animation: pulse 2s ease-in-out infinite; }
+.pill-completed { background: rgba(16,185,129,0.12); color: #34d399; }
+.pill-failed { background: rgba(239,68,68,0.12); color: #f87171; }
+.pill-blocked { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.pill-pending { background: rgba(148,163,184,0.12); color: #94a3b8; }
+.pill-stable { background: rgba(16,185,129,0.12); color: #34d399; }
+.pill-pending_watch { background: rgba(99,102,241,0.12); color: #818cf8; }
+.pill-rolled_back { background: rgba(239,68,68,0.12); color: #f87171; }
 
-  /* ── Workflow ── */
-  .workflow-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-  .workflow-col h3 { font-size: 15px; font-weight: 700; margin-bottom: 20px; padding: 10px 16px; border-radius: 10px; }
-  .workflow-col.sales h3 { background: rgba(59,130,246,0.1); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
-  .workflow-col.marketing h3 { background: rgba(168,85,247,0.1); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
-  .workflow-step { display: flex; gap: 14px; position: relative; }
-  .workflow-step:not(:last-child) .step-line { position: absolute; left: 15px; top: 34px; width: 2px; bottom: -14px; background: var(--border); }
-  .step-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; z-index: 1; }
-  .step-content { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; flex: 1; }
-  .step-agent-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
-  .step-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
-  .step-desc { font-size: 12px; color: var(--muted); }
-  .step-out { margin-top: 7px; font-size: 11px; padding: 5px 9px; background: var(--surface2); border-radius: 6px; border-left: 3px solid; color: var(--muted); }
+/* ── Component: Department Badge ───────────────────────────────────────── */
+.dept-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.dept-sales { background: rgba(59,130,246,0.15); color: #93c5fd; }
+.dept-marketing { background: rgba(168,85,247,0.15); color: #c084fc; }
+.dept-product { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.dept-engineering { background: rgba(245,158,11,0.15); color: #fcd34d; }
+.dept-research { background: rgba(20,184,166,0.15); color: #5eead4; }
+.dept-qa { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.dept-autoresearcher { background: rgba(249,115,22,0.15); color: #fdba74; }
+.dept-forge { background: rgba(236,72,153,0.15); color: #f9a8d4; }
+.dept-shared { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+.dept-orchestrators { background: rgba(99,102,241,0.15); color: #a5b4fc; }
 
-  /* ── RAMP ── */
-  .ramp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
-  .ramp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
-  .ramp-icon { font-size: 26px; margin-bottom: 10px; }
-  .ramp-title { font-weight: 700; font-size: 14px; margin-bottom: 7px; }
-  .ramp-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
-  .ramp-metric { margin-top: 12px; padding: 9px 12px; background: var(--surface2); border-radius: 8px; font-size: 12px; }
-  .ramp-metric strong { color: var(--emerald); font-size: 17px; }
+/* ── Component: Data Table ─────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  text-align: left; padding: 10px 12px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+.data-table .mono { font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 11px; }
+.data-table .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* ── Stack ── */
-  .stack-section { margin-bottom: 28px; }
-  .stack-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 14px; border-bottom: 1px solid var(--border); }
-  td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--surface2); }
-  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-  .pill-free { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #6ee7b7; }
-  .pill-paid { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: #fcd34d; }
-  .mono { font-family: monospace; font-size: 12px; color: #c084fc; }
+/* ── Component: Event Badge ────────────────────────────────────────────── */
+.event-badge { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: monospace; }
+.event-agent-called { background: rgba(59,130,246,0.15); color: #93c5fd; }
+.event-agent-returned { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.event-circuit-opened { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.event-circuit-closed { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.event-dlq-pushed { background: rgba(245,158,11,0.15); color: #fcd34d; }
+.event-run-failed { background: rgba(239,68,68,0.15); color: #fca5a5; }
 
-  @media (max-width: 1000px) {
-    main { padding: 24px 20px; }
-    header, nav { padding-left: 20px; padding-right: 20px; }
-    .agents-grid, .workflow-teams, .handoff-grid, .ramp-grid { grid-template-columns: 1fr; }
-    .io-row { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: repeat(3, 1fr); }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+/* ── Component: Button ─────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all var(--transition); }
+.btn-primary { background: var(--indigo); color: white; }
+.btn-primary:hover { background: #5558e6; }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-ghost:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.btn-danger { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+
+/* ── Component: Input ──────────────────────────────────────────────────── */
+.input {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.input:focus { border-color: var(--indigo); }
+.input::placeholder { color: var(--muted); }
+
+/* ── Component: Tabs (sub-navigation) ──────────────────────────────────── */
+.sub-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0; overflow-x: auto; }
+.sub-tab {
+  padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all var(--transition); white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none;
+}
+.sub-tab:hover { color: var(--text-secondary); }
+.sub-tab.active { color: var(--indigo-light); border-bottom-color: var(--indigo); }
+
+/* ── Component: Filter Chips ───────────────────────────────────────────── */
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-chip {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: var(--elevated); border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.filter-chip:hover { color: var(--text-secondary); border-color: var(--border-strong); }
+.filter-chip.active { background: var(--indigo-glow); border-color: rgba(99,102,241,0.3); color: var(--indigo-light); }
+
+/* ── Component: Alert Banner ───────────────────────────────────────────── */
+.alert-banner { padding: 12px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.alert-danger { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
+.alert-warning { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+.alert-success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; }
+
+/* ── Dept Health Grid ──────────────────────────────────────────────────── */
+.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.dept-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; cursor: pointer; transition: all var(--transition);
+}
+.dept-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.dept-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dept-card-name { font-size: 13px; font-weight: 700; }
+.dept-card-count { font-size: 11px; color: var(--muted); }
+.dept-card-agents { font-size: 10px; color: var(--muted); line-height: 1.6; }
+
+/* ── Two Column Layout ─────────────────────────────────────────────────── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+@media (max-width: 1000px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── Agent Card Grid ───────────────────────────────────────────────────── */
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.agent-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; transition: all var(--transition);
+}
+.agent-card:hover { border-color: var(--border-strong); }
+.agent-card-top { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+.agent-card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.agent-card-icon svg { width: 18px; height: 18px; opacity: 0.9; }
+.agent-card-name { font-size: 13px; font-weight: 700; }
+.agent-card-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.agent-card-status { display: flex; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 11px; }
+.agent-card-status-item { display: flex; align-items: center; gap: 4px; }
+.agent-card-status-label { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px; }
+.agent-card-body { padding: 12px 16px; }
+.agent-card-section { margin-bottom: 10px; }
+.agent-card-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; }
+.agent-card-list { list-style: none; font-size: 11px; }
+.agent-card-list li { padding: 2px 0; padding-left: 10px; border-left: 2px solid var(--border); color: var(--text-secondary); }
+.agent-card-tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.tool-chip { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-family: monospace; background: rgba(168,85,247,0.1); color: #c084fc; }
+.agent-card-reflection { background: var(--elevated); padding: 10px; border-radius: 6px; font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ── Console ───────────────────────────────────────────────────────────── */
+.console-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.console-input-row .input { flex: 1; }
+.console-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100vh - 250px); }
+.console-pane { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+.console-pane-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.console-pane-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.console-pane-body { flex: 1; overflow-y: auto; padding: 12px; font-size: 12px; }
+.console-event { display: flex; gap: 8px; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid transparent; }
+.console-event:hover { background: rgba(255,255,255,0.02); }
+.console-event-time { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 40px; }
+.console-event-agent { font-family: monospace; font-size: 11px; font-weight: 600; min-width: 120px; }
+.console-event-text { color: var(--text-secondary); font-size: 11px; flex: 1; overflow-wrap: break-word; }
+.console-status-bar { padding: 8px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.console-output-content { white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: var(--text); }
+
+/* ── Org Chart ─────────────────────────────────────────────────────────── */
+.orgchart-container { width: 100%; height: calc(100vh - 160px); position: relative; overflow: hidden; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+.orgchart-canvas { width: 100%; height: 100%; cursor: grab; }
+.orgchart-canvas:active { cursor: grabbing; }
+.orgchart-controls { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; }
+.orgchart-controls button {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: var(--elevated); border: 1px solid var(--border);
+  color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all var(--transition);
+}
+.orgchart-controls button:hover { background: var(--elevated2); color: var(--text); }
+.orgchart-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+
+/* ── Pipeline Viz ──────────────────────────────────────────────────────── */
+.pipeline-launcher { margin-bottom: 24px; }
+.pipeline-launcher .input { font-size: 15px; padding: 14px 18px; }
+.pipeline-launcher-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.pipeline-chip { padding: 6px 14px; border-radius: 20px; font-size: 12px; background: var(--elevated); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; transition: all var(--transition); }
+.pipeline-chip:hover { border-color: var(--indigo); color: var(--indigo-light); }
+.pipeline-viz { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; min-height: 300px; padding: 24px; margin-bottom: 24px; overflow-x: auto; position: relative; }
+.pipeline-node {
+  display: inline-flex; flex-direction: column; align-items: center;
+  background: var(--elevated); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; min-width: 140px; text-align: center; position: relative;
+  transition: all var(--transition);
+}
+.pipeline-node:hover { border-color: var(--border-strong); }
+.pipeline-node-name { font-size: 11px; font-weight: 700; }
+.pipeline-node-dept { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.pipeline-node-status { font-size: 16px; margin-top: 4px; }
+
+/* ── Step Flow (Workflows) ─────────────────────────────────────────────── */
+.step-flow { padding: 16px 0; }
+.step-item { display: flex; gap: 16px; margin-bottom: 0; position: relative; }
+.step-line { width: 32px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.step-circle {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  background: var(--surface); z-index: 1; flex-shrink: 0;
+}
+.step-connector { width: 2px; flex: 1; background: var(--border); min-height: 20px; }
+.step-content {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; flex: 1; margin-bottom: 12px;
+}
+.step-content.handoff { border-style: dashed; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.03); }
+.step-title { font-size: 12px; font-weight: 700; }
+.step-agent { font-size: 11px; color: var(--indigo-light); cursor: pointer; }
+.step-agent:hover { text-decoration: underline; }
+.step-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.step-output { margin-top: 8px; padding: 8px 10px; background: var(--elevated); border-radius: 6px; font-size: 11px; color: var(--text-secondary); }
+
+/* ── Handoff Cards ─────────────────────────────────────────────────────── */
+.handoff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.handoff-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.handoff-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.handoff-arrow { font-size: 14px; color: var(--muted); }
+.handoff-fields { list-style: none; }
+.handoff-fields li { padding: 4px 0 4px 10px; font-size: 11px; color: var(--text-secondary); border-left: 2px solid; }
+
+/* ── Forge Pipeline ────────────────────────────────────────────────────── */
+.forge-pipeline { display: flex; gap: 12px; overflow-x: auto; padding: 16px 0; margin-bottom: 24px; }
+.forge-stage {
+  min-width: 160px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; text-align: center; flex-shrink: 0;
+  transition: all var(--transition);
+}
+.forge-stage:hover { border-color: var(--border-strong); }
+.forge-stage-num { font-size: 24px; font-weight: 800; color: var(--forge); opacity: 0.3; }
+.forge-stage-name { font-size: 12px; font-weight: 700; margin-top: 4px; }
+.forge-stage-agent { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.forge-stage-gate { font-size: 9px; color: var(--warning); margin-top: 4px; }
+.forge-connector { display: flex; align-items: center; color: var(--muted); flex-shrink: 0; }
+
+/* ── Scoring Grid ──────────────────────────────────────────────────────── */
+.score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+.score-value { font-size: 28px; font-weight: 800; color: var(--forge); }
+.score-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── RAMP Cards ────────────────────────────────────────────────────────── */
+.ramp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.ramp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.ramp-icon { font-size: 28px; margin-bottom: 12px; }
+.ramp-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.ramp-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.ramp-metric { margin-top: 12px; padding: 6px 10px; background: var(--elevated); border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--success); }
+
+/* ── Tech Stack Tables ─────────────────────────────────────────────────── */
+.tech-section { margin-bottom: 24px; }
+.tech-section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.tech-section-title svg { width: 16px; height: 16px; color: var(--muted); }
+
+/* ── Cycle Diagram (Autoresearcher) ────────────────────────────────────── */
+.cycle-diagram { display: flex; justify-content: center; padding: 20px; }
+
+/* ── Slide-out Panel ───────────────────────────────────────────────────── */
+.slide-panel {
+  position: fixed; top: var(--topbar-height); right: 0; bottom: 0;
+  width: 420px; background: var(--surface); border-left: 1px solid var(--border);
+  z-index: 200; transform: translateX(100%); transition: transform 300ms ease;
+  overflow-y: auto; padding: 24px;
+}
+.slide-panel.open { transform: translateX(0); }
+.slide-panel-close { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+.slide-panel-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199;
+  display: none;
+}
+.slide-panel-overlay.open { display: block; }
+
+/* ── Section Heading ───────────────────────────────────────────────────── */
+.view-header { margin-bottom: 24px; }
+.view-title { font-size: 22px; font-weight: 700; }
+.view-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 1400px) {
+  .app { grid-template-columns: var(--sidebar-collapsed) 1fr; }
+  .app .nav-label { display: none; }
+  .app .nav-item { justify-content: center; padding: 10px; }
+  .app .version-badge { display: none; }
+}
+@media (max-width: 1000px) {
+  .app { grid-template-columns: 0 1fr; }
+  .sidebar { display: none; }
+  .console-panes { grid-template-columns: 1fr; }
+  .agent-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Empty State ───────────────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+.empty-state-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+.empty-state-text { font-size: 13px; }
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">🚀</div>
-  <div>
-    <h1>SL Agent OS</h1>
-    <p>8 Departments · 60+ Agents · Google ADK · Autonomous Company Operations</p>
-  </div>
-  <div class="badges">
-    <span class="badge badge-sales">8 Orchestrators</span>
-    <span class="badge badge-mkt">60+ Specialists</span>
-    <span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">FastAPI · SSE · Claude Code</span>
-  </div>
-</header>
-
-<nav>
-  <button class="active" onclick="showTab('architecture',this)">Architecture</button>
-  <button onclick="showTab('agents',this)">Agents</button>
-  <button onclick="showTab('handoffs',this)">Handoffs</button>
-  <button onclick="showTab('workflow',this)">Workflow</button>
-  <button onclick="showTab('stack',this)">Tech Stack</button>
-  <button onclick="showTab('ramp',this)">RAMP</button>
-  <button onclick="showTab('forge',this)">⚒ Skill Forge</button>
-  <button onclick="showTab('console',this)">▶ Console</button>
-</nav>
-
-<main>
-
-<!-- ══════════════ ARCHITECTURE ══════════════ -->
-<div id="architecture" class="tab-content active">
-  <div class="section-label">System Design</div>
-  <h2>SL Agent OS Architecture</h2>
-  <p class="subtitle">A Company Orchestrator coordinates eight autonomous departments — Sales, Marketing, Product, Engineering, Research, QA, Autoresearcher, and Skill Forge — with structured handoff protocols and shared memory.</p>
-
-  <div id="arch-diagram">
-    <svg width="960" height="560" viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
-      <defs>
-        <marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#4b5563"/></marker>
-        <marker id="arr-i" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#6366f1"/></marker>
-        <marker id="arr-g" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="#22c55e"/></marker>
-      </defs>
-
-      <!-- COMPANY ORCHESTRATOR (center hub) -->
-      <rect x="330" y="36" width="300" height="64" rx="14" fill="#1a1340" stroke="#6366f1" stroke-width="2.5"/>
-      <text x="480" y="58" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="700" letter-spacing="1">COMPANY ORCHESTRATOR</text>
-      <text x="480" y="76" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="700">company_orchestrator</text>
-      <text x="480" y="92" text-anchor="middle" fill="#6b7280" font-size="10">Routes · Coordinates · Delegates · Synthesizes</text>
-
-      <!-- ── ROW 1 department boxes ── -->
-
-      <!-- Sales (col 1, row 1) -->
-      <line x1="380" y1="100" x2="116" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
-      <rect x="14" y="150" width="200" height="80" rx="10" fill="#0d1a38" stroke="#3b82f6" stroke-width="1.8"/>
-      <text x="114" y="170" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700" letter-spacing="1">SALES</text>
-      <text x="114" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">sales_orchestrator</text>
-      <text x="114" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · research · outreach</text>
-      <text x="114" y="214" text-anchor="middle" fill="#6b7280" font-size="9">calls · CRM · proposals</text>
-
-      <!-- Marketing (col 2, row 1) -->
-      <line x1="420" y1="100" x2="334" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
-      <rect x="232" y="150" width="200" height="80" rx="10" fill="#1a0a38" stroke="#a855f7" stroke-width="1.8"/>
-      <text x="332" y="170" text-anchor="middle" fill="#c084fc" font-size="9" font-weight="700" letter-spacing="1">MARKETING</text>
-      <text x="332" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">marketing_orchestrator</text>
-      <text x="332" y="200" text-anchor="middle" fill="#6b7280" font-size="9">7 agents · campaigns · content</text>
-      <text x="332" y="214" text-anchor="middle" fill="#6b7280" font-size="9">SEO · brand · audience</text>
-
-      <!-- Product (col 3, row 1) -->
-      <line x1="540" y1="100" x2="626" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
-      <rect x="524" y="150" width="200" height="80" rx="10" fill="#071a12" stroke="#10b981" stroke-width="1.8"/>
-      <text x="624" y="170" text-anchor="middle" fill="#6ee7b7" font-size="9" font-weight="700" letter-spacing="1">PRODUCT</text>
-      <text x="624" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">product_orchestrator</text>
-      <text x="624" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · PM · frontend</text>
-      <text x="624" y="214" text-anchor="middle" fill="#6b7280" font-size="9">backend · DB · DevOps · QA</text>
-
-      <!-- Engineering (col 4, row 1) -->
-      <line x1="580" y1="100" x2="844" y2="148" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.7"/>
-      <rect x="742" y="150" width="204" height="80" rx="10" fill="#1a1305" stroke="#f59e0b" stroke-width="1.8"/>
-      <text x="844" y="170" text-anchor="middle" fill="#fcd34d" font-size="9" font-weight="700" letter-spacing="1">ENGINEERING</text>
-      <text x="844" y="186" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">engineering_orchestrator</text>
-      <text x="844" y="200" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · solutions arch</text>
-      <text x="844" y="214" text-anchor="middle" fill="#6b7280" font-size="9">data · ML · platform · SDET</text>
-
-      <!-- ── ROW 2 department boxes ── -->
-
-      <!-- Research (col 1, row 2) -->
-      <line x1="380" y1="100" x2="116" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
-      <rect x="14" y="350" width="200" height="80" rx="10" fill="#041a1a" stroke="#14b8a6" stroke-width="1.8"/>
-      <text x="114" y="370" text-anchor="middle" fill="#5eead4" font-size="9" font-weight="700" letter-spacing="1">RESEARCH</text>
-      <text x="114" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">research_orchestrator</text>
-      <text x="114" y="400" text-anchor="middle" fill="#6b7280" font-size="9">8 agents · science · ML</text>
-      <text x="114" y="414" text-anchor="middle" fill="#6b7280" font-size="9">data science · competitive</text>
-
-      <!-- QA (col 2, row 2) -->
-      <line x1="430" y1="100" x2="332" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
-      <rect x="232" y="350" width="200" height="80" rx="10" fill="#1a0505" stroke="#ef4444" stroke-width="1.8"/>
-      <text x="332" y="370" text-anchor="middle" fill="#fca5a5" font-size="9" font-weight="700" letter-spacing="1">QA</text>
-      <text x="332" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">qa_orchestrator</text>
-      <text x="332" y="400" text-anchor="middle" fill="#6b7280" font-size="9">7 agents · test arch</text>
-      <text x="332" y="414" text-anchor="middle" fill="#6b7280" font-size="9">automation · perf · security</text>
-
-      <!-- Autoresearcher (col 3, row 2) -->
-      <line x1="530" y1="100" x2="624" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
-      <rect x="524" y="350" width="200" height="80" rx="10" fill="#1a0d02" stroke="#f97316" stroke-width="1.8"/>
-      <text x="624" y="370" text-anchor="middle" fill="#fdba74" font-size="9" font-weight="700" letter-spacing="1">AUTORESEARCHER</text>
-      <text x="624" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">autoresearcher_orchestrator</text>
-      <text x="624" y="400" text-anchor="middle" fill="#6b7280" font-size="9">5 agents · hypothesis</text>
-      <text x="624" y="414" text-anchor="middle" fill="#6b7280" font-size="9">eval · rewrite · watchdog</text>
-
-      <!-- Skill Forge (col 4, row 2) -->
-      <line x1="570" y1="100" x2="844" y2="348" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr-i)" opacity="0.5"/>
-      <rect x="742" y="350" width="204" height="80" rx="10" fill="#0e0c1a" stroke="#6366f1" stroke-width="1.8"/>
-      <text x="844" y="370" text-anchor="middle" fill="#a5b4fc" font-size="9" font-weight="700" letter-spacing="1">SKILL FORGE</text>
-      <text x="844" y="386" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">forge_orchestrator</text>
-      <text x="844" y="400" text-anchor="middle" fill="#6b7280" font-size="9">9 agents · intent parse</text>
-      <text x="844" y="414" text-anchor="middle" fill="#6b7280" font-size="9">research · draft · critique · promote</text>
-
-      <!-- SHARED MEMORY (bottom center) -->
-      <rect x="240" y="460" width="260" height="44" rx="10" fill="#0a1505" stroke="#22c55e" stroke-width="1.5"/>
-      <text x="370" y="480" text-anchor="middle" fill="#22c55e" font-size="9" font-weight="700" letter-spacing="1">SHARED MEMORY</text>
-      <text x="370" y="496" text-anchor="middle" fill="#86efac" font-size="9">deal_memory · query_history · skill_forge.db</text>
-
-      <!-- CLAUDE CODE (bottom right) -->
-      <rect x="524" y="460" width="220" height="44" rx="10" fill="#0e0c1a" stroke="#6366f1" stroke-width="1.5"/>
-      <text x="634" y="480" text-anchor="middle" fill="#a5b4fc" font-size="9" font-weight="700" letter-spacing="1">CLAUDE CODE EXECUTION</text>
-      <text x="634" y="496" text-anchor="middle" fill="#818cf8" font-size="9">build_and_run · open_in_browser · subprocess</text>
-
-      <!-- memory arrows from orch -->
-      <path d="M410,100 Q310,400 242,460" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-g)" opacity="0.5"/>
-      <path d="M550,100 Q640,400 632,458" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" fill="none" marker-end="url(#arr-i)" opacity="0.5"/>
-    </svg>
-  </div>
-
-  <div style="display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)">
-    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
-      <div style="font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:0.05em">Claude Code Execution</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px">build_and_run · open_in_browser · subprocess</div>
+<div class="app" id="app">
+  <!-- ── Top Bar ──────────────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="topbar-logo-text">SL Agent OS</span>
+      <span class="topbar-logo-sub">Command Center</span>
     </div>
-    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
-      <div style="font-size:11px;font-weight:700;color:#4ade80;letter-spacing:0.05em">SQLite Memory</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px">deal_memory · query_history · skill_forge.db</div>
+    <div class="topbar-center" id="topbar-chips">
+      <div class="topbar-chip"><span>Agents</span> <span class="chip-value" id="chip-agents">62</span></div>
+      <div class="topbar-chip" id="chip-runs-wrap"><span>Running</span> <span class="chip-value" id="chip-runs">0</span></div>
+      <div class="topbar-chip" id="chip-breakers-wrap"><span>Breakers</span> <span class="chip-value" id="chip-breakers">0</span></div>
+      <div class="topbar-chip" id="chip-dlq-wrap"><span>DLQ</span> <span class="chip-value" id="chip-dlq">0</span></div>
+      <div class="topbar-chip"><span>Model</span> <span class="chip-value" id="chip-model">—</span></div>
     </div>
-    <div style="flex:1;padding:12px 18px;border-right:1px solid var(--border);text-align:center">
-      <div style="font-size:11px;font-weight:700;color:#93c5fd;letter-spacing:0.05em">FastAPI + SSE</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px">REST API · live streaming · dashboard</div>
-    </div>
-    <div style="flex:1;padding:12px 18px;text-align:center">
-      <div style="font-size:11px;font-weight:700;color:#fcd34d;letter-spacing:0.05em">OpenRouter LiteLLM</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px">nemotron-3-super · gemini-2.0-flash fallback</div>
+    <div class="topbar-right">
+      <div class="status-dot" id="conn-dot"></div>
+      <span class="topbar-time" id="last-refresh">—</span>
     </div>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-num" style="color:var(--indigo-light)">9</div><div class="stat-label">Orchestrators</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--blue)">60+</div><div class="stat-label">Specialist Agents</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--emerald)">8</div><div class="stat-label">Departments</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">30+</div><div class="stat-label">Tools</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">SSE</div><div class="stat-label">Live Streaming</div></div>
+  <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+  <div class="sidebar">
+    <div class="sidebar-nav" id="sidebar-nav">
+      <div class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="nav-label">Dashboard</span>
+      </div>
+      <div class="nav-item" data-view="pipeline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        <span class="nav-label">Company Pipeline</span>
+      </div>
+      <div class="nav-item" data-view="orgchart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="5" rx="1"/><rect x="1" y="17" width="7" height="5" rx="1"/><rect x="8.5" y="17" width="7" height="5" rx="1"/><rect x="16" y="17" width="7" height="5" rx="1"/><line x1="12" y1="7" x2="12" y2="11"/><line x1="4.5" y1="17" x2="4.5" y2="11"/><line x1="12" y1="17" x2="12" y2="11"/><line x1="19.5" y1="17" x2="19.5" y2="11"/><line x1="4.5" y1="11" x2="19.5" y2="11"/></svg>
+        <span class="nav-label">Org Chart</span>
+      </div>
+      <div class="nav-item" data-view="agents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-label">Agents</span>
+      </div>
+      <div class="nav-item" data-view="console">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span class="nav-label">Console</span>
+      </div>
+      <div class="nav-item" data-view="workflows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>
+        <span class="nav-label">Workflows</span>
+      </div>
+      <div class="nav-item" data-view="handoffs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        <span class="nav-label">Handoffs</span>
+      </div>
+      <div class="nav-item" data-view="forge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        <span class="nav-label">Skill Forge</span>
+      </div>
+      <div class="nav-item" data-view="ramp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="nav-label">RAMP</span>
+      </div>
+      <div class="nav-item" data-view="techstack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span class="nav-label">Tech Stack</span>
+      </div>
+      <div class="nav-item" data-view="supervisor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="nav-label">Supervisor</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="collapse-btn" id="collapse-btn" title="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+      </button>
+      <span class="version-badge">v1.0</span>
+    </div>
+  </div>
+
+  <!-- ── Main Content ─────────────────────────────────────────────────── -->
+  <div class="main-content" id="main-content">
+    <div class="view active" id="view-dashboard"></div>
+    <div class="view" id="view-pipeline"></div>
+    <div class="view" id="view-orgchart"></div>
+    <div class="view" id="view-agents"></div>
+    <div class="view" id="view-console"></div>
+    <div class="view" id="view-workflows"></div>
+    <div class="view" id="view-handoffs"></div>
+    <div class="view" id="view-forge"></div>
+    <div class="view" id="view-ramp"></div>
+    <div class="view" id="view-techstack"></div>
+    <div class="view" id="view-supervisor"></div>
   </div>
 </div>
 
-<!-- ══════════════ AGENTS ══════════════ -->
-<div id="agents" class="tab-content">
-  <div class="section-label">Agent Reference</div>
-  <h2>All Agents</h2>
-  <p class="subtitle">60+ agents across 8 departments — all coordinated by a single Company Orchestrator.</p>
-  <div class="team-filter">
-    <button class="filter-btn active-all" onclick="filterAgents('all',this)">All (60+)</button>
-    <button class="filter-btn" onclick="filterAgents('meta',this)">Orchestrators (9)</button>
-    <button class="filter-btn" onclick="filterAgents('sales',this)">Sales (8)</button>
-    <button class="filter-btn" onclick="filterAgents('marketing',this)">Marketing (7)</button>
-    <button class="filter-btn" onclick="filterAgents('product',this)">Product (8)</button>
-    <button class="filter-btn" onclick="filterAgents('engineering',this)">Engineering (8)</button>
-    <button class="filter-btn" onclick="filterAgents('research',this)">Research (8)</button>
-    <button class="filter-btn" onclick="filterAgents('qa',this)">QA (7)</button>
-    <button class="filter-btn" onclick="filterAgents('autoresearcher',this)">Autoresearcher (5)</button>
-    <button class="filter-btn" onclick="filterAgents('forge',this)">Skill Forge (9)</button>
-  </div>
-  <div class="agents-grid" id="agents-grid"></div>
+<!-- ── Slide-out Panel ───────────────────────────────────────────────── -->
+<div class="slide-panel-overlay" id="panel-overlay"></div>
+<div class="slide-panel" id="slide-panel">
+  <button class="slide-panel-close" id="panel-close">&times;</button>
+  <div id="panel-content"></div>
 </div>
-
-<!-- ══════════════ HANDOFFS ══════════════ -->
-<div id="handoffs" class="tab-content">
-  <div class="section-label">Cross-Team Protocols</div>
-  <h2>Team Handoffs</h2>
-  <p class="subtitle">Structured data contracts passed between Marketing and Sales teams.</p>
-
-  <div class="handoff-grid">
-    <div class="handoff-card" style="border-color:rgba(34,197,94,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🟣</span>
-        Marketing → Sales
-        <span style="font-size:12px;background:rgba(34,197,94,0.1);color:#4ade80;padding:2px 10px;border-radius:20px;border:1px solid rgba(34,197,94,0.3)">MQL Handoff</span>
-      </div>
-      <p class="handoff-desc">Triggered when <strong>audience_builder</strong> produces Tier 1 MQL packages (score ≥70/100). Company orchestrator confirms with user, then passes each MQL to sales_orchestrator as a ready-to-action prospect — research already done.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#3b82f6">Company name · domain · size · industry</div>
-        <div class="handoff-field" style="border-color:#3b82f6">Contact name · title · LinkedIn URL</div>
-        <div class="handoff-field" style="border-color:#22c55e">ICP score (X/100) + per-dimension breakdown</div>
-        <div class="handoff-field" style="border-color:#22c55e">Intent signal — specific trigger (e.g., "hired RevOps Manager last week")</div>
-        <div class="handoff-field" style="border-color:#f59e0b">Pain point to lead with in outreach</div>
-        <div class="handoff-field" style="border-color:#f59e0b">Recommended channel + outreach angle</div>
-        <div class="handoff-field" style="border-color:#a855f7">Content they engaged with (if any)</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Sales team starts at <strong>Step 2 (Outreach)</strong> — research phase is already complete.</div>
-    </div>
-
-    <div class="handoff-card" style="border-color:rgba(245,158,11,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🔵</span>
-        Sales → Marketing
-        <span style="font-size:12px;background:rgba(245,158,11,0.1);color:#fcd34d;padding:2px 10px;border-radius:20px;border:1px solid rgba(245,158,11,0.3)">Win/Loss Feedback</span>
-      </div>
-      <p class="handoff-desc">Triggered when a deal closes (won or lost) in sales_orchestrator. Feedback flows to marketing_orchestrator to refine ICP scoring, update campaign messaging, and create content that addresses real objections from the field.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#3b82f6">Deal outcome: WON / LOST + stage reached</div>
-        <div class="handoff-field" style="border-color:#3b82f6">Deal size · company type · industry</div>
-        <div class="handoff-field" style="border-color:#ef4444">Primary objection that came up</div>
-        <div class="handoff-field" style="border-color:#ef4444">Competitor mentioned (if any)</div>
-        <div class="handoff-field" style="border-color:#22c55e">Content / resources that helped close (WON)</div>
-        <div class="handoff-field" style="border-color:#22c55e">ICP profile (for lookalike audience building)</div>
-        <div class="handoff-field" style="border-color:#f59e0b">Marketing action: update ICP / fix messaging / create content</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Routes to: <strong>audience_builder</strong> (ICP update) · <strong>content_strategist</strong> (case study or objection content) · <strong>campaign_composer</strong> (messaging fix)</div>
-    </div>
-
-    <div class="handoff-card" style="border-color:rgba(20,184,166,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🟦</span>
-        Research → Sales / Marketing
-        <span style="font-size:12px;background:rgba(20,184,166,0.1);color:#5eead4;padding:2px 10px;border-radius:20px;border:1px solid rgba(20,184,166,0.3)">Competitive Intelligence</span>
-      </div>
-      <p class="handoff-desc">Triggered when <strong>competitive_analyst_agent</strong> or <strong>research_scientist_agent</strong> produces a validated intelligence package. Passes through reflection_agent quality gate before routing. Sales receives battle cards; Marketing receives messaging update briefs.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#14b8a6">Competitor name · product comparison · pricing data</div>
-        <div class="handoff-field" style="border-color:#14b8a6">Differentiators + weaknesses to exploit</div>
-        <div class="handoff-field" style="border-color:#3b82f6">Sales: battle card — objection responses per competitor</div>
-        <div class="handoff-field" style="border-color:#a855f7">Marketing: positioning + messaging update brief</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Requires reflection-check before routing. Routes to <strong>objection_handler_agent</strong> (sales) and <strong>brand_voice_agent</strong> + <strong>campaign_composer_agent</strong> (marketing).</div>
-    </div>
-
-    <div class="handoff-card" style="border-color:rgba(16,185,129,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🟩</span>
-        Product → Marketing
-        <span style="font-size:12px;background:rgba(16,185,129,0.1);color:#6ee7b7;padding:2px 10px;border-radius:20px;border:1px solid rgba(16,185,129,0.3)">GTM Auto-Trigger</span>
-      </div>
-      <p class="handoff-desc">When <strong>product_orchestrator</strong> ships a feature or product, it auto-routes to <strong>marketing_orchestrator</strong> with a structured GTM brief. Marketing launches a coordinated campaign without manual handoff.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#10b981">product_name · live_url · version</div>
-        <div class="handoff-field" style="border-color:#10b981">core_features (list) · target_persona</div>
-        <div class="handoff-field" style="border-color:#f59e0b">technical_summary — for content_strategist</div>
-        <div class="handoff-field" style="border-color:#a855f7">suggested_campaign_angle · launch_priority</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Triggers: <strong>campaign_composer_agent</strong> (launch copy) · <strong>content_strategist_agent</strong> (blog/docs) · <strong>seo_analyst_agent</strong> (keyword targeting)</div>
-    </div>
-
-    <div class="handoff-card" style="border-color:rgba(239,68,68,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🔴</span>
-        QA → Engineering / Product
-        <span style="font-size:12px;background:rgba(239,68,68,0.1);color:#fca5a5;padding:2px 10px;border-radius:20px;border:1px solid rgba(239,68,68,0.3)">Quality Gates</span>
-      </div>
-      <p class="handoff-desc">Triggered when <strong>qa_orchestrator</strong> completes a test cycle. PASS status notifies the originating team and clears the build for the next stage. CRITICAL DEFECT blocks release and routes back with a structured defect report.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#22c55e">PASS → notify originating team · cleared for next stage</div>
-        <div class="handoff-field" style="border-color:#ef4444">CRITICAL DEFECT → block release · route back to team</div>
-        <div class="handoff-field" style="border-color:#f59e0b">defect_id · severity · component · reproduction_steps</div>
-        <div class="handoff-field" style="border-color:#3b82f6">test_coverage_report · performance_baseline · security_findings</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Routes to: <strong>engineering_orchestrator</strong> (defect fix) · <strong>product_orchestrator</strong> (release decision) based on originating team.</div>
-    </div>
-
-    <div class="handoff-card" style="border-color:rgba(249,115,22,0.3)">
-      <div class="handoff-title">
-        <span class="handoff-arrow">🟠</span>
-        Autoresearcher → All Departments
-        <span style="font-size:12px;background:rgba(249,115,22,0.1);color:#fdba74;padding:2px 10px;border-radius:20px;border:1px solid rgba(249,115,22,0.3)">Evolution</span>
-      </div>
-      <p class="handoff-desc">The <strong>autoresearcher_orchestrator</strong> periodically evaluates agent instruction quality, generates hypotheses for improvement, and rewrites agent prompts. The rollback watchdog monitors for regressions and auto-reverts if quality drops.</p>
-      <div class="handoff-fields">
-        <div class="handoff-field" style="border-color:#f97316">hypothesis — proposed instruction improvement</div>
-        <div class="handoff-field" style="border-color:#f97316">target_agent · current_version · proposed_version</div>
-        <div class="handoff-field" style="border-color:#22c55e">evaluation_score · quality_delta · confidence</div>
-        <div class="handoff-field" style="border-color:#ef4444">rollback_trigger — auto-revert on regression detection</div>
-      </div>
-      <div style="margin-top:14px;font-size:12px;color:var(--muted)">Continuously evolves all 60+ agents. <strong>rollback_watchdog_agent</strong> monitors every deployment and reverts within one cycle if quality signal drops below threshold.</div>
-    </div>
-  </div>
-
-  <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Shared Context — What Both Teams Know</h3>
-  <table>
-    <thead><tr><th>Data</th><th>Created by</th><th>Used by</th><th>Storage</th></tr></thead>
-    <tbody>
-      <tr><td>Company research profiles</td><td>Sales / lead_researcher</td><td>Marketing / audience_builder, campaign_composer</td><td>SQLite query_history</td></tr>
-      <tr><td>ICP scores + segments</td><td>Marketing / audience_builder</td><td>Sales / lead_researcher, outreach_composer</td><td>SQLite deal_memory</td></tr>
-      <tr><td>Objections raised in deals</td><td>Sales / objection_handler</td><td>Marketing / campaign_composer, content_strategist</td><td>SQLite query_history</td></tr>
-      <tr><td>Win/loss reasons</td><td>Sales / crm_updater</td><td>Marketing / audience_builder, content_strategist</td><td>SQLite deal_memory</td></tr>
-      <tr><td>Proposal content that worked</td><td>Sales / proposal_generator</td><td>Marketing / campaign_composer</td><td>SQLite query_history</td></tr>
-      <tr><td>Campaign assets</td><td>Marketing / campaign_composer</td><td>Sales / outreach_composer (as context)</td><td>SQLite query_history</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ══════════════ WORKFLOW ══════════════ -->
-<div id="workflow" class="tab-content">
-  <div class="section-label">End-to-End GTM</div>
-  <h2>Full GTM Workflow</h2>
-  <p class="subtitle">Full autonomous company workflow — from research to revenue, code execution to skill generation.</p>
-  <div class="workflow-teams" id="workflow-container"></div>
-</div>
-
-<!-- ══════════════ STACK ══════════════ -->
-<div id="stack" class="tab-content">
-  <div class="section-label">Dependencies</div>
-  <h2>Tech Stack</h2>
-  <p class="subtitle">Full open-source stack powering 60+ agents across 8 departments with live streaming and sandboxed code execution.</p>
-
-  <div class="stack-section">
-    <h3>Core</h3>
-    <table>
-      <thead><tr><th>Package</th><th>Purpose</th><th>License</th></tr></thead>
-      <tbody>
-        <tr><td class="mono">google-adk &gt;= 1.28.0</td><td>Multi-agent orchestration framework</td><td><span class="pill pill-free">Apache 2.0</span></td></tr>
-        <tr><td class="mono">fastapi + uvicorn</td><td>REST API + SSE streaming</td><td><span class="pill pill-free">MIT</span></td></tr>
-        <tr><td class="mono">litellm</td><td>OpenRouter / multi-model LLM bridge</td><td><span class="pill pill-free">MIT</span></td></tr>
-        <tr><td class="mono">pydantic &gt;= 2.0</td><td>Data models</td><td><span class="pill pill-free">MIT</span></td></tr>
-        <tr><td class="mono">python-dotenv</td><td>Environment configuration</td><td><span class="pill pill-free">BSD</span></td></tr>
-        <tr><td class="mono">httpx &gt;= 0.27</td><td>HTTP client</td><td><span class="pill pill-free">BSD</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="stack-section">
-    <h3>Execution Layer</h3>
-    <table>
-      <thead><tr><th>Component</th><th>Purpose</th><th>Notes</th></tr></thead>
-      <tbody>
-        <tr><td>Claude Code CLI</td><td>Sandboxed code execution in <span class="mono">claude_works/</span></td><td><span class="pill pill-free">--dangerously-skip-permissions --add-dir</span></td></tr>
-        <tr><td>SQLite WAL</td><td>Skill forge DB + deal memory + query history</td><td><span class="pill pill-free">stdlib</span></td></tr>
-        <tr><td><span class="mono">subprocess</span></td><td>Claude Code process management</td><td><span class="pill pill-free">stdlib</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="stack-section">
-    <h3>AI Models</h3>
-    <table>
-      <thead><tr><th>Model</th><th>Role</th><th>Cost</th></tr></thead>
-      <tbody>
-        <tr><td class="mono">nvidia/nemotron-3-super-120b-a12b:free</td><td>Primary model via OpenRouter / LiteLLM</td><td><span class="pill pill-free">Free</span></td></tr>
-        <tr><td class="mono">gemini-2.0-flash</td><td>Fallback model</td><td><span class="pill pill-free">Free tier</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="stack-section">
-    <h3>Research &amp; Marketing Tools (Free)</h3>
-    <table>
-      <thead><tr><th>Service</th><th>Package</th><th>Used by</th><th>Cost</th></tr></thead>
-      <tbody>
-        <tr><td>DuckDuckGo Search + News</td><td class="mono">duckduckgo-search</td><td>Sales: research · Marketing: competitor, audience</td><td><span class="pill pill-free">Free</span></td></tr>
-        <tr><td>OpenCorporates</td><td>HTTP (no SDK)</td><td>Sales: company enrichment</td><td><span class="pill pill-free">Free tier</span></td></tr>
-        <tr><td>GitHub API</td><td>HTTP (no SDK)</td><td>Sales: contact finding</td><td><span class="pill pill-free">Free (token optional)</span></td></tr>
-        <tr><td>Google Trends</td><td class="mono">pytrends ≥4.9</td><td>Marketing: trending topics, keyword research</td><td><span class="pill pill-free">Free</span></td></tr>
-        <tr><td>RSS / Atom feeds</td><td class="mono">feedparser ≥6.0</td><td>Marketing: competitor content monitoring</td><td><span class="pill pill-free">Free</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="stack-section">
-    <h3>CRM Integrations (Optional)</h3>
-    <table>
-      <thead><tr><th>Service</th><th>Tools</th><th>Auth</th></tr></thead>
-      <tbody>
-        <tr><td>Salesforce</td><td>find, update, log_call, create_task, get_pipeline</td><td><span class="pill pill-paid">OAuth2</span></td></tr>
-        <tr><td>HubSpot</td><td>find_deal, log_note, update_deal, create_task</td><td><span class="pill pill-paid">Private App Token</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="stack-section">
-    <h3>Memory &amp; Persistence</h3>
-    <table>
-      <thead><tr><th>Layer</th><th>Implementation</th><th>Used by</th></tr></thead>
-      <tbody>
-        <tr><td>Session memory</td><td>ADK InMemorySessionService</td><td>Per-session</td></tr>
-        <tr><td>Long-term deal memory</td><td>SQLite stdlib — <span class="mono">deal_memory</span> table</td><td>All departments</td></tr>
-        <tr><td>Agent output history</td><td>SQLite stdlib — <span class="mono">query_history</span> table</td><td>All departments</td></tr>
-        <tr><td><span class="mono">skill_forge.db</span></td><td>SQLite WAL — forge_sessions, skill_versions, battle_test_results, staging_registry</td><td>Skill Forge pipeline</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ══════════════ RAMP ══════════════ -->
-<div id="ramp" class="tab-content">
-  <div class="section-label">Research Foundation</div>
-  <h2>RAMP Enhancements</h2>
-  <p class="subtitle">Based on <em>arXiv 2508.11120 — "Towards Reliable Multi-Agent Systems for Marketing Applications via Reflection, Memory, and Planning"</em></p>
-  <div class="ramp-grid">
-    <div class="ramp-card" style="border-color:rgba(239,68,68,0.3)">
-      <div class="ramp-icon">🔁</div>
-      <div class="ramp-title" style="color:#fca5a5">Reflection Loop</div>
-      <div class="ramp-desc">Three-layer quality enforcement: self-reflection gates in all 13 agents, orchestrator 3-point check after every sub-agent call, and a dedicated reflection_agent for high-stakes outputs. Max 2 correction cycles per request.</div>
-      <div class="ramp-metric"><strong>+28pp</strong> accuracy — applied across both teams</div>
-    </div>
-    <div class="ramp-card" style="border-color:rgba(34,197,94,0.3)">
-      <div class="ramp-icon">🧠</div>
-      <div class="ramp-title" style="color:#86efac">Long-Term Memory</div>
-      <div class="ramp-desc">Shared SQLite memory store — both teams read and write. Marketing saves ICP insights that Sales uses in research. Sales saves objections that Marketing uses in campaign messaging. Cross-team learning from every interaction.</div>
-      <div class="ramp-metric"><strong>+20pp</strong> recall — applied to cross-team and cross-session continuity</div>
-    </div>
-    <div class="ramp-card" style="border-color:rgba(59,130,246,0.3)">
-      <div class="ramp-icon">✅</div>
-      <div class="ramp-title" style="color:#93c5fd">Output Verification</div>
-      <div class="ramp-desc">Tool-level verification: DuckDuckGo results scored for company relevance (confirmed / unverified), Salesforce records confidence-matched before writes, MQL packages validated before handoff to Sales.</div>
-      <div class="ramp-metric">Prevents bad data from propagating between teams</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ CONSOLE ══════════════ -->
-<div id="console" class="tab-content">
-  <div class="section-label">Autonomous Agent Runner</div>
-  <h2>▶ Console</h2>
-  <p class="subtitle">Type any requirement — the agent team handles it autonomously. Watch every agent call, tool use, and handoff in real-time.</p>
-
-  <!-- Input row -->
-  <div style="display:flex;gap:12px;margin-bottom:24px">
-    <input id="console-input" type="text"
-      placeholder="e.g. research Acme Corp and write an outreach email   |   forge skill for writing executive summaries   |   build a todo app"
-      style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;outline:none"
-      onkeydown="if(event.key==='Enter')runConsole()"
-    />
-    <button id="run-btn" onclick="runConsole()"
-      style="background:var(--indigo);color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">
-      ▶ Run
-    </button>
-    <button onclick="clearConsole()"
-      style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:14px;cursor:pointer">
-      Clear
-    </button>
-  </div>
-
-  <!-- Status bar -->
-  <div id="console-status" style="display:none;align-items:center;gap:10px;margin-bottom:16px;padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px">
-    <div id="status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--emerald);animation:pulse 1s infinite"></div>
-    <span id="status-text" style="color:var(--muted)">Running…</span>
-    <span id="active-agent" style="margin-left:auto;font-family:monospace;font-size:12px;color:var(--indigo-light)"></span>
-  </div>
-
-  <!-- Main pane -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:520px">
-
-    <!-- Activity feed -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
-        Agent Activity
-      </div>
-      <div id="activity-feed" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:13px;max-height:480px">
-        <div style="color:var(--muted);text-align:center;padding:40px 0">No activity yet — run a prompt above.</div>
-      </div>
-    </div>
-
-    <!-- Output pane -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
-        Final Output
-      </div>
-      <div id="output-pane" style="flex:1;overflow-y:auto;padding:18px;font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:480px">
-        <span style="color:var(--muted)">Output will appear here when the agent responds.</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Connection note -->
-  <div id="console-note" style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
-    Requires backend: <code style="background:#0f1117;padding:2px 6px;border-radius:4px">uvicorn api:app --reload --port 8080</code>
-    then open <code style="background:#0f1117;padding:2px 6px;border-radius:4px">http://localhost:8080</code>
-  </div>
-</div>
-
-<!-- ══════════════ SKILL FORGE ══════════════ -->
-<div id="forge" class="tab-content">
-  <div class="section-label">Autonomous Skill Generation</div>
-  <h2>⚒ SKILL FORGE</h2>
-  <p class="subtitle">Generates battle-tested Claude Code skills from a single NLP sentence — research → draft → critique → battle-test → iterate → promote.</p>
-
-  <!-- Trigger card -->
-  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:32px;display:flex;gap:32px;align-items:flex-start">
-    <div style="flex:1">
-      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:10px">How to trigger</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc">python main.py<br><span style="color:var(--muted)">You: </span>forge skill for writing investor pitch decks</div>
-        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc"><span style="color:var(--muted)">You: </span>generate skill for competitive analysis reports</div>
-        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc"><span style="color:var(--muted)">You: </span>create a skill that writes cold outreach emails</div>
-      </div>
-    </div>
-    <div style="min-width:220px">
-      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--emerald);margin-bottom:10px">Promotion gates</div>
-      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Draft → Critique pass</span><span style="color:var(--amber);font-weight:600">≥ 7.5</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Battle-test CI lower</span><span style="color:var(--amber);font-weight:600">≥ 0.80</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Composite score</span><span style="color:var(--emerald);font-weight:600">≥ 8.5</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Judge agreement κ</span><span style="color:var(--emerald);font-weight:600">≥ 0.70</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Production runs</span><span style="color:var(--blue);font-weight:600">5 runs</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pipeline stages -->
-  <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">8-Stage Pipeline</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px" id="forge-stages"></div>
-
-  <!-- Scoring formula -->
-  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:32px">
-    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Composite Score Formula</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
-        <div style="font-size:22px;font-weight:800;color:var(--emerald)">0.35</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Correctness</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Does it work?</div>
-      </div>
-      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
-        <div style="font-size:22px;font-weight:800;color:var(--blue)">0.25</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Robustness</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Edge cases?</div>
-      </div>
-      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
-        <div style="font-size:22px;font-weight:800;color:var(--amber)">0.20</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Clarity</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Unambiguous?</div>
-      </div>
-      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
-        <div style="font-size:22px;font-weight:800;color:var(--purple)">0.20</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Domain Accuracy</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Expert correct?</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Staged skills -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Staged Skills Registry</div>
-    <button onclick="loadForgeRegistry()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px">↻ Refresh</button>
-  </div>
-  <div id="forge-registry">
-    <div style="color:var(--muted);font-size:14px;padding:32px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
-      No staged skills yet — run <code style="background:#0f1117;padding:2px 6px;border-radius:4px">forge skill for ...</code> to generate your first skill.
-    </div>
-  </div>
-</div>
-
-</main>
 
 <script>
-// ── Console ───────────────────────────────────────────────────────────────────
-let _sessionId = null;
-let _running = false;
-
-const AGENT_COLORS = {
-  company_orchestrator:       '#6366f1',
-  sales_orchestrator:         '#3b82f6',
-  marketing_orchestrator:     '#a855f7',
-  product_orchestrator:       '#10b981',
-  engineering_orchestrator:   '#14b8a6',
-  research_orchestrator:      '#f59e0b',
-  qa_orchestrator:            '#ef4444',
-  autoresearcher_orchestrator:'#f97316',
-  forge_orchestrator:         '#ec4899',
+'use strict';
+// ── State ─────────────────────────────────────────────────────────────────
+const S = {
+  view: 'dashboard',
+  pollTimer: null,
+  sseController: null,
+  consoleEvents: [],
+  consoleOutput: '',
+  consoleRunning: false,
+  sessionId: crypto.randomUUID(),
 };
 
-function agentColor(name) {
-  for (const [k, v] of Object.entries(AGENT_COLORS)) {
-    if (name && name.includes(k.replace('_orchestrator','').replace('_agent',''))) return v;
-  }
-  return '#8892a4';
-}
-
-function addActivity(html) {
-  const feed = document.getElementById('activity-feed');
-  const isEmpty = feed.querySelector('[data-empty]');
-  if (isEmpty) isEmpty.remove();
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
-}
-
-function clearConsole() {
-  document.getElementById('activity-feed').innerHTML =
-    '<div style="color:var(--muted);text-align:center;padding:40px 0" data-empty>No activity yet — run a prompt above.</div>';
-  document.getElementById('output-pane').innerHTML =
-    '<span style="color:var(--muted)">Output will appear here when the agent responds.</span>';
-  document.getElementById('console-status').style.display = 'none';
-  _sessionId = null;
-}
-
-async function runConsole() {
-  if (_running) return;
-  const prompt = document.getElementById('console-input').value.trim();
-  if (!prompt) return;
-
-  _running = true;
-  _sessionId = _sessionId || ('sess-' + Math.random().toString(36).slice(2));
-  document.getElementById('run-btn').disabled = true;
-  document.getElementById('run-btn').textContent = '⏳ Running';
-  document.getElementById('console-status').style.display = 'flex';
-  document.getElementById('status-text').textContent = 'Running…';
-  document.getElementById('active-agent').textContent = '';
-  document.getElementById('output-pane').innerHTML = '<span style="color:var(--muted)">Waiting for response…</span>';
-
-  addActivity(`<div style="color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:12px">▶ ${prompt}</div>`);
-
-  try {
-    const resp = await fetch('/api/run', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt, session_id: _sessionId}),
-    });
-
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, {stream: true});
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        let evt;
-        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
-        handleEvent(evt);
-      }
+// ── API ───────────────────────────────────────────────────────────────────
+const API = {
+  async get(path) {
+    try {
+      const r = await fetch(path);
+      if (!r.ok) throw new Error(r.statusText);
+      return await r.json();
+    } catch (e) {
+      console.warn('API error:', path, e);
+      return null;
     }
-  } catch (e) {
-    addActivity(`<div style="color:var(--red);padding:4px 8px;border-radius:4px;background:rgba(239,68,68,.1)">⚠ ${e.message} — is the backend running?</div>`);
-    document.getElementById('status-text').textContent = 'Error';
-    document.getElementById('status-dot').style.background = 'var(--red)';
-    document.getElementById('status-dot').style.animation = 'none';
-  } finally {
-    _running = false;
-    document.getElementById('run-btn').disabled = false;
-    document.getElementById('run-btn').textContent = '▶ Run';
+  },
+  async post(path, body) {
+    try {
+      const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return await r.json();
+    } catch (e) {
+      console.warn('API error:', path, e);
+      return null;
+    }
+  },
+};
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function $(sel, ctx = document) { return ctx.querySelector(sel); }
+function $$(sel, ctx = document) { return [...ctx.querySelectorAll(sel)]; }
+function html(el, h) { el.innerHTML = h; }
+function relTime(iso) {
+  if (!iso) return '—';
+  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (d < 60) return `${Math.floor(d)}s ago`;
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return `${Math.floor(d / 86400)}d ago`;
+}
+function truncate(s, n = 60) { return s && s.length > n ? s.slice(0, n) + '...' : (s || '—'); }
+function deptColor(dept) {
+  const map = { sales: 'var(--sales)', marketing: 'var(--marketing)', product: 'var(--product)',
+    engineering: 'var(--engineering)', research: 'var(--research)', qa: 'var(--qa)',
+    autoresearcher: 'var(--autoresearcher)', forge: 'var(--forge)', shared: 'var(--shared)', orchestrators: 'var(--shared)' };
+  return map[dept] || 'var(--muted)';
+}
+function deptClass(dept) { return 'dept-' + (dept || 'shared').toLowerCase().replace(/[^a-z]/g, ''); }
+function pillClass(status) { return 'pill pill-' + (status || 'pending').toLowerCase().replace(/[^a-z_]/g, ''); }
+function eventBadgeClass(type) { return 'event-badge event-' + (type || '').replace(/\./g, '-'); }
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function navigate(view) {
+  S.view = view;
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  const renderFn = views[view];
+  if (renderFn) renderFn();
+}
+
+// ── Sidebar Collapse ──────────────────────────────────────────────────────
+$('#collapse-btn').addEventListener('click', () => {
+  $('#app').classList.toggle('collapsed');
+});
+
+// ── Nav Click Handlers ────────────────────────────────────────────────────
+$$('.nav-item').forEach(n => {
+  n.addEventListener('click', () => navigate(n.dataset.view));
+});
+
+// ── Slide Panel ───────────────────────────────────────────────────────────
+function openPanel(contentHtml) {
+  html($('#panel-content'), contentHtml);
+  $('#slide-panel').classList.add('open');
+  $('#panel-overlay').classList.add('open');
+}
+function closePanel() {
+  $('#slide-panel').classList.remove('open');
+  $('#panel-overlay').classList.remove('open');
+}
+$('#panel-close').addEventListener('click', closePanel);
+$('#panel-overlay').addEventListener('click', closePanel);
+
+// ── Top Bar Polling ───────────────────────────────────────────────────────
+async function refreshTopBar() {
+  const d = await API.get('/api/status/live');
+  if (d) {
+    $('#chip-agents').textContent = d.agent_count || 62;
+    $('#chip-runs').textContent = d.active_runs || 0;
+    $('#chip-breakers').textContent = d.open_breakers || 0;
+    $('#chip-dlq').textContent = d.dlq_count || 0;
+    $('#chip-model').textContent = d.model || '—';
+    const bw = $('#chip-breakers-wrap');
+    const dw = $('#chip-dlq-wrap');
+    const rw = $('#chip-runs-wrap');
+    bw.classList.toggle('alert', d.open_breakers > 0);
+    dw.classList.toggle('alert', d.dlq_count > 0);
+    rw.classList.toggle('alert', false);
+    if (d.active_runs > 0) { rw.style.borderColor = 'rgba(99,102,241,0.3)'; rw.style.background = 'rgba(99,102,241,0.08)'; }
+    else { rw.style.borderColor = ''; rw.style.background = ''; }
+    $('#conn-dot').classList.remove('error');
+    $('#conn-dot').classList.add('pulse');
+    $('#last-refresh').textContent = new Date().toLocaleTimeString();
+  } else {
+    $('#conn-dot').classList.add('error');
+    $('#conn-dot').classList.remove('pulse');
   }
 }
 
-function handleEvent(evt) {
-  const color = agentColor(evt.agent);
-  switch (evt.type) {
-    case 'run_start':
-      document.getElementById('status-dot').style.background = 'var(--emerald)';
-      document.getElementById('status-dot').style.animation = 'pulse 1s infinite';
-      break;
-
-    case 'agent_text':
-      document.getElementById('active-agent').textContent = evt.agent || '';
-      addActivity(`
-        <div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0">
-          <span style="color:${color};font-family:monospace;font-size:11px;min-width:160px;flex-shrink:0">[${evt.agent}]</span>
-          <span style="color:var(--text);font-size:13px;line-height:1.5">${escHtml(evt.text.slice(0,200))}${evt.text.length>200?'…':''}</span>
-        </div>`);
-      break;
-
-    case 'tool_call':
-      document.getElementById('active-agent').textContent = evt.agent || '';
-      const argsStr = Object.entries(evt.args||{}).map(([k,v])=>`${k}=${JSON.stringify(v).slice(0,60)}`).join(', ');
-      addActivity(`
-        <div style="display:flex;gap:8px;align-items:center;padding:3px 0">
-          <span style="color:${color};font-family:monospace;font-size:11px;min-width:160px;flex-shrink:0">[${evt.agent}]</span>
-          <span style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:#93c5fd;font-family:monospace;font-size:12px;padding:2px 8px;border-radius:4px">🔧 ${escHtml(evt.tool)}</span>
-          <span style="color:var(--muted);font-size:11px;font-family:monospace">${escHtml(argsStr.slice(0,80))}</span>
-        </div>`);
-      break;
-
-    case 'tool_result':
-      addActivity(`
-        <div style="display:flex;gap:8px;align-items:flex-start;padding:3px 0 3px 168px">
-          <span style="color:var(--emerald);font-size:12px">✓</span>
-          <span style="color:var(--muted);font-size:12px;font-family:monospace">${escHtml(evt.result.slice(0,120))}${evt.result.length>120?'…':''}</span>
-        </div>`);
-      break;
-
-    case 'final':
-      document.getElementById('output-pane').textContent = evt.text;
-      document.getElementById('status-text').textContent = 'Done';
-      document.getElementById('status-dot').style.animation = 'none';
-      document.getElementById('status-dot').style.background = 'var(--emerald)';
-      document.getElementById('active-agent').textContent = '';
-      addActivity(`<div style="color:var(--emerald);padding:4px 0;font-size:12px;font-weight:600">✅ Final response from ${evt.agent}</div>`);
-      break;
-
-    case 'error':
-      addActivity(`<div style="color:var(--red);padding:4px 8px;border-radius:4px;background:rgba(239,68,68,.1)">⚠ ${escHtml(evt.message)}</div>`);
-      document.getElementById('status-text').textContent = 'Error';
-      document.getElementById('status-dot').style.background = 'var(--red)';
-      document.getElementById('status-dot').style.animation = 'none';
-      break;
-
-    case 'done':
-      if (document.getElementById('status-text').textContent === 'Running…') {
-        document.getElementById('status-text').textContent = 'Done';
-        document.getElementById('status-dot').style.animation = 'none';
-      }
-      break;
-  }
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── Skill Forge data ──────────────────────────────────────────────────────────
-const FORGE_STAGES = [
-  { n:1, name:"Intent Parser",        agent:"intent_parser_agent",        color:"#6366f1", icon:"🎯", desc:"Parses NLP input → TaskSpec. Creates forge session in DB." },
-  { n:2, name:"Research Swarm",       agent:"research_swarm_agent",       color:"#3b82f6", icon:"🔍", desc:"3 parallel agents: Domain · Benchmark · Technique researchers." },
-  { n:3, name:"Expert Synthesizer",   agent:"expert_synthesizer_agent",   color:"#14b8a6", icon:"🧬", desc:"Distills bundles → ExpertBlueprint with principles & gold examples." },
-  { n:4, name:"Skill Drafter",        agent:"skill_drafter_agent",        color:"#10b981", icon:"✍️",  desc:"Generates SKILL.md v0 using DSPy/GEPA pattern. Up to 3 draft cycles." },
-  { n:5, name:"Critic Panel",         agent:"critic_panel_agent",         color:"#f59e0b", icon:"⚖️",  desc:"A-HMAD debate: Domain · Instruction · Edge-Case critics. Gate ≥ 7.5." },
-  { n:6, name:"Red Team",             agent:"red_team_agent",             color:"#ef4444", icon:"🎯", desc:"100 test cases: 40 common / 30 edge / 20 adversarial / 10 regression." },
-  { n:7, name:"Iteration Agent",      agent:"iteration_agent",            color:"#f97316", icon:"🔄", desc:"GEPA loop: reflect → patch → re-test until ≥ 8.5 or 10 iterations." },
-  { n:8, name:"Promoter",             agent:"promoter_agent",             color:"#a855f7", icon:"🚀", desc:"CI gate + κ gate → writes to generated_skills/ staging registry." },
+// ── Agent Registry (all 62 agents) ────────────────────────────────────────
+const DEPTS = [
+  { id: 'sales', name: 'Sales', color: 'var(--sales)', agents: 7 },
+  { id: 'marketing', name: 'Marketing', color: 'var(--marketing)', agents: 6 },
+  { id: 'product', name: 'Product', color: 'var(--product)', agents: 7 },
+  { id: 'engineering', name: 'Engineering', color: 'var(--engineering)', agents: 7 },
+  { id: 'research', name: 'Research', color: 'var(--research)', agents: 7 },
+  { id: 'qa', name: 'QA', color: 'var(--qa)', agents: 6 },
+  { id: 'autoresearcher', name: 'Autoresearcher', color: 'var(--autoresearcher)', agents: 4 },
+  { id: 'forge', name: 'Skill Forge', color: 'var(--forge)', agents: 9 },
+  { id: 'shared', name: 'Shared', color: 'var(--shared)', agents: 1 },
 ];
 
-function renderForgeStages() {
-  document.getElementById('forge-stages').innerHTML = FORGE_STAGES.map(s => `
-    <div style="background:var(--surface2);border:1px solid ${s.color}40;border-radius:12px;padding:20px;position:relative">
-      <div style="position:absolute;top:12px;right:14px;font-size:11px;font-weight:700;color:${s.color};opacity:.7">Stage ${s.n}</div>
-      <div style="font-size:22px;margin-bottom:8px">${s.icon}</div>
-      <div style="font-weight:700;font-size:15px;color:${s.color};margin-bottom:4px">${s.name}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:8px">${s.agent}</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.5">${s.desc}</div>
-    </div>`).join('');
-}
-
-async function loadForgeRegistry() {
-  const el = document.getElementById('forge-registry');
-  try {
-    const r = await fetch('../generated_skills/_registry.json');
-    if (!r.ok) throw new Error('not found');
-    const data = await r.json();
-    const skills = data.skills || [];
-    if (!skills.length) {
-      el.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:32px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px">No staged skills yet — run <code style="background:#0f1117;padding:2px 6px;border-radius:4px">forge skill for ...</code> to generate your first skill.</div>`;
-      return;
-    }
-    el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">${skills.map(s => `
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-          <div style="font-weight:700;font-size:15px">${s.name || s.skill_id}</div>
-          <span style="font-size:11px;padding:3px 8px;border-radius:12px;background:${s.needs_review?'rgba(239,68,68,.15)':'rgba(16,185,129,.15)'};color:${s.needs_review?'#fca5a5':'#6ee7b7'};font-weight:600">${s.needs_review?'Needs Review':'Staged'}</span>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${s.domain} · ${s.department}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-          <div style="background:#0f1117;border-radius:6px;padding:8px;text-align:center">
-            <div style="font-size:18px;font-weight:800;color:${(s.composite_score||0)>=8.5?'var(--emerald)':'var(--amber)'}">${(s.composite_score||0).toFixed(1)}</div>
-            <div style="color:var(--muted);margin-top:2px">Composite</div>
-          </div>
-          <div style="background:#0f1117;border-radius:6px;padding:8px;text-align:center">
-            <div style="font-size:18px;font-weight:800;color:var(--blue)">${s.production_runs||0}<span style="font-size:12px;color:var(--muted)">/5</span></div>
-            <div style="color:var(--muted);margin-top:2px">Prod Runs</div>
-          </div>
-        </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:monospace;word-break:break-all">${s.file_path||''}</div>
-      </div>`).join('')}</div>`;
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;background:var(--surface2);border:1px dashed var(--border);border-radius:12px">Registry not readable from file:// — open via a local server to see live data.<br><code style="font-size:11px;margin-top:6px;display:block">python -m http.server 8080</code></div>`;
-  }
-}
-
-function showTab(id, btn) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if (btn) btn.classList.add('active');
-}
-
-function filterAgents(team, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
-  btn.className = `filter-btn active-${team}`;
-  document.querySelectorAll('.agent-card').forEach(card => {
-    card.classList.toggle('hidden', team !== 'all' && card.dataset.team !== team);
-  });
-}
-
-// ── Agent data ────────────────────────────────────────────────────────────────
 const AGENTS = [
-  // META
-  { id:'company_orchestrator', team:'meta', name:'Company Orchestrator', sub:'GTM root · routes both teams', icon:'🚀', color:'#6366f1', bg:'#1a1340',
-    cat:'Orchestrator', catBg:'rgba(99,102,241,0.15)', catFg:'#818cf8',
-    inputs:['Any sales or marketing request','MQL packages (from marketing_orchestrator)','Win/Loss data (from sales_orchestrator)'],
-    outputs:['Routed team response','GTM Card (combined view)','MQL handoff to Sales','Win/loss routed to Marketing'],
-    tools:['save_deal_context','recall_deal_context','list_active_deals','save_agent_output','recall_past_outputs'],
-    reflection:'Routes between teams. Manages MQL handoff and win/loss feedback loop. Confirms before cross-team handoffs.'},
-  { id:'sales_orchestrator', team:'meta', name:'Sales Orchestrator', sub:'Sales team root · 7 agents', icon:'⚡', color:'#3b82f6', bg:'#0d1a38',
-    cat:'Orchestrator', catBg:'rgba(59,130,246,0.15)', catFg:'#93c5fd',
-    inputs:['Sales task (any)','MQL package from Marketing','Deal context from memory'],
-    outputs:['Routed sub-agent response','Updated Deal Card','Memory saves'],
-    tools:['save_deal_context','recall_deal_context','list_active_deals','save_agent_output','recall_past_outputs'],
-    reflection:'3-point check after every sub-agent. Invokes reflection_agent on failure. Max 2 cycles. High-stakes triggers: proposals >$50K, pipeline reviews, CRM stage updates.'},
-  { id:'marketing_orchestrator', team:'meta', name:'Marketing Orchestrator', sub:'Marketing team root · 6 agents', icon:'📡', color:'#a855f7', bg:'#1a0a38',
-    cat:'Orchestrator', catBg:'rgba(168,85,247,0.15)', catFg:'#c084fc',
-    inputs:['Marketing task (any)','Win/Loss feedback from Sales','Campaign performance data'],
-    outputs:['Routed sub-agent response','Campaign Card','MQL packages for Sales handoff'],
-    tools:['save_agent_output','recall_past_outputs','save_deal_context','recall_deal_context'],
-    reflection:'Requires brand_voice review before any campaign launch. Always produces kill recommendations in performance reviews. MQL packages require intent signal.'},
-  // SALES
-  { id:'lead_researcher', team:'sales', name:'Lead Researcher', sub:'Company & contact intelligence', icon:'🔍', color:'#10b981', bg:'#0d2118',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Company name / domain','Target contact title (optional)','Product context'],
-    outputs:['Company snapshot (5+ facts)','News & buying signals','Tech stack','3 pain points with evidence','Decision maker table','ICP score 1-5','Outreach angle'],
-    tools:['search_company_web','search_news','enrich_company','find_contacts'],
-    reflection:'Gate: ≥5 facts · ≥3 evidenced pains · ICP per-dimension · ≥1 named DM · specific hook · [unconfirmed] flags'},
-  { id:'outreach_composer_s', team:'sales', name:'Outreach Composer', sub:'Cold emails & LinkedIn DMs', icon:'✉️', color:'#f59e0b', bg:'#1a1505',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Prospect name, title, company','Channel (email/LinkedIn)','Outreach type','Research context'],
-    outputs:['Primary message','Variant B','3 subject line alternatives','Reasoning'],
-    tools:[],
-    reflection:'Gate: Primary+Variant B · word limits · specific hook · 1 CTA · zero banned phrases · subject ≤8 words'},
-  { id:'sales_call_prep', team:'sales', name:'Sales Call Prep', sub:'Pre-call briefs & talk tracks', icon:'📋', color:'#3b82f6', bg:'#0d1a2e',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Prospect & company','Call type','Prior CRM notes'],
-    outputs:['60-sec snapshot','MEDDIC questions (5-7)','Demo talk track','Likely objections','Stakeholder map','Call goals','Next step + fallback','Risk flags'],
-    tools:['sf_find_opportunity','hs_find_deal'],
-    reflection:'Gate: snapshot ≤100w · ≥5 questions with purpose · Pain→Feature→Proof · ≥2 objections · next step has date+fallback · ≥1 risk'},
-  { id:'objection_handler', team:'sales', name:'Objection Handler', sub:'Real-time ACCA responses', icon:'🛡️', color:'#f97316', bg:'#1a0e05',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Objection text','Deal context (optional)'],
-    outputs:['Objection type (7 types)','Immediate response','Clarifying question','Reframe','Leave-behind','Smokescreen flag'],
-    tools:[],
-    reflection:'Gate: classified · all 4 ACCA components · response ≤3 sentences · clarifying question targets root · specific leave-behind'},
-  { id:'proposal_generator', team:'sales', name:'Proposal Generator', sub:'Proposals, one-pagers, business cases', icon:'📄', color:'#a855f7', bg:'#150a2a',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Pain points (their words)','Solution & scope','Deal size','Stakeholders'],
-    outputs:['Full proposal (3 formats)','Exec summary','ROI model (2 scenarios)','Email cover note'],
-    tools:['sf_find_opportunity','hs_find_deal'],
-    reflection:'Gate: format matches deal size · prospect\'s language · ROI shows formula · both scenarios · exec summary standalone · 1 CTA · cover note'},
-  { id:'crm_updater', team:'sales', name:'CRM Updater', sub:'Salesforce & HubSpot logging', icon:'🗄️', color:'#14b8a6', bg:'#041a18',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Raw call notes','Company name','CRM system','Stage/timeline changes'],
-    outputs:['Structured notes','Logged activity','Updated fields','Follow-up tasks','Confirmation summary'],
-    tools:['sf_find_opportunity','sf_update_opportunity','sf_log_call','sf_create_task','hs_find_deal','hs_log_note','hs_update_deal','hs_create_task'],
-    reflection:'Gate: structured format · every next step has date+owner · stage confirmed before write · old→new values in summary · ≤200w summary · append-only'},
-  { id:'deal_analyst', team:'sales', name:'Deal Analyst', sub:'Pipeline health & forecasting', icon:'📊', color:'#ec4899', bg:'#1a0514',
-    cat:'Sales', catBg:'rgba(59,130,246,0.12)', catFg:'#93c5fd',
-    inputs:['Rep/team scope','Time period','CRM system'],
-    outputs:['Health scores (5 dims)','At-risk list + actions','Coverage ratio','Commit forecast','Coaching callouts','Top 5 actions'],
-    tools:['sf_get_pipeline','sf_find_opportunity'],
-    reflection:'Gate: per-dimension scores · every at-risk has specific action · coverage with assumptions · commit vs pipeline · dated+owned top 5 · data quality issues first'},
-  { id:'reflection_agent', team:'sales', name:'Reflection Agent', sub:'Quality control — all sales agents', icon:'🔁', color:'#ef4444', bg:'#1a0a0a',
-    cat:'Quality Gate', catBg:'rgba(239,68,68,0.15)', catFg:'#fca5a5',
-    inputs:['agent_name','output (full text)','context (request + deal)'],
-    outputs:['REFLECTION REPORT','Pass rate (X/Y)','PASS or NEEDS_REVISION','Revision instructions','Sections to preserve'],
-    tools:[],
-    reflection:'Meta-agent. Never produces sales content. Diagnosis only. Per-agent rubrics for all 7 sales agents.'},
-  // MARKETING
-  { id:'audience_builder', team:'marketing', name:'Audience Builder', sub:'ICP segments & MQL packages', icon:'🎯', color:'#10b981', bg:'#0d1a2e',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['ICP criteria (industry, size, title)','Product/solution','Campaign goal'],
-    outputs:['≥3 audience segments with segment cards','Lead scores (1-100)','Tier 1/2/3 classification','MQL packages for Sales handoff'],
-    tools:['search_company_web','search_news','find_contacts','search_audience_communities','fetch_rss_feed'],
-    reflection:'Gate: ≥3 segments with full cards · scoring model with per-dimension breakdown · intent signals specific+dated · Tier 1 has full MQL packages · channel recs match persona'},
-  { id:'campaign_composer', team:'marketing', name:'Campaign Composer', sub:'Full multi-channel campaign systems', icon:'📣', color:'#f59e0b', bg:'#1a1505',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['Campaign goal','Target persona','Offer / CTA','Channel mix'],
-    outputs:['Campaign brief','4-touch email sequence','LinkedIn ads (≥2)','Landing page copy','Event/webinar brief (optional)'],
-    tools:[],
-    reflection:'Gate: campaign brief complete · all 4 emails with subject+body · sequence escalates · ≥2 LinkedIn ads · landing page with 1 CTA · no banned phrases · message consistent across assets'},
-  { id:'content_strategist', team:'marketing', name:'Content Strategist', sub:'Pillar strategy, briefs & calendars', icon:'✍️', color:'#3b82f6', bg:'#0d1a2e',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['Business goal','Target ICP','Content type / channel','Existing content gaps'],
-    outputs:['3-4 content pillars','Per-piece content briefs','LinkedIn calendar (4-week)','Funnel stage mapping','Distribution plans'],
-    tools:['get_trending_topics','search_competitor_content','fetch_rss_feed','search_company_web'],
-    reflection:'Gate: ≥3 pillars with examples · funnel stage mapped · each brief has distinct angle · SEO keyword with intent · distribution plan in every brief'},
-  { id:'seo_analyst', team:'marketing', name:'SEO Analyst', sub:'Keywords, gaps & on-page recs', icon:'🔎', color:'#14b8a6', bg:'#041a18',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['Product/company','Target personas','Competitor domains (2-3)','Current content (optional)'],
-    outputs:['≥4 keyword clusters by intent','Prioritisation matrix','Competitor content gaps (≥5)','On-page recommendations','90-day roadmap'],
-    tools:['get_trending_topics','search_competitor_content','search_company_web'],
-    reflection:'Gate: ≥4 clusters with intent labels · funnel stage per cluster · ≥5 competitor gaps · priority matrix applied · 90-day roadmap with specific actions'},
-  { id:'campaign_analyst', team:'marketing', name:'Campaign Analyst', sub:'Performance, attribution & tests', icon:'📈', color:'#ec4899', bg:'#1a0514',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['Campaign metrics (paste data)','Time period','Campaign goal','Quarter target'],
-    outputs:['Channel performance table','Funnel conversion rates (benchmarked)','Attribution analysis (≥2 models)','Scale/Fix/Kill/Test recommendations','Executive summary'],
-    tools:[],
-    reflection:'Gate: conversion rates benchmarked · ≥2 attribution models · each rec is specific · A/B tests have hypothesis+metric · exec summary ≤8 lines · kill list present'},
-  { id:'brand_voice', team:'marketing', name:'Brand Voice', sub:'Copy review & guidelines builder', icon:'🎨', color:'#f97316', bg:'#1a1505',
-    cat:'Marketing', catBg:'rgba(168,85,247,0.12)', catFg:'#c084fc',
-    inputs:['Content to review (Mode A)','Brand guidelines (or describe them)','Or: build guidelines from scratch (Mode B)'],
-    outputs:['Per-piece review card with score','APPROVED/NEEDS EDITS/REWRITE verdict','Line-by-line fixes with suggested rewrites','Approved sections (do not change)','Brand Voice Guide (Mode B)'],
-    tools:[],
-    reflection:'Gate: every issue has specific fix · fixes preserve author intent · voice framework defined before review · positive feedback included · approved sections listed'},
+  // ── Orchestrators ──
+  { name: 'company_orchestrator', dept: 'shared', title: 'Company Orchestrator', desc: 'Entry point — routes to all departments', inputs: ['User prompt'], outputs: ['Routed execution'], tools: [], reflection: false, ttl: null },
+  { name: 'sales_orchestrator', dept: 'sales', title: 'Sales Orchestrator', desc: 'Sales team coordinator', inputs: ['Sales task'], outputs: ['Sales pipeline execution'], tools: [], reflection: false, ttl: null },
+  { name: 'marketing_orchestrator', dept: 'marketing', title: 'Marketing Orchestrator', desc: 'Marketing team coordinator', inputs: ['Marketing task'], outputs: ['Marketing pipeline execution'], tools: [], reflection: false, ttl: null },
+  { name: 'product_orchestrator', dept: 'product', title: 'Product Orchestrator', desc: '8-step product build pipeline', inputs: ['Product requirement'], outputs: ['Deployed product'], tools: [], reflection: false, ttl: null },
+  { name: 'engineering_orchestrator', dept: 'engineering', title: 'Engineering Orchestrator', desc: 'Engineering systems coordinator', inputs: ['Engineering task'], outputs: ['Engineering pipeline execution'], tools: [], reflection: false, ttl: null },
+  { name: 'research_orchestrator', dept: 'research', title: 'Research Orchestrator', desc: 'R&D coordinator', inputs: ['Research task'], outputs: ['Research pipeline execution'], tools: [], reflection: false, ttl: null },
+  { name: 'qa_orchestrator', dept: 'qa', title: 'QA Orchestrator', desc: 'Company-wide QA coordinator', inputs: ['QA task'], outputs: ['QA pipeline execution'], tools: [], reflection: false, ttl: null },
+  { name: 'autoresearcher_orchestrator', dept: 'autoresearcher', title: 'Autoresearcher Orchestrator', desc: 'Self-evolving agent quality loop', inputs: ['Evolution trigger'], outputs: ['Agent improvement'], tools: [], reflection: false, ttl: null },
+  { name: 'forge_orchestrator', dept: 'forge', title: 'Forge Orchestrator', desc: 'Autonomous skill generation pipeline', inputs: ['Skill request'], outputs: ['Staged skill'], tools: [], reflection: false, ttl: null },
+  // ── Sales ──
+  { name: 'lead_researcher_agent', dept: 'sales', title: 'Lead Researcher', desc: 'Company & contact research; ICP scoring', inputs: ['Company name', 'Target title', 'Product context'], outputs: ['Company snapshot', 'News signals', 'Pain points', 'DM table'], tools: ['search_company_web', 'search_news', 'find_contacts', 'enrich_company', 'deep_research'], reflection: true, ttl: 7 },
+  { name: 'outreach_composer_agent', dept: 'sales', title: 'Outreach Composer', desc: 'Cold emails, LinkedIn DMs, follow-ups', inputs: ['Research dossier', 'Deal context'], outputs: ['Cold email', 'LinkedIn DM', 'Follow-up'], tools: ['read_document', 'search_document', 'generate_code'], reflection: true, ttl: 14 },
+  { name: 'sales_call_prep_agent', dept: 'sales', title: 'Sales Call Prep', desc: 'Call briefs, discovery questions, talk tracks', inputs: ['Deal context', 'Research'], outputs: ['Call brief', 'MEDDIC questions', 'Talk track'], tools: [], reflection: true, ttl: 3 },
+  { name: 'objection_handler_agent', dept: 'sales', title: 'Objection Handler', desc: 'Real-time objection handling (ACCA framework)', inputs: ['Objection text', 'Deal context'], outputs: ['ACCA response'], tools: [], reflection: true, ttl: null },
+  { name: 'proposal_generator_agent', dept: 'sales', title: 'Proposal Generator', desc: 'Proposals, business cases, one-pagers', inputs: ['Deal context', 'Requirements'], outputs: ['Proposal', 'ROI model', 'One-pager'], tools: ['read_document', 'generate_code'], reflection: true, ttl: 30 },
+  { name: 'crm_updater_agent', dept: 'sales', title: 'CRM Updater', desc: 'Salesforce/HubSpot — call logging, stage updates', inputs: ['Deal outcome', 'Call notes'], outputs: ['CRM updated'], tools: ['sf_find_opportunity', 'sf_update_opportunity', 'sf_log_call', 'sf_create_task', 'hs_find_deal', 'hs_update_deal', 'hs_log_note', 'hs_create_task'], reflection: false, ttl: null },
+  { name: 'deal_analyst_agent', dept: 'sales', title: 'Deal Analyst', desc: 'Pipeline analysis, deal health, forecasting', inputs: ['Pipeline data'], outputs: ['Health scores', 'Forecast', 'Recommendations'], tools: [], reflection: true, ttl: 1 },
+  // ── Marketing ──
+  { name: 'audience_builder_agent', dept: 'marketing', title: 'Audience Builder', desc: 'ICP segmentation, lead scoring, MQL packages', inputs: ['Product info', 'Market data'], outputs: ['ICP segments', 'MQL packages'], tools: ['get_trending_topics', 'search_competitor_content', 'search_audience_communities'], reflection: true, ttl: 7 },
+  { name: 'campaign_composer_agent', dept: 'marketing', title: 'Campaign Composer', desc: 'Email sequences, ads, landing pages', inputs: ['Audience data', 'Content brief'], outputs: ['Email sequence', 'Ad copy', 'Landing page'], tools: ['generate_code'], reflection: true, ttl: 14 },
+  { name: 'content_strategist_agent', dept: 'marketing', title: 'Content Strategist', desc: 'Content pillars, briefs, LinkedIn calendars', inputs: ['Brand voice', 'Target audience'], outputs: ['Content calendar', 'Article briefs'], tools: ['fetch_rss_feed', 'get_trending_topics'], reflection: true, ttl: 14 },
+  { name: 'seo_analyst_agent', dept: 'marketing', title: 'SEO Analyst', desc: 'Keyword research, content gaps, on-page', inputs: ['Site URL', 'Competitors'], outputs: ['Keyword strategy', 'Content gap analysis'], tools: ['search_company_web'], reflection: true, ttl: 30 },
+  { name: 'campaign_analyst_agent', dept: 'marketing', title: 'Campaign Analyst', desc: 'Performance analysis, attribution, A/B tests', inputs: ['Campaign data'], outputs: ['Performance report', 'Optimization recs'], tools: [], reflection: true, ttl: 7 },
+  { name: 'brand_voice_agent', dept: 'marketing', title: 'Brand Voice', desc: 'Voice consistency review, brand guidelines', inputs: ['Content draft'], outputs: ['Review with suggestions'], tools: [], reflection: false, ttl: 90 },
+  // ── Product ──
+  { name: 'pm_agent', dept: 'product', title: 'Product Manager', desc: 'PRD generation, feature prioritization', inputs: ['Product idea'], outputs: ['PRD document'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'architect_agent', dept: 'product', title: 'Architect', desc: 'System design, component diagrams, ADRs', inputs: ['PRD'], outputs: ['Architecture doc', 'File tree', 'Tech decisions'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'devops_agent', dept: 'product', title: 'DevOps Engineer', desc: 'Infra setup: Vercel, Railway, Supabase, NeonDB', inputs: ['Architecture', 'Repo'], outputs: ['Deployed infra', 'Env vars'], tools: ['create_repo', 'push_file', 'create_project', 'add_env_var', 'connect_github', 'trigger_deploy', 'run_sql'], reflection: false, ttl: null },
+  { name: 'db_agent', dept: 'product', title: 'Database Engineer', desc: 'Schema design, SQL migrations', inputs: ['Architecture'], outputs: ['SQL schema', 'Migrations'], tools: ['generate_code', 'run_sql', 'get_connection_uri'], reflection: true, ttl: null },
+  { name: 'backend_builder_agent', dept: 'product', title: 'Backend Builder', desc: 'FastAPI backend code generation', inputs: ['Architecture', 'DB schema'], outputs: ['FastAPI server code'], tools: ['generate_code', 'generate_fastapi_backend', 'push_file'], reflection: true, ttl: null },
+  { name: 'frontend_builder_agent', dept: 'product', title: 'Frontend Builder', desc: 'Next.js 14 frontend generation', inputs: ['Architecture', 'API spec'], outputs: ['Next.js app code'], tools: ['generate_code', 'generate_nextjs_frontend', 'push_file'], reflection: true, ttl: null },
+  { name: 'qa_agent', dept: 'product', title: 'Product QA', desc: 'Feature testing, smoke tests', inputs: ['Live URL', 'Requirements'], outputs: ['QA report'], tools: ['check_url', 'smoke_test', 'health_check', 'auth_smoke_test', 'read_document'], reflection: true, ttl: null },
+  // ── Engineering ──
+  { name: 'solutions_architect_agent', dept: 'engineering', title: 'Solutions Architect', desc: 'System design, architectural decisions', inputs: ['Requirements'], outputs: ['System design', 'ADRs'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'data_engineer_agent', dept: 'engineering', title: 'Data Engineer', desc: 'ETL/ELT pipelines, streaming, feature stores', inputs: ['Data requirements'], outputs: ['Pipeline spec', 'Schema'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'ml_engineer_agent', dept: 'engineering', title: 'ML Engineer', desc: 'Training pipelines, inference, model serving', inputs: ['Model spec'], outputs: ['Training pipeline', 'Serving config'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'systems_engineer_agent', dept: 'engineering', title: 'Systems Engineer', desc: 'EDA toolchains, compiler pipelines, embedded builds', inputs: ['System requirements'], outputs: ['Toolchain config', 'Build pipeline'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'integration_engineer_agent', dept: 'engineering', title: 'Integration Engineer', desc: 'API connectors, middleware, service mesh', inputs: ['Integration spec'], outputs: ['Connector code', 'Middleware config'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'platform_engineer_agent', dept: 'engineering', title: 'Platform Engineer', desc: 'IaC, CI/CD, container orchestration', inputs: ['Platform requirements'], outputs: ['IaC templates', 'CI/CD config'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'sdet_agent', dept: 'engineering', title: 'SDET', desc: 'Pipeline validation, smoke tests, integration tests', inputs: ['Test spec'], outputs: ['Test suite', 'Results'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  // ── Research ──
+  { name: 'research_scientist_agent', dept: 'research', title: 'Research Scientist', desc: 'Literature reviews, hypothesis docs, experiments', inputs: ['Research question'], outputs: ['Literature review', 'Experiment design'], tools: ['search_company_web', 'search_news', 'deep_research', 'read_document'], reflection: true, ttl: 30 },
+  { name: 'ml_researcher_agent', dept: 'research', title: 'ML Researcher', desc: 'SOTA benchmarks, novel architectures', inputs: ['Research topic'], outputs: ['SOTA analysis', 'Architecture proposal'], tools: ['search_company_web', 'deep_research'], reflection: true, ttl: 14 },
+  { name: 'applied_scientist_agent', dept: 'research', title: 'Applied Scientist', desc: 'Feasibility reports, research-to-product briefs', inputs: ['Research findings'], outputs: ['Feasibility report', 'Product brief'], tools: ['read_document'], reflection: true, ttl: 14 },
+  { name: 'data_scientist_agent', dept: 'research', title: 'Data Scientist', desc: 'A/B tests, statistical analysis, metrics', inputs: ['Data', 'Hypothesis'], outputs: ['Statistical report', 'Metrics dashboard'], tools: ['generate_code'], reflection: true, ttl: 7 },
+  { name: 'competitive_analyst_agent', dept: 'research', title: 'Competitive Analyst', desc: 'Competitor profiles, market trends', inputs: ['Competitor names'], outputs: ['Competitor profiles', 'Battle cards'], tools: ['search_company_web', 'search_news', 'search_competitor_content'], reflection: true, ttl: 7 },
+  { name: 'user_researcher_agent', dept: 'research', title: 'User Researcher', desc: 'Interview guides, usability reports, personas', inputs: ['Product context'], outputs: ['Interview guide', 'Personas'], tools: ['read_document'], reflection: true, ttl: 30 },
+  { name: 'knowledge_manager_agent', dept: 'research', title: 'Knowledge Manager', desc: 'Research briefs, cross-domain synthesis', inputs: ['Research outputs'], outputs: ['Synthesis brief', 'Knowledge base'], tools: ['read_document', 'search_document'], reflection: true, ttl: 30 },
+  // ── QA ──
+  { name: 'test_architect_agent', dept: 'qa', title: 'Test Architect', desc: 'Test strategy, quality gates, frameworks', inputs: ['Product spec'], outputs: ['Test strategy', 'Quality gates'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'test_automation_engineer_agent', dept: 'qa', title: 'Test Automation Engineer', desc: 'Automated suites, CI configs, regression', inputs: ['Test strategy'], outputs: ['Test suites', 'CI config'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'performance_engineer_agent', dept: 'qa', title: 'Performance Engineer', desc: 'Load tests, benchmark baselines', inputs: ['Endpoints', 'SLAs'], outputs: ['Load test results', 'Baselines'], tools: ['generate_code', 'check_url'], reflection: true, ttl: 7 },
+  { name: 'security_tester_agent', dept: 'qa', title: 'Security Tester', desc: 'Penetration tests, OWASP, fuzz testing', inputs: ['Target URL', 'Scope'], outputs: ['Security report', 'Findings'], tools: ['generate_code', 'check_url'], reflection: true, ttl: 7 },
+  { name: 'qa_engineer_agent', dept: 'qa', title: 'QA Engineer', desc: 'Manual QA, bug reports, UAT sign-off', inputs: ['Product', 'Test cases'], outputs: ['Bug reports', 'UAT sign-off'], tools: ['check_url', 'read_document'], reflection: false, ttl: null },
+  { name: 'chaos_engineer_agent', dept: 'qa', title: 'Chaos Engineer', desc: 'Chaos experiments, failure injection, resilience', inputs: ['System spec'], outputs: ['Chaos report', 'Resilience score'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  // ── Autoresearcher ──
+  { name: 'evaluator_agent', dept: 'autoresearcher', title: 'Evaluator', desc: 'Detects underperforming agents; scans events', inputs: ['Evolution events'], outputs: ['Priority queue'], tools: [], reflection: false, ttl: null },
+  { name: 'hypothesis_agent', dept: 'autoresearcher', title: 'Hypothesis Generator', desc: 'Root cause analysis; proposes new instructions', inputs: ['Agent data', 'Events'], outputs: ['Hypothesis', 'New instruction'], tools: [], reflection: false, ttl: null },
+  { name: 'rewriter_agent', dept: 'autoresearcher', title: 'Rewriter', desc: 'Applies instruction patches with guard checks', inputs: ['Hypothesis', 'Current instruction'], outputs: ['Patched instruction'], tools: ['get_agent_file_path', 'get_current_instruction', 'patch_instruction'], reflection: false, ttl: null },
+  { name: 'rollback_watchdog_agent', dept: 'autoresearcher', title: 'Rollback Watchdog', desc: 'Verifies quality; triggers rollbacks', inputs: ['Agent version', 'Scores'], outputs: ['Stable/Rolled back'], tools: [], reflection: false, ttl: null },
+  // ── Skill Forge ──
+  { name: 'intent_parser_agent', dept: 'forge', title: 'Intent Parser', desc: 'Stage 1: Parse intent into TaskSpec', inputs: ['User request'], outputs: ['TaskSpec'], tools: [], reflection: false, ttl: null },
+  { name: 'research_swarm_agent', dept: 'forge', title: 'Research Swarm', desc: 'Stage 2: 3 parallel researchers', inputs: ['TaskSpec'], outputs: ['Research bundles'], tools: ['search_company_web', 'deep_research'], reflection: false, ttl: null },
+  { name: 'expert_synthesizer_agent', dept: 'forge', title: 'Expert Synthesizer', desc: 'Stage 3: Synthesize into constitutional principles', inputs: ['Research bundles'], outputs: ['Expert blueprint'], tools: [], reflection: false, ttl: null },
+  { name: 'skill_drafter_agent', dept: 'forge', title: 'Skill Drafter', desc: 'Stage 4: Draft SKILL.md content', inputs: ['Expert blueprint'], outputs: ['SKILL.md v0'], tools: ['generate_code'], reflection: false, ttl: null },
+  { name: 'critic_panel_agent', dept: 'forge', title: 'Critic Panel', desc: 'Stage 5: 3-critic A-HMAD evaluation', inputs: ['SKILL.md'], outputs: ['Critique + score'], tools: [], reflection: false, ttl: null },
+  { name: 'red_team_agent', dept: 'forge', title: 'Red Team', desc: 'Stage 6: 100 battle test cases', inputs: ['SKILL.md'], outputs: ['Battle test report'], tools: ['generate_code'], reflection: false, ttl: null },
+  { name: 'iteration_agent', dept: 'forge', title: 'Iteration Agent', desc: 'Stage 7: GEPA loop (max 10 iterations)', inputs: ['SKILL.md', 'Critique'], outputs: ['Improved SKILL.md'], tools: ['generate_code'], reflection: false, ttl: null },
+  { name: 'promoter_agent', dept: 'forge', title: 'Promoter', desc: 'Stage 8: Promote to staging registry', inputs: ['Final SKILL.md'], outputs: ['Staging entry'], tools: [], reflection: false, ttl: null },
+  // ── Shared ──
+  { name: 'reflection_agent', dept: 'shared', title: 'Reflection Agent', desc: 'Meta-agent for re-evaluating outputs', inputs: ['Agent output', 'Criteria'], outputs: ['APPROVED / NEEDS_REVISION'], tools: [], reflection: false, ttl: null },
 ];
 
-function renderAgents() {
-  document.getElementById('agents-grid').innerHTML = AGENTS.map(a => `
-    <div class="agent-card" data-team="${a.team}" style="--accent-color:${a.color}">
-      <div class="agent-header" style="background:${a.bg}30">
-        <div class="agent-icon" style="background:${a.color}18;border:1px solid ${a.color}35">${a.icon}</div>
-        <div><div class="agent-title">${a.name}</div><div class="agent-subtitle">${a.sub}</div></div>
-        <span class="agent-team-badge" style="background:${a.catBg};color:${a.catFg}">${a.cat}</span>
-      </div>
-      <div class="agent-body">
-        <div class="io-row">
-          <div class="io-block">
-            <label>Inputs</label>
-            <div class="io-list">${a.inputs.map(i=>`<div class="io-item" style="border-left:3px solid ${a.color}40">${i}</div>`).join('')}</div>
-          </div>
-          <div class="io-block">
-            <label>Outputs</label>
-            <div class="io-list">${a.outputs.map(o=>`<div class="io-item" style="border-left:3px solid ${a.color}70">${o}</div>`).join('')}</div>
-          </div>
-        </div>
-        ${a.tools.length ? `<div class="tools-row"><label>Tools</label><div class="tools-list">${a.tools.map(t=>`<span class="tool-chip">${t}</span>`).join('')}</div></div>` : ''}
-        <div class="reflection-box">
-          <div class="r-label">🔁 Reflection Gate</div>
-          <div class="r-text">${a.reflection}</div>
-        </div>
-      </div>
-    </div>`).join('');
+function getAgentsByDept(dept) { return AGENTS.filter(a => a.dept === dept); }
+function getAgent(name) { return AGENTS.find(a => a.name === name); }
+
+// ── View Registry (populated by subsequent tasks) ─────────────────────────
+const views = {};
+
+// ── Polling Manager ───────────────────────────────────────────────────────
+function startPolling() {
+  refreshTopBar();
+  S.pollTimer = setInterval(refreshTopBar, 5000);
 }
 
-// ── Workflow data ──────────────────────────────────────────────────────────────
-const SALES_STEPS = [
-  { n:1, agent:'[MQL Handoff from Marketing]', color:'#22c55e', title:'Receive MQL Package', desc:'Marketing hands off Tier 1 leads with ICP score, intent signal, and outreach angle. Research already done.', out:'→ Prospect profile · Pain point · Recommended angle' },
-  { n:2, agent:'outreach_composer', color:'#f59e0b', title:'Personalised Outreach', desc:'Write cold email and LinkedIn DM using the MQL package context. Already know the hook.', out:'→ Cold email · LinkedIn DM · Subject alternatives' },
-  { n:3, agent:'—', color:'#4b5563', title:'Wait for Response', desc:'Rep sends outreach. When prospect responds and a call is booked, move to Step 4.', out:'→ Call booked' },
-  { n:4, agent:'sales_call_prep', color:'#3b82f6', title:'Pre-Call Brief', desc:'MEDDIC discovery questions, demo talk track, objection prep, stakeholder map.', out:'→ Call brief · Questions · Risk flags' },
-  { n:5, agent:'objection_handler', color:'#f97316', title:'Live Objection Handling', desc:'Paste any objection for ACCA response during or after the call.', out:'→ Response · Clarifying Q · Leave-behind' },
-  { n:6, agent:'crm_updater', color:'#14b8a6', title:'Log Call & Update CRM', desc:'Structure raw notes, log activity, update stage, create follow-up tasks.', out:'→ Notes logged · Stage updated · Tasks created' },
-  { n:7, agent:'proposal_generator', color:'#a855f7', title:'Proposal', desc:'Generate proposal matched to deal size with ROI model and exec summary.', out:'→ Proposal · Exec summary · Email cover' },
-  { n:8, agent:'deal_analyst', color:'#ec4899', title:'Pipeline Review', desc:'Health scores, at-risk flags, forecast, rep coaching callouts.', out:'→ Pipeline report · Actions · Coaching' },
-  { n:9, agent:'[Win/Loss → Marketing]', color:'#f59e0b', title:'Feed Back to Marketing', desc:'Close the loop — win/loss reason, objections raised, and what content helped.', out:'→ ICP update · Content brief · Messaging fix' },
-];
-
-const MARKETING_STEPS = [
-  { n:1, agent:'audience_builder', color:'#10b981', title:'Build ICP Audience', desc:'Segment target companies, score leads 1-100, identify intent signals and Tier 1 MQLs.', out:'→ Segments · Tier 1 MQL packages' },
-  { n:2, agent:'campaign_composer', color:'#f59e0b', title:'Build Campaign', desc:'4-touch email sequence, LinkedIn ads, landing page copy — full campaign system.', out:'→ Email sequence · Ads · Landing page' },
-  { n:3, agent:'brand_voice', color:'#f97316', title:'Review Copy', desc:'Check all campaign assets for voice consistency before any launch.', out:'→ APPROVED/NEEDS EDITS verdict + fixes' },
-  { n:4, agent:'seo_analyst', color:'#14b8a6', title:'SEO Strategy', desc:'Keyword clusters, competitor gaps, priority matrix, 90-day roadmap.', out:'→ Keyword clusters · Content gaps · Roadmap' },
-  { n:5, agent:'content_strategist', color:'#3b82f6', title:'Content Briefs', desc:'Pillar strategy and per-piece briefs for campaign-supporting content.', out:'→ Content pillars · Briefs · LinkedIn calendar' },
-  { n:6, agent:'[MQL Handoff → Sales]', color:'#22c55e', title:'Hand Off MQLs', desc:'Tier 1 MQL packages passed to Sales team with ICP scores and intent signals.', out:'→ MQL packages · Pain points · Outreach angles' },
-  { n:7, agent:'campaign_analyst', color:'#ec4899', title:'Performance Review', desc:'Funnel metrics benchmarked, attribution, scale/fix/kill/test recommendations.', out:'→ Channel performance · A/B tests · Kill list' },
-  { n:8, agent:'campaign_composer', color:'#f59e0b', title:'Optimise & Repeat', desc:'Second wave campaign updated based on performance data and Sales feedback.', out:'→ Optimised campaign assets' },
-];
-
-function renderWorkflow() {
-  document.getElementById('workflow-container').innerHTML = `
-    <div class="workflow-col sales">
-      <h3>🔵 Sales Team Workflow</h3>
-      ${SALES_STEPS.map(s=>`
-        <div class="workflow-step">
-          <div class="step-line"></div>
-          <div class="step-num" style="background:${s.color}18;border:2px solid ${s.color};color:${s.color}">${s.n}</div>
-          <div class="step-content">
-            <div class="step-agent-label" style="color:${s.color}">${s.agent}</div>
-            <div class="step-title">${s.title}</div>
-            <div class="step-desc">${s.desc}</div>
-            <div class="step-out" style="border-color:${s.color}60;color:${s.color}">${s.out}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-    <div class="workflow-col marketing">
-      <h3>🟣 Marketing Team Workflow</h3>
-      ${MARKETING_STEPS.map(s=>`
-        <div class="workflow-step">
-          <div class="step-line"></div>
-          <div class="step-num" style="background:${s.color}18;border:2px solid ${s.color};color:${s.color}">${s.n}</div>
-          <div class="step-content">
-            <div class="step-agent-label" style="color:${s.color}">${s.agent}</div>
-            <div class="step-title">${s.title}</div>
-            <div class="step-desc">${s.desc}</div>
-            <div class="step-out" style="border-color:${s.color}60;color:${s.color}">${s.out}</div>
-          </div>
-        </div>`).join('')}
-    </div>`;
-}
-
-renderAgents();
-renderWorkflow();
-renderForgeStages();
+// ── Boot ──────────────────────────────────────────────────────────────────
+startPolling();
+navigate('dashboard');
 </script>
 </body>
 </html>
