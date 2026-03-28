@@ -330,6 +330,78 @@ async def supervisor_events(
     return [dict(r) for r in rows]
 
 
+# ── Task 3: Evolution history, forge registry, agent status ──────────────────
+
+@app.get("/api/supervisor/evolution")
+async def supervisor_evolution():
+    """Evolution history — agent versions joined with hypotheses."""
+    import sqlite3
+    conn = sqlite3.connect(str(EVOLUTION_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute("""
+            SELECT v.agent_name, v.version, v.status, v.score_baseline,
+                   v.baseline_sampled_at, v.created_at,
+                   h.root_cause, h.hypothesis_text, h.confidence
+            FROM agent_versions v
+            LEFT JOIN hypotheses h ON h.agent_name = v.agent_name AND h.version = v.version
+            ORDER BY v.created_at DESC
+        """).fetchall()
+    except Exception:
+        return []
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.get("/api/forge/registry")
+async def forge_registry():
+    """Staged skills from the Skill Forge pipeline."""
+    import sqlite3
+    conn = sqlite3.connect(str(SKILL_FORGE_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM staging_registry ORDER BY updated_at DESC"
+        ).fetchall()
+    except Exception:
+        return {"skills": []}
+    finally:
+        conn.close()
+    return {"skills": [dict(r) for r in rows]}
+
+
+@app.get("/api/agents/status")
+async def agents_status():
+    """Live status for all agents — circuit state, last invoked, cache validity."""
+    conn = sup_conn()
+    try:
+        circuits = conn.execute("SELECT * FROM supervisor_circuit_breakers").fetchall()
+        circuit_map = {r["agent_name"]: dict(r) for r in circuits}
+        last_invoked = conn.execute("""
+            SELECT agent_name, MAX(created_at) as last_invoked
+            FROM supervisor_events
+            WHERE event_type = 'agent.called'
+            GROUP BY agent_name
+        """).fetchall()
+        invoked_map = {r["agent_name"]: r["last_invoked"] for r in last_invoked}
+    finally:
+        conn.close()
+    results = []
+    for agent_name in AGENT_TTL_DAYS:
+        if agent_name == "_default":
+            continue
+        c = circuit_map.get(agent_name, {})
+        results.append({
+            "name": agent_name,
+            "circuit_state": c.get("state", "closed"),
+            "failure_count": c.get("failure_count", 0),
+            "last_invoked": invoked_map.get(agent_name),
+            "ttl_days": AGENT_TTL_DAYS.get(agent_name),
+        })
+    return results
+
+
 @app.get("/")
 async def serve_dashboard():
     return FileResponse("dashboard.html")
