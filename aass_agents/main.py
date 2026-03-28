@@ -51,16 +51,15 @@ def _before_agent_callback(callback_context):
     return None
 
 
-def _after_agent_callback(callback_context, agent_response):
+def _after_agent_callback(callback_context):
     """
     Runs AFTER ADK gets the agent's response.
     Used for logging, checkpointing, and validity updates.
+    ADK v1.27+ calls this with a single CallbackContext argument.
     """
     run_id = callback_context.state.get("supervisor_run_id")
     agent_name = getattr(callback_context, "agent_name", "unknown")
     output_text = ""
-    if agent_response and hasattr(agent_response, "parts") and agent_response.parts:
-        output_text = agent_response.parts[0].text or ""
 
     _supervisor.log_returned(run_id, agent_name, output_text)
     _supervisor.checkpoint(run_id, agent_name)
