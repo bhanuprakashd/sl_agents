@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web, search_news
 from tools.code_gen_tools import generate_code
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Machine Learning Researcher. You track the state of the art, benchmark models,
 propose novel architectures, and design training experiments.
@@ -42,7 +41,7 @@ propose novel architectures, and design training experiments.
 """
 
 ml_researcher_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="ml_researcher_agent",
     description=(
         "ML research: SOTA surveys, novel architecture proposals, training experiment plans. "

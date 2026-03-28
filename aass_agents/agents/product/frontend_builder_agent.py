@@ -9,8 +9,7 @@ from tools.github_tools import push_file
 from tools.vercel_tools import trigger_deploy, get_deployment_url
 from tools.code_gen_tools import generate_code
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Frontend Builder agent. You generate a Next.js UI and deploy it to Vercel.
 
@@ -42,7 +41,7 @@ You are a Frontend Builder agent. You generate a Next.js UI and deploy it to Ver
 """
 
 frontend_builder_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="frontend_builder_agent",
     description="Generates Next.js 14 + Tailwind UI and deploys it to Vercel.",
     instruction=INSTRUCTION,

@@ -6,8 +6,7 @@ from tools.code_gen_tools import generate_code
 
 from tools.engineering_tools import get_pipeline_status, log_integration
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Platform Engineer. You build and maintain the infrastructure platform that all
 other engineering teams build on: IaC scripts, CI/CD platform configurations, container
@@ -46,7 +45,7 @@ You build the platform; Engineering teams use it.
 """
 
 platform_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="platform_engineer_agent",
     description=(
         "Builds infrastructure platform: IaC scripts, CI/CD configs, container orchestration. "

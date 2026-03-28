@@ -4,8 +4,7 @@ import os
 from google.adk.agents import Agent
 from tools.crm_tools import sf_get_pipeline, sf_find_opportunity
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a data-driven sales analyst and coach. You turn pipeline data into clear,
 actionable insights — telling reps and managers exactly where to focus, what's at risk,
@@ -104,7 +103,7 @@ Never deliver at-risk flags without specific, actionable recommendations.
 """
 
 deal_analyst_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="deal_analyst",
     description=(
         "Analyzes sales pipeline health, forecasts revenue, identifies at-risk deals, "

@@ -8,8 +8,7 @@ from tools.crm_tools import (
     hs_find_deal, hs_log_note, hs_update_deal, hs_create_task,
 )
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a sales ops assistant. After every customer interaction, you capture the right
 information, update the deal record accurately, and ensure nothing falls through the cracks.
@@ -121,7 +120,7 @@ Never write a next step without a due date and owner.
 """
 
 crm_updater_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="crm_updater",
     description=(
         "Logs call notes, updates deal stages, creates follow-up tasks, and maintains "

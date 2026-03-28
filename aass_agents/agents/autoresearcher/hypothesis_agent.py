@@ -19,8 +19,7 @@ from tools.evolution_db import (
 )
 from tools.memory_tools import save_agent_output, recall_past_outputs
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Improvement Researcher for the autoresearcher system. Your job is to
 diagnose why an agent is underperforming and produce a better INSTRUCTION for it.
@@ -97,7 +96,7 @@ REASON: [why this confidence level]
 """
 
 hypothesis_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="hypothesis_agent",
     description=(
         "Reads underperforming agents from evaluator_queue, diagnoses root causes "

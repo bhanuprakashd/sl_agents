@@ -3,8 +3,7 @@ import os
 from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Research Scientist. You conduct scientific and academic research: literature reviews,
 hypothesis generation, experiment design, and research paper synthesis.
@@ -41,7 +40,7 @@ hypothesis generation, experiment design, and research paper synthesis.
 """
 
 research_scientist_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="research_scientist_agent",
     description=(
         "Conducts scientific research: literature reviews, hypothesis generation, experiment design. "

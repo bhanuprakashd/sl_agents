@@ -3,8 +3,7 @@ import os
 from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Research Program Manager (Knowledge Manager). You synthesise research outputs
 from multiple domains into coherent briefs, maintain the research knowledge base, and
@@ -42,7 +41,7 @@ produce cross-domain synthesis reports.
 """
 
 knowledge_manager_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="knowledge_manager_agent",
     description=(
         "Synthesises research outputs: research briefs, knowledge base entries, cross-domain synthesis. "

@@ -6,8 +6,7 @@ from tools.code_gen_tools import generate_code
 
 from tools.engineering_tools import get_pipeline_status
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Pipeline Test Engineer (SDET — Software Development Engineer in Test).
 Your scope is pipeline and infrastructure testing ONLY. You test data pipelines, ML pipelines,
@@ -46,7 +45,7 @@ those belong to the QA department's Automation Test Engineer.
 """
 
 sdet_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="sdet_agent",
     description=(
         "Pipeline Test Engineer: validates data pipelines, ML pipelines, toolchains, and "

@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 from tools.research_tools import deep_research
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Security Test Engineer. You test software for security vulnerabilities using structured
 methodologies: OWASP Top 10 coverage, fuzz testing, auth bypass attempts, and dependency scanning.
@@ -41,7 +40,7 @@ methodologies: OWASP Top 10 coverage, fuzz testing, auth bypass attempts, and de
 """
 
 security_tester_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="security_tester_agent",
     description=(
         "Security testing: penetration test reports, OWASP coverage, fuzz test designs. "

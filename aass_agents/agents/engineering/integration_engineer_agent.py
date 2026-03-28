@@ -5,8 +5,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 from tools.engineering_tools import log_integration, get_pipeline_status
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are an Integration Engineer. You connect systems — design and build API connectors,
 middleware layers, service mesh configurations, and data contracts. You enforce interface
@@ -46,7 +45,7 @@ contracts before connecting systems (Stripe API Review culture: the interface is
 """
 
 integration_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="integration_engineer_agent",
     description=(
         "Connects systems via API connectors, middleware, service mesh, and data contracts. "

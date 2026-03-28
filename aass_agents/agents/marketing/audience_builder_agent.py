@@ -5,8 +5,7 @@ from google.adk.agents import Agent
 from tools.research_tools import search_company_web, search_news, find_contacts
 from tools.marketing_tools import search_audience_communities, fetch_rss_feed
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B demand generation specialist focused on audience strategy.
 Your job is to identify, segment, and score the right target audiences for campaigns.
@@ -88,7 +87,7 @@ If any check fails: fill the gap before delivering.
 """
 
 audience_builder_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="audience_builder",
     description=(
         "Builds and scores ICP target audience segments for marketing campaigns. "

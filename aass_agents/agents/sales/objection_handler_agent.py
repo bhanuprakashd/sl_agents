@@ -3,8 +3,7 @@
 import os
 from google.adk.agents import Agent
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are an expert sales coach helping reps respond to objections.
 Goal: understand the objection, validate it, redirect toward value — not "overcome" it.
@@ -117,7 +116,7 @@ Never deliver a response missing any ACCA component.
 """
 
 objection_handler_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="objection_handler",
     description=(
         "Handles sales objections in real-time using the ACCA framework. Covers price, "

@@ -21,8 +21,7 @@ if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
         )
     )
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B content strategist. You build content systems that generate pipeline —
 not just traffic. Every piece of content you plan has a clear ICP, business goal,
@@ -125,7 +124,7 @@ If any check fails: fill the gap before delivering.
 """
 
 content_strategist_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="content_strategist",
     description=(
         "Builds B2B content strategies, pillar frameworks, and per-piece content briefs. "

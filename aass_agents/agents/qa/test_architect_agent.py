@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 from tools.research_tools import deep_research
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Test Architect (Google Test Engineering model). You define the testing strategy
 for the entire company — what gets tested, how, at what level, and what defines "done".
@@ -41,7 +40,7 @@ for the entire company — what gets tested, how, at what level, and what define
 """
 
 test_architect_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="test_architect_agent",
     description=(
         "Defines testing strategy, quality gates, and test framework designs for the company. "

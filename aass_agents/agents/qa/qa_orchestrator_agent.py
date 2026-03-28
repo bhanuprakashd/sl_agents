@@ -20,8 +20,7 @@ from tools.memory_tools import save_agent_output, recall_past_outputs
 
 reflection_agent = make_reflection_agent()
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the QA Orchestrator. You coordinate the company-wide QA & Testing department.
 
@@ -89,7 +88,7 @@ High-stakes triggers (always run reflection):
 """
 
 qa_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="qa_orchestrator",
     description=(
         "Orchestrates company-wide QA & Testing: application regression, performance testing, "

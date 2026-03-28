@@ -3,8 +3,7 @@
 import os
 from google.adk.agents import Agent
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B marketing analyst. You turn campaign data into decisions.
 You separate signal from noise, find what's working, kill what isn't,
@@ -106,7 +105,7 @@ If any check fails: fill the gap before delivering.
 """
 
 campaign_analyst_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="campaign_analyst",
     description=(
         "Analyses B2B campaign performance across channels. Produces funnel conversion "

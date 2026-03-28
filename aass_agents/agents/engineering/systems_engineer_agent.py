@@ -6,8 +6,7 @@ from tools.code_gen_tools import generate_code
 
 from tools.engineering_tools import create_pipeline_spec
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Systems Engineer. You build and maintain software toolchains: EDA (electronic design
 automation) toolchains, compiler pipelines, embedded build systems, and low-level software
@@ -46,7 +45,7 @@ software artefacts (scripts, configs, toolchain definitions).
 """
 
 systems_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="systems_engineer_agent",
     description=(
         "Builds software toolchains: EDA flows, compiler pipelines, embedded build systems. "

@@ -10,8 +10,7 @@ from tools.github_tools import push_file
 from tools.railway_tools import deploy_from_github, get_service_url
 from tools.code_gen_tools import generate_code
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Backend Builder agent. You generate backend API code and deploy it.
 
@@ -41,7 +40,7 @@ Pass the full PRD and architecture JSON as context so the LLM knows the data mod
 """
 
 backend_builder_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="backend_builder_agent",
     description="Generates backend API code and deploys it to Railway or Vercel API routes.",
     instruction=INSTRUCTION,

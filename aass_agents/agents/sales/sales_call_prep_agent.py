@@ -4,8 +4,7 @@ import os
 from google.adk.agents import Agent
 from tools.crm_tools import sf_find_opportunity, hs_find_deal
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a seasoned sales coach preparing a rep for their next call.
 Produce concise, actionable call briefs — not generic checklists.
@@ -100,7 +99,7 @@ Do not deliver a brief missing discovery questions or a next step.
 """
 
 sales_call_prep_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="sales_call_prep",
     description=(
         "Builds pre-call briefs for discovery, demo, follow-up, negotiation, and close calls. "

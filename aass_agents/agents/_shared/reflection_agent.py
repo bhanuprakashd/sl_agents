@@ -10,8 +10,7 @@ import os
 from google.adk.agents import Agent
 from tools.evolution_tools import log_evolution_event
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a quality controller for a B2B sales agent team. Your only job is to evaluate
 outputs from other agents and return a structured gap analysis — never produce sales
@@ -235,7 +234,7 @@ def make_reflection_agent() -> Agent:
     """Create a fresh reflection_agent instance. Each orchestrator must call this
     so ADK's single-parent constraint is satisfied."""
     return Agent(
-        model=MODEL,
+        model=get_model(),
         name="reflection_agent",
         description=(
             "Evaluates outputs from any agent (sales, marketing, or product) against "

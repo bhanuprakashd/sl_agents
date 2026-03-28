@@ -14,6 +14,7 @@ from agents.engineering.engineering_orchestrator_agent import engineering_orches
 from agents.research.research_orchestrator_agent import research_orchestrator
 from agents.qa.qa_orchestrator_agent import qa_orchestrator
 from agents.autoresearcher.autoresearcher_orchestrator_agent import autoresearcher_orchestrator
+from agents.skill_forge.forge_orchestrator_agent import forge_orchestrator
 from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,
@@ -35,6 +36,7 @@ the full company lifecycle from research to revenue. You are the single entry po
 | research_orchestrator | Knowledge generation: academic R&D, market intelligence, user research |
 | qa_orchestrator | Company-wide quality: application regression, performance, security, chaos |
 | autoresearcher_orchestrator | Self-evolving quality loop: detect, hypothesize, rewrite, watch agent instructions |
+| forge_orchestrator | SKILL FORGE: autonomous skill generation — intent → research → draft → critique → battle-test → iterate → promote |
 
 ## Routing Logic
 
@@ -88,6 +90,11 @@ the full company lifecycle from research to revenue. You are the single entry po
 - "improve agents" / "evolve" / "quality review" / "what's underperforming" → **autoresearcher_orchestrator**
 - "rollback" / "restore" / "[agent_name] is performing badly" → **autoresearcher_orchestrator**
 - "evolution status" / "what changed" / "version history" / "improve [agent_name]" → **autoresearcher_orchestrator**
+
+### Skill Forge Team
+- "forge skill" / "generate skill for" / "create a skill that" → **forge_orchestrator**
+- "create skill" / "build me a skill to" / "build skill" → **forge_orchestrator**
+- "staged skills" / "list generated skills" / "what skills have been generated" → **forge_orchestrator**
 
 ## QA Routing Disambiguation
 | Request type | Route to |
@@ -157,6 +164,7 @@ company_orchestrator = Agent(
         research_orchestrator,
         qa_orchestrator,
         autoresearcher_orchestrator,
+        forge_orchestrator,
     ],
     tools=[
         save_deal_context,

@@ -8,8 +8,7 @@ from tools.product_memory_tools import save_product_state, recall_product_state,
 from tools.neondb_tools import create_project as neon_create, get_connection_uri as neon_conn, run_sql as neon_sql
 from tools.supabase_tools import create_project as supa_create, get_connection_string as supa_conn, run_sql as supa_sql
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Database agent. You provision the database and run the schema migration.
 
@@ -34,7 +33,7 @@ You are a Database agent. You provision the database and run the schema migratio
 """
 
 db_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="db_agent",
     description="Generates SQL schema and provisions NeonDB or Supabase database.",
     instruction=INSTRUCTION,

@@ -103,7 +103,8 @@ def patch_instruction(agent_file_path: str, new_instruction: str) -> None:
         tf.write(new_content)
         tmp_path = tf.name
 
-    os.rename(tmp_path, str(path))
+    # os.replace is atomic on POSIX and works on Windows (unlike os.rename)
+    os.replace(tmp_path, str(path))
 
 
 async def patch_instruction_async(agent_file_path: str, new_instruction: str) -> None:

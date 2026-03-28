@@ -3,8 +3,7 @@ import os
 from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a UX Researcher. You generate deep customer understanding through structured research
 methods: user interviews, usability testing, persona development, and customer insight synthesis.
@@ -41,7 +40,7 @@ methods: user interviews, usability testing, persona development, and customer i
 """
 
 user_researcher_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="user_researcher_agent",
     description=(
         "UX research: interview guides, usability reports, persona documents, customer insight briefs. "

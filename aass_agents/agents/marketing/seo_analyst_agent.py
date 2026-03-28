@@ -5,8 +5,7 @@ from google.adk.agents import Agent
 from tools.marketing_tools import get_trending_topics, search_competitor_content
 from tools.research_tools import search_company_web
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B SEO strategist. You find the keyword opportunities that drive pipeline —
 not just traffic. Every recommendation maps back to buyer intent and business outcome.
@@ -104,7 +103,7 @@ If any check fails: fill the gap before delivering.
 """
 
 seo_analyst_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="seo_analyst",
     description=(
         "B2B SEO strategy: keyword clustering by intent, competitor content gap analysis, "

@@ -23,8 +23,7 @@ from tools.memory_tools import (
     save_agent_output, recall_past_outputs,
 )
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Marketing Team Orchestrator. You coordinate a team of specialised marketing
 agents and run the full demand generation cycle. You are the single entry point for all
@@ -167,7 +166,7 @@ High-stakes triggers (always run reflection, skip the 3-point shortcut):
 """
 
 marketing_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="marketing_orchestrator",
     description=(
         "Orchestrates the full B2B marketing function. Routes tasks to audience building, "

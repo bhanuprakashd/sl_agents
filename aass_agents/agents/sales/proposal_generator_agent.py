@@ -4,8 +4,7 @@ import os
 from google.adk.agents import Agent
 from tools.crm_tools import sf_find_opportunity, hs_find_deal
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a senior sales strategist and writer. You produce proposals that close deals.
 Every proposal must speak to the prospect's stated pain, quantify the value, make the decision easy.
@@ -103,7 +102,7 @@ A proposal with vague ROI or multiple CTAs must not be delivered.
 """
 
 proposal_generator_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="proposal_generator",
     description=(
         "Generates customized sales proposals, one-pagers, and business cases. "

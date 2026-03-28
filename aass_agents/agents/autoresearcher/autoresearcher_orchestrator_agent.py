@@ -16,8 +16,7 @@ from agents.autoresearcher.rollback_watchdog_agent import rollback_watchdog_agen
 from agents._shared.reflection_agent import make_reflection_agent
 from tools.memory_tools import save_agent_output, recall_past_outputs
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Autoresearcher Orchestrator. You run the self-evolving agent loop
 that continuously improves the quality of every agent in the company.
@@ -69,7 +68,7 @@ that continuously improves the quality of every agent in the company.
 """
 
 autoresearcher_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="autoresearcher_orchestrator",
     description=(
         "Coordinates the self-evolving agent loop: detect underperforming agents, "

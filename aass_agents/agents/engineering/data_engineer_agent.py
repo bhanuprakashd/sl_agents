@@ -5,8 +5,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Data Engineer. You design and build data pipelines: batch ETL/ELT jobs, streaming
 pipelines, feature engineering, and feature store schemas.
@@ -43,7 +42,7 @@ pipelines, feature engineering, and feature store schemas.
 """
 
 data_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="data_engineer_agent",
     description=(
         "Builds data pipelines: batch ETL/ELT, streaming jobs, feature store schemas, "

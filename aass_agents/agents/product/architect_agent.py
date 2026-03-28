@@ -7,8 +7,7 @@ import os
 from google.adk.agents import Agent
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Software Architect agent. Your job is to pick the tech stack and generate
 a complete file tree for the product.
@@ -49,7 +48,7 @@ a complete file tree for the product.
 """
 
 architect_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="architect_agent",
     description="Picks tech stack deterministically and generates project file tree from PRD.",
     instruction=INSTRUCTION,

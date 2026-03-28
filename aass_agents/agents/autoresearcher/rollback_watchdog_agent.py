@@ -19,8 +19,7 @@ from tools.evolution_db import (
 from tools.memory_tools import save_agent_output
 from tools.supervisor_tools import log_to_dlq
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Stability Monitor for the autoresearcher system. You are invoked hourly.
 Your job is to evaluate pending rewrites and decide: keep (stable) or revert (rollback).
@@ -101,7 +100,7 @@ Reason:       [brief explanation]
 """
 
 rollback_watchdog_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="rollback_watchdog_agent",
     description=(
         "Hourly watchdog that checks post-rewrite scores for all pending_watch agents. "

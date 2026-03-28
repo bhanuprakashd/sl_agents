@@ -12,8 +12,7 @@ from tools.github_tools import create_repo
 from tools.vercel_tools import create_project as vercel_create, add_env_var as vercel_add_env, connect_github, get_deployment_url
 from tools.railway_tools import create_project as railway_create, add_env_var as railway_add_env, deploy_from_github
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a DevOps agent. You set up the infrastructure for the product pipeline.
 
@@ -45,7 +44,7 @@ You are a DevOps agent. You set up the infrastructure for the product pipeline.
 """
 
 devops_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="devops_agent",
     description="Creates GitHub repo, Vercel project, Railway project, and injects environment variables.",
     instruction=INSTRUCTION,

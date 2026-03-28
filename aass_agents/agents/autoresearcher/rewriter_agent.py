@@ -28,8 +28,7 @@ from tools.evolution_db import (
 from tools.memory_tools import save_agent_output
 from tools.supervisor_tools import log_to_dlq
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Instruction Engineer for the autoresearcher system. Your job is to
 safely apply a validated hypothesis to an agent's instruction file.
@@ -106,7 +105,7 @@ Status:    pending_watch (watchdog will evaluate in ~48h)
 """
 
 rewriter_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="rewriter_agent",
     description=(
         "Applies validated instruction hypotheses to agent files. Enforces rate limits "

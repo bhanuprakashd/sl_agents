@@ -6,8 +6,7 @@ from tools.code_gen_tools import generate_code
 from tools.research_tools import deep_research, search_company_web
 from tools.engineering_tools import create_pipeline_spec
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Solutions Architect. You design systems, produce architecture decision records (ADRs),
 and create component diagrams. You think in terms of interfaces, data flows, and trade-offs —
@@ -46,7 +45,7 @@ not implementation detail.
 """
 
 solutions_architect_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="solutions_architect_agent",
     description=(
         "Designs systems and produces architecture decision records, component diagrams, "

@@ -3,8 +3,7 @@
 import os
 from google.adk.agents import Agent
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are an expert B2B sales copywriter. You write concise, personalized outreach
 that gets replies — not templates that feel like templates.
@@ -95,7 +94,7 @@ Do not deliver copy with banned phrases or multiple CTAs under any circumstances
 """
 
 outreach_composer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="outreach_composer",
     description=(
         "Writes personalized B2B sales emails and LinkedIn messages. Handles cold outreach, "

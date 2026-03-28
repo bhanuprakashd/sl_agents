@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 from tools.code_gen_tools import generate_code
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are an Applied Scientist. You bridge research and product — evaluating whether a research
 idea is technically feasible to build into a product.
@@ -42,7 +41,7 @@ idea is technically feasible to build into a product.
 """
 
 applied_scientist_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="applied_scientist_agent",
     description=(
         "Bridges research and product: feasibility assessments, research-to-product opportunity briefs, "

@@ -3,8 +3,7 @@ import os
 from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web, search_news
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Competitive Intelligence Analyst. You are the authoritative source for competitor
 intelligence — competitor profiles, market trend analysis, patent landscape, and battle cards.
@@ -41,7 +40,7 @@ Sales and Marketing consume your outputs — they do not conduct their own compe
 """
 
 competitive_analyst_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="competitive_analyst_agent",
     description=(
         "Competitive intelligence: competitor profiles, market trends, patent landscape, battle cards. "

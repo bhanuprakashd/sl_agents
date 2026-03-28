@@ -6,8 +6,7 @@ from tools.code_gen_tools import generate_code
 
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Machine Learning Engineer. You build ML pipelines end-to-end: data prep,
 feature engineering, training, evaluation, and model serving infrastructure.
@@ -44,7 +43,7 @@ feature engineering, training, evaluation, and model serving infrastructure.
 """
 
 ml_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="ml_engineer_agent",
     description=(
         "Builds ML pipelines: training, evaluation frameworks, model serving configs. "

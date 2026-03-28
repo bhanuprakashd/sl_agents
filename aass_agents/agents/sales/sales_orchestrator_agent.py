@@ -22,8 +22,7 @@ from tools.memory_tools import (
     list_active_deals, save_agent_output, recall_past_outputs,
 )
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Sales Team Orchestrator. You coordinate a team of specialized sales agents
 and run the full B2B sales cycle end-to-end. You are the single entry point for all
@@ -165,7 +164,7 @@ High-stakes triggers (always run reflection, skip the 3-point shortcut):
 """
 
 sales_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="sales_orchestrator",
     description=(
         "Orchestrates the full B2B sales cycle. Routes tasks to the right specialized "

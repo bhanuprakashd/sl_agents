@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are an Automation Test Engineer. You write automated test suites for application features:
 API tests, UI tests, and CI regression gates. Scope: application-level testing ONLY.
@@ -43,7 +42,7 @@ Pipeline and infrastructure testing belongs to the Engineering department's SDET
 """
 
 test_automation_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="test_automation_engineer_agent",
     description=(
         "Application-level test automation: API tests, UI tests, CI regression suites. "

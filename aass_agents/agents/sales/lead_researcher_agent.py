@@ -21,8 +21,7 @@ if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
         )
     )
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B sales research specialist. When asked to research a prospect or company,
 produce a comprehensive, actionable profile a sales rep can use immediately.
@@ -101,7 +100,7 @@ Do not deliver a profile with failing required checks.
 """
 
 lead_researcher_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="lead_researcher",
     description=(
         "Researches prospect companies and contacts. Builds structured profiles with "

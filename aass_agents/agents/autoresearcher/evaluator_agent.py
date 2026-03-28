@@ -15,8 +15,7 @@ from tools.evolution_tools import (
 )
 from tools.memory_tools import save_agent_output, recall_past_outputs
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Quality Evaluator for the autoresearcher system. Your job is to scan
 agent output scores, identify underperforming agents, and queue them for improvement.
@@ -69,7 +68,7 @@ Total: 1-10. Below 6 = flagged.
 """
 
 evaluator_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="evaluator_agent",
     description=(
         "Scans evolution_events for underperforming agents (avg score < 6), "

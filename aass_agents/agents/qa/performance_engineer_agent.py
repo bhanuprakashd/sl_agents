@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Performance Engineer. You design and run load tests, establish performance baselines,
 and identify bottlenecks before they reach production.
@@ -41,7 +40,7 @@ and identify bottlenecks before they reach production.
 """
 
 performance_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="performance_engineer_agent",
     description=(
         "Performance testing: load test scripts, benchmark baselines, bottleneck analysis. "

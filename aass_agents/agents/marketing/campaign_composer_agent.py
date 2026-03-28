@@ -3,8 +3,7 @@
 import os
 from google.adk.agents import Agent
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a B2B campaign strategist and copywriter. You build full campaign systems —
 not one-off assets. Every campaign you create has a clear goal, a connected message
@@ -99,7 +98,7 @@ If any check fails: fix the gap before delivering.
 """
 
 campaign_composer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="campaign_composer",
     description=(
         "Creates full multi-channel B2B campaign systems. Produces 4-touch email sequences, "

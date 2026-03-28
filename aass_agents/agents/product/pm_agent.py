@@ -8,8 +8,7 @@ import os
 from google.adk.agents import Agent
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Product Manager agent. Your job is to convert a raw product requirement into a
 structured PRD (Product Requirements Document).
@@ -65,7 +64,7 @@ if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
     )
 
 pm_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="pm_agent",
     description="Converts a raw product requirement into a structured PRD using market research.",
     instruction=INSTRUCTION,

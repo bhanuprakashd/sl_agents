@@ -17,8 +17,7 @@ from agents._shared.reflection_agent import make_reflection_agent
 reflection_agent = make_reflection_agent()
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Product Orchestrator. You coordinate the full pipeline from requirement to live URL.
 
@@ -88,7 +87,7 @@ Return this exact structure:
 """
 
 product_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="product_orchestrator",
     description=(
         "Coordinates the full pipeline: requirement → PRD → architecture → infra → database "

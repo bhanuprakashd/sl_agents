@@ -18,8 +18,7 @@ from tools.memory_tools import save_agent_output, recall_past_outputs
 
 reflection_agent = make_reflection_agent()
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Research Orchestrator. You coordinate a team of specialist researchers and
 run the full research lifecycle — from question scoping to synthesised, actionable findings.
@@ -91,7 +90,7 @@ High-stakes triggers (always run reflection):
 """
 
 research_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="research_orchestrator",
     description=(
         "Orchestrates the full Research & Development function: scientific R&D, ML research, "

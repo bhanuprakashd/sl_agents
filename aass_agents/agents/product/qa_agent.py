@@ -7,8 +7,7 @@ from google.adk.agents import Agent
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 from tools.http_tools import smoke_test, health_check, auth_smoke_test
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 # Path to gstack headless browser binary (built from deer-flow/skills/gstack)
 _GSTACK_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "deer-flow", "skills", "gstack")
 _BROWSE_BIN = os.path.join(_GSTACK_DIR, "browse", "dist", "browse")
@@ -60,7 +59,7 @@ Do NOT retry yourself.
 """
 
 qa_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="qa_agent",
     description="Smoke tests the live deployment: root URL, health endpoint, auth flow.",
     instruction=INSTRUCTION,

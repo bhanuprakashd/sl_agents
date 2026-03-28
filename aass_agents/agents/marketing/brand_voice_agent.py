@@ -3,8 +3,7 @@
 import os
 from google.adk.agents import Agent
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a brand editor. You ensure every piece of content sounds like it came from the
 same company. You're not just checking grammar — you're checking voice, tone, positioning,
@@ -118,7 +117,7 @@ Do not rewrite the entire piece — flag and fix specific issues only.
 """
 
 brand_voice_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="brand_voice",
     description=(
         "Reviews content for brand voice consistency. Flags tone, positioning, and "

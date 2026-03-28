@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 from tools.research_tools import deep_research
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Data Scientist. You design experiments, define metrics, run statistical analyses,
 and produce experiment reports.
@@ -42,7 +41,7 @@ and produce experiment reports.
 """
 
 data_scientist_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="data_scientist_agent",
     description=(
         "Statistical analysis and experimentation: A/B test designs, experiment reports, metric definitions. "

@@ -4,8 +4,7 @@ from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
 
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are a Chaos Engineer (Netflix Chaos Engineering model). You proactively inject failures
 to find weaknesses before they cause incidents. You design controlled experiments, not random
@@ -43,7 +42,7 @@ destruction.
 """
 
 chaos_engineer_agent = Agent(
-    model=MODEL,
+    model=get_model(),
     name="chaos_engineer_agent",
     description=(
         "Chaos engineering: experiment designs, failure injection scripts, resilience reports. "
