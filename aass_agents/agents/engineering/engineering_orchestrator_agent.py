@@ -16,11 +16,11 @@ from agents.engineering.sdet_agent import sdet_agent
 from agents._shared.reflection_agent import make_reflection_agent
 from tools.memory_tools import save_agent_output, recall_past_outputs
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status, log_integration
+from tools.claude_code_tools import build_and_run, open_in_browser
 
 reflection_agent = make_reflection_agent()
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Engineering Orchestrator. You coordinate a team of specialist engineers
 and run the full pipeline and systems-building lifecycle.
@@ -88,7 +88,7 @@ High-stakes triggers (always run reflection):
 """
 
 engineering_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="engineering_orchestrator",
     description=(
         "Orchestrates the full Engineering function: pipeline design, data engineering, ML engineering, "
@@ -105,5 +105,13 @@ engineering_orchestrator = Agent(
         sdet_agent,
         reflection_agent,
     ],
-    tools=[save_agent_output, recall_past_outputs, create_pipeline_spec, get_pipeline_status, log_integration],
+    tools=[
+        save_agent_output,
+        recall_past_outputs,
+        create_pipeline_spec,
+        get_pipeline_status,
+        log_integration,
+        build_and_run,
+        open_in_browser,
+    ],
 )

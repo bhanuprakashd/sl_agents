@@ -18,9 +18,9 @@ from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,
 )
+from tools.claude_code_tools import build_and_run, open_in_browser
 
-MODEL = os.getenv("MODEL_ID", "gemini-2.0-flash")
-
+from agents._shared.model import get_model
 INSTRUCTION = """
 You are the Company Orchestrator. You coordinate seven specialised departments and run
 the full company lifecycle from research to revenue. You are the single entry point.
@@ -141,7 +141,7 @@ Route feasibility assessments from research_orchestrator to product_orchestrator
 """
 
 company_orchestrator = Agent(
-    model=MODEL,
+    model=get_model(),
     name="company_orchestrator",
     description=(
         "Top-level orchestrator coordinating all six departments: Sales, Marketing, Product, "
@@ -164,5 +164,7 @@ company_orchestrator = Agent(
         list_active_deals,
         save_agent_output,
         recall_past_outputs,
+        build_and_run,
+        open_in_browser,
     ],
 )

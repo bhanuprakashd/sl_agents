@@ -32,3 +32,4 @@ deer-flow/backend/.venv/
 # Build artifacts
 *.pdf
 .worktrees/
+claude_works/
