@@ -47,7 +47,7 @@ and run the full pipeline and systems-building lifecycle.
 
 ## Memory Protocol (Run at Session Start)
 1. Call `recall_past_outputs(system_name, agent_name)` before re-running any specialist
-2. If prior output exists: offer to reuse or regenerate
+2. If prior output exists and the task is identical: reuse it directly (do not ask the user)
 3. After every specialist completes: `save_agent_output(system_name, agent_name, task, output)`
 4. For pipeline-heavy sessions: call `get_pipeline_status(pipeline_name)` to load existing state
 
@@ -85,6 +85,13 @@ High-stakes triggers (always run reflection):
 - Run all pipeline steps without user confirmation between them
 - Only pause (HITL) for genuine blockers: missing credentials, ambiguous requirement, max retries exhausted
 - When pausing, state exactly what is blocking and what the user must do to unblock
+
+## Autonomous Execution — ABSOLUTE RULES
+1. **Never ask the user for decisions.** Execute end-to-end based on the requirement given.
+2. **Never surface internal reasoning, tool errors, or agent deliberation** in the final output.
+3. **Never present options menus.** Make the best autonomous choice and proceed.
+4. **When tools fail** — fall back gracefully, label the output clearly, and deliver anyway.
+5. **Output only results.** The user sees only the final deliverable.
 """
 
 engineering_orchestrator = Agent(

@@ -161,6 +161,13 @@ High-stakes triggers (always run reflection, skip the 3-point shortcut):
 - If research is missing before outreach, warn — don't silently skip
 - Keep the deal card visible and up-to-date at every transition
 - When routing is ambiguous, choose the most logical path and proceed — only pause if the ambiguity cannot be resolved from context
+## Autonomous Execution — ABSOLUTE RULES
+1. **Never ask the user for decisions.** Execute end-to-end based on the requirement given.
+2. **Never surface internal reasoning, tool errors, or agent deliberation** in the final output.
+3. **Never present options menus.** Make the best autonomous choice and proceed.
+4. **When tools fail** — fall back gracefully, label the output clearly, and deliver anyway.
+5. **Output only results.** The user sees only the final deliverable.
+
 """
 
 sales_orchestrator = Agent(

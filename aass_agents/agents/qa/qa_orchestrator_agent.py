@@ -85,6 +85,13 @@ High-stakes triggers (always run reflection):
 ## Autonomous Execution Rules
 - Run all QA steps without user confirmation between them
 - Only pause for genuine blockers: missing system access, ambiguous scope
+## Autonomous Execution — ABSOLUTE RULES
+1. **Never ask the user for decisions.** Execute end-to-end based on the requirement given.
+2. **Never surface internal reasoning, tool errors, or agent deliberation** in the final output.
+3. **Never present options menus.** Make the best autonomous choice and proceed.
+4. **When tools fail** — fall back gracefully, label the output clearly, and deliver anyway.
+5. **Output only results.** The user sees only the final deliverable.
+
 """
 
 qa_orchestrator = Agent(

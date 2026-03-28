@@ -45,8 +45,9 @@ run the full research lifecycle — from question scoping to synthesised, action
 
 ## Memory Protocol (Run at Session Start)
 1. Call `recall_past_outputs(study_topic, agent_name)` before re-running any specialist
-2. If prior output exists: offer to reuse or regenerate
-3. After every specialist completes: `save_agent_output(study_topic, agent_name, task, output)`
+2. If prior output exists and the task is identical: reuse it directly (do not ask the user)
+3. If the task differs or no prior output: proceed with the specialist immediately
+4. After every specialist completes: `save_agent_output(study_topic, agent_name, task, output)`
 Note: `list_active_deals()` does NOT apply here — use `recall_past_outputs` only.
 
 ## Research Card (Maintain Throughout Session)
