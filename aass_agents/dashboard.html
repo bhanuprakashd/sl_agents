@@ -175,6 +175,7 @@
   <button onclick="showTab('workflow',this)">Workflow</button>
   <button onclick="showTab('stack',this)">Tech Stack</button>
   <button onclick="showTab('ramp',this)">RAMP</button>
+  <button onclick="showTab('forge',this)">⚒ Skill Forge</button>
 </nav>
 
 <main>
@@ -553,9 +554,138 @@
   </div>
 </div>
 
+<!-- ══════════════ SKILL FORGE ══════════════ -->
+<div id="forge" class="tab-content">
+  <div class="section-label">Autonomous Skill Generation</div>
+  <h2>⚒ SKILL FORGE</h2>
+  <p class="subtitle">Generates battle-tested Claude Code skills from a single NLP sentence — research → draft → critique → battle-test → iterate → promote.</p>
+
+  <!-- Trigger card -->
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:32px;display:flex;gap:32px;align-items:flex-start">
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:10px">How to trigger</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc">python main.py<br><span style="color:var(--muted)">You: </span>forge skill for writing investor pitch decks</div>
+        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc"><span style="color:var(--muted)">You: </span>generate skill for competitive analysis reports</div>
+        <div style="background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc"><span style="color:var(--muted)">You: </span>create a skill that writes cold outreach emails</div>
+      </div>
+    </div>
+    <div style="min-width:220px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--emerald);margin-bottom:10px">Promotion gates</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Draft → Critique pass</span><span style="color:var(--amber);font-weight:600">≥ 7.5</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Battle-test CI lower</span><span style="color:var(--amber);font-weight:600">≥ 0.80</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Composite score</span><span style="color:var(--emerald);font-weight:600">≥ 8.5</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Judge agreement κ</span><span style="color:var(--emerald);font-weight:600">≥ 0.70</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Production runs</span><span style="color:var(--blue);font-weight:600">5 runs</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline stages -->
+  <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">8-Stage Pipeline</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px" id="forge-stages"></div>
+
+  <!-- Scoring formula -->
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:32px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Composite Score Formula</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
+        <div style="font-size:22px;font-weight:800;color:var(--emerald)">0.35</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Correctness</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Does it work?</div>
+      </div>
+      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
+        <div style="font-size:22px;font-weight:800;color:var(--blue)">0.25</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Robustness</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Edge cases?</div>
+      </div>
+      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
+        <div style="font-size:22px;font-weight:800;color:var(--amber)">0.20</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Clarity</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Unambiguous?</div>
+      </div>
+      <div style="text-align:center;background:#0f1117;border-radius:8px;padding:16px">
+        <div style="font-size:22px;font-weight:800;color:var(--purple)">0.20</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Domain Accuracy</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Expert correct?</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staged skills -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Staged Skills Registry</div>
+    <button onclick="loadForgeRegistry()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px">↻ Refresh</button>
+  </div>
+  <div id="forge-registry">
+    <div style="color:var(--muted);font-size:14px;padding:32px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
+      No staged skills yet — run <code style="background:#0f1117;padding:2px 6px;border-radius:4px">forge skill for ...</code> to generate your first skill.
+    </div>
+  </div>
+</div>
+
 </main>
 
 <script>
+// ── Skill Forge data ──────────────────────────────────────────────────────────
+const FORGE_STAGES = [
+  { n:1, name:"Intent Parser",        agent:"intent_parser_agent",        color:"#6366f1", icon:"🎯", desc:"Parses NLP input → TaskSpec. Creates forge session in DB." },
+  { n:2, name:"Research Swarm",       agent:"research_swarm_agent",       color:"#3b82f6", icon:"🔍", desc:"3 parallel agents: Domain · Benchmark · Technique researchers." },
+  { n:3, name:"Expert Synthesizer",   agent:"expert_synthesizer_agent",   color:"#14b8a6", icon:"🧬", desc:"Distills bundles → ExpertBlueprint with principles & gold examples." },
+  { n:4, name:"Skill Drafter",        agent:"skill_drafter_agent",        color:"#10b981", icon:"✍️",  desc:"Generates SKILL.md v0 using DSPy/GEPA pattern. Up to 3 draft cycles." },
+  { n:5, name:"Critic Panel",         agent:"critic_panel_agent",         color:"#f59e0b", icon:"⚖️",  desc:"A-HMAD debate: Domain · Instruction · Edge-Case critics. Gate ≥ 7.5." },
+  { n:6, name:"Red Team",             agent:"red_team_agent",             color:"#ef4444", icon:"🎯", desc:"100 test cases: 40 common / 30 edge / 20 adversarial / 10 regression." },
+  { n:7, name:"Iteration Agent",      agent:"iteration_agent",            color:"#f97316", icon:"🔄", desc:"GEPA loop: reflect → patch → re-test until ≥ 8.5 or 10 iterations." },
+  { n:8, name:"Promoter",             agent:"promoter_agent",             color:"#a855f7", icon:"🚀", desc:"CI gate + κ gate → writes to generated_skills/ staging registry." },
+];
+
+function renderForgeStages() {
+  document.getElementById('forge-stages').innerHTML = FORGE_STAGES.map(s => `
+    <div style="background:var(--surface2);border:1px solid ${s.color}40;border-radius:12px;padding:20px;position:relative">
+      <div style="position:absolute;top:12px;right:14px;font-size:11px;font-weight:700;color:${s.color};opacity:.7">Stage ${s.n}</div>
+      <div style="font-size:22px;margin-bottom:8px">${s.icon}</div>
+      <div style="font-weight:700;font-size:15px;color:${s.color};margin-bottom:4px">${s.name}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:8px">${s.agent}</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">${s.desc}</div>
+    </div>`).join('');
+}
+
+async function loadForgeRegistry() {
+  const el = document.getElementById('forge-registry');
+  try {
+    const r = await fetch('../generated_skills/_registry.json');
+    if (!r.ok) throw new Error('not found');
+    const data = await r.json();
+    const skills = data.skills || [];
+    if (!skills.length) {
+      el.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:32px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px">No staged skills yet — run <code style="background:#0f1117;padding:2px 6px;border-radius:4px">forge skill for ...</code> to generate your first skill.</div>`;
+      return;
+    }
+    el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">${skills.map(s => `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div style="font-weight:700;font-size:15px">${s.name || s.skill_id}</div>
+          <span style="font-size:11px;padding:3px 8px;border-radius:12px;background:${s.needs_review?'rgba(239,68,68,.15)':'rgba(16,185,129,.15)'};color:${s.needs_review?'#fca5a5':'#6ee7b7'};font-weight:600">${s.needs_review?'Needs Review':'Staged'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${s.domain} · ${s.department}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          <div style="background:#0f1117;border-radius:6px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:${(s.composite_score||0)>=8.5?'var(--emerald)':'var(--amber)'}">${(s.composite_score||0).toFixed(1)}</div>
+            <div style="color:var(--muted);margin-top:2px">Composite</div>
+          </div>
+          <div style="background:#0f1117;border-radius:6px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:var(--blue)">${s.production_runs||0}<span style="font-size:12px;color:var(--muted)">/5</span></div>
+            <div style="color:var(--muted);margin-top:2px">Prod Runs</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:monospace;word-break:break-all">${s.file_path||''}</div>
+      </div>`).join('')}</div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center;background:var(--surface2);border:1px dashed var(--border);border-radius:12px">Registry not readable from file:// — open via a local server to see live data.<br><code style="font-size:11px;margin-top:6px;display:block">python -m http.server 8080</code></div>`;
+  }
+}
+
 function showTab(id, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -766,6 +896,7 @@ function renderWorkflow() {
 
 renderAgents();
 renderWorkflow();
+renderForgeStages();
 </script>
 </body>
 </html>
