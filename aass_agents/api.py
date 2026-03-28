@@ -238,6 +238,98 @@ async def supervisor_stats():
     }
 
 
+# ── Task 2: Circuits, DLQ, runs, events ──────────────────────────────────────
+
+@app.get("/api/supervisor/circuits")
+async def supervisor_circuits():
+    """All circuit breaker states."""
+    conn = sup_conn()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM supervisor_circuit_breakers ORDER BY state DESC, agent_name"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/supervisor/circuits/{agent_name}/reset")
+async def reset_circuit(agent_name: str):
+    """Reset a circuit breaker to closed state."""
+    upsert_circuit(agent_name, failure_count=0, state="closed",
+                   last_failure_at=None, opened_at=None)
+    return {"success": True, "agent_name": agent_name}
+
+
+@app.get("/api/supervisor/dlq")
+async def supervisor_dlq():
+    """All dead letter queue entries."""
+    return list_dlq_entries()
+
+
+@app.post("/api/supervisor/dlq/{run_id}/resume")
+async def resume_dlq(run_id: str):
+    """Remove a run from DLQ so it can be re-queued."""
+    conn = sup_conn()
+    try:
+        conn.execute("DELETE FROM supervisor_dlq WHERE run_id = ?", (run_id,))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"success": True, "run_id": run_id}
+
+
+@app.get("/api/supervisor/runs")
+async def supervisor_runs(status: Opt[str] = None, type: Opt[str] = None, limit: int = 20):
+    """Pipeline runs — filterable by status, type."""
+    conn = sup_conn()
+    try:
+        query = "SELECT * FROM supervisor_runs WHERE 1=1"
+        params: list = []
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        if type:
+            query += " AND pipeline_type = ?"
+            params.append(type)
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(query, params).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.get("/api/supervisor/events")
+async def supervisor_events(
+    agent: Opt[str] = None,
+    type: Opt[str] = None,
+    run_id: Opt[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Event log — filterable, paginated."""
+    conn = sup_conn()
+    try:
+        query = "SELECT * FROM supervisor_events WHERE 1=1"
+        params: list = []
+        if agent:
+            query += " AND agent_name = ?"
+            params.append(agent)
+        if type:
+            query += " AND event_type = ?"
+            params.append(type)
+        if run_id:
+            query += " AND run_id = ?"
+            params.append(run_id)
+        query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        rows = conn.execute(query, params).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+
+
 @app.get("/")
 async def serve_dashboard():
     return FileResponse("dashboard.html")
