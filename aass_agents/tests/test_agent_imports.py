@@ -130,7 +130,7 @@ def test_qa_orchestrator_imports():
 
 # ── Company orchestrator (updated) ───────────────────────────────────────────
 
-def test_company_orchestrator_has_all_seven_departments():
+def test_company_orchestrator_has_all_departments():
     from agents.company_orchestrator_agent import company_orchestrator
     assert company_orchestrator.name == "company_orchestrator"
     sub_agent_names = {a.name for a in company_orchestrator.sub_agents}
@@ -141,4 +141,5 @@ def test_company_orchestrator_has_all_seven_departments():
     assert "research_orchestrator" in sub_agent_names
     assert "qa_orchestrator" in sub_agent_names
     assert "autoresearcher_orchestrator" in sub_agent_names
-    assert len(company_orchestrator.sub_agents) == 7
+    assert "forge_orchestrator" in sub_agent_names
+    assert len(company_orchestrator.sub_agents) == 8
