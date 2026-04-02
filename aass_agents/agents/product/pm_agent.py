@@ -1,78 +1,79 @@
 # aass_agents/agents/pm_agent.py
 """
-PM Agent — converts raw requirement into a structured PRD.
+PM Agent — converts raw requirement into a rich, structured PRD.
 Uses DeerFlow (via MCP research_server) for competitor research.
-Uses claude-haiku-4-5 via ADK (cost-efficient for structured JSON output).
+Uses ADK output_key to auto-save PRD to session state.
 """
 import os
+import sys
 from google.adk.agents import Agent
-from tools.product_memory_tools import save_product_state, recall_product_state, log_step
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
+from tools.agent_reach_tools import (
+    read_webpage, search_reddit, read_rss_feed, search_youtube,
+    search_github_repos, search_github_code,
+)
 
-from agents._shared.model import get_model
+from agents._shared.model import get_model, FAST
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
+
 INSTRUCTION = """
-CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+You are a PM agent. Research the market, then output a complete PRD as JSON.
+Your response will be automatically saved to session state via output_key.
 
-You are a Product Manager agent. Your job is to convert a raw product requirement into a
-structured PRD (Product Requirements Document).
+## Process
+1. Research (do ALL before writing PRD):
+   a. search_github_repos for similar products
+   b. search_github_code for implementation patterns
+   c. search_reddit, search_youtube for market context
+   d. read_webpage on top 1-2 GitHub repos
+2. Output the PRD as a single JSON object (no markdown, no code fences, just raw JSON)
 
-## Your Process
+## PRD JSON Fields
+{
+  "product_name": "PascalCase name",
+  "one_liner": "short description",
+  "target_user": "who uses it",
+  "problem_statement": "what problem it solves",
+  "core_features": [{"name": "", "description": "", "user_story": "", "priority": "P0|P1|P2"}],
+  "data_model": [{"name": "", "fields": [{"name": "", "type": ""}], "relationships": []}],
+  "acceptance_criteria": ["testable binary pass/fail statements"],
+  "product_type": "full-stack SaaS|full-stack python|API-heavy backend|API-heavy python|data-heavy app|data-heavy python|simple landing|static|CLI",
+  "tech_preferences": {"language": "", "frontend": "", "backend": "", "database": "", "styling": "", "other": ""},
+  "design_guidelines": {"theme": "light|dark|auto", "style": "modern|minimalist|enterprise|playful", "color_direction": "", "key_interactions": [], "inspiration": ""},
+  "pages": [{"path": "", "name": "", "description": ""}],
+  "api_endpoints": [{"method": "", "path": "", "description": ""}],
+  "market_research": {"github_repos": "", "implementation_patterns": "", "market_context": "", "user_pain_points": ""}
+}
 
-1. Use `search_product_web` and `search_news` to research competitors and market trends
-3. Generate a PRD as a JSON object with these exact fields:
-   - product_name: short, memorable name (no spaces, PascalCase)
-   - one_liner: one sentence describing the product
-   - target_user: who it is for
-   - core_features: list of max 5 features for v1 (keep it shippable)
-   - data_model: list of main entities with key fields
-   - acceptance_criteria: list of 3-5 testable criteria
-   - product_type: one of [full-stack SaaS, API-heavy backend, simple landing + auth, data-heavy app]
-4. Call `save_product_state` with the PRD
-5. Call `log_step` with step="pm" and a summary of the PRD
-
-## Constraints
-- v1 scope only — if the requirement is too large, cut features until it is shippable in one run
-- product_type MUST be one of the four listed above — this drives the stack decision downstream
-- data_model entities should be realistic for a free-tier single database
+## Rules
+- v1 scope only. 5-7 core features. Complete data model. 5-8 testable acceptance criteria.
+- Python mention → python variants.
+- On tool failure: use knowledge, label [Knowledge-Based], deliver anyway.
+- CRITICAL: Your entire response must be a single JSON object. No preamble, no explanation, no markdown code fences, no text before or after the JSON. Start with { and end with }. This is mandatory because your output is parsed by downstream agents.
 """
 
-from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
-
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_RESEARCH_SERVER = os.path.abspath(os.path.join(_HERE, "..", "..", "mcp-servers", "gtm", "research_server.py"))
+_RESEARCH_SERVER = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "mcp-servers", "gtm", "research_server.py"))
 
 # DeerFlow research tools come from the MCP research_server process
 _research_mcp = McpToolset(
     connection_params=StdioConnectionParams(
         server_params=StdioServerParameters(
-            command="python",
+            command=sys.executable,
             args=[_RESEARCH_SERVER],
             env={**os.environ},
-        )
+        ),
+        timeout=300.0,
     )
 )
 
-_MEDIUM_MCP_PATH = os.path.abspath(os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..", "medium-mcp-server"))
-_medium_mcp = None
-if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
-    _medium_mcp = McpToolset(
-        connection_params=StdioConnectionParams(
-            server_params=StdioServerParameters(
-                command="node",
-                args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
-                cwd=_MEDIUM_MCP_PATH,
-                env={**os.environ},
-            )
-        )
-    )
-
 pm_agent = Agent(
-    model=get_model(),
+    model=get_model(FAST),
     name="pm_agent",
-    description="Converts a raw product requirement into a structured PRD using market research.",
+    description="Converts a raw product requirement into a comprehensive PRD with tech preferences, design guidelines, and detailed acceptance criteria.",
     instruction=INSTRUCTION,
-    tools=[t for t in [
-        save_product_state, recall_product_state, log_step,
-        _research_mcp,
-        _medium_mcp, read_document, read_document_pages, list_documents, search_document] if t is not None],
+    output_key="prd_output",  # Auto-save response to state["prd_output"]
+    tools=[_research_mcp, read_document, read_document_pages, list_documents, search_document,
+           read_webpage, search_reddit, read_rss_feed, search_youtube,
+           search_github_repos, search_github_code],
 )

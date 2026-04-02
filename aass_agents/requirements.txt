@@ -19,6 +19,14 @@ feedparser>=6.0.12
 fastapi>=0.135.2
 uvicorn>=0.42.0
 
+# Browser automation
+playwright>=1.44.0
+playwright-stealth>=1.0.6
+capsolver>=1.0.0
+
+# YAML config (hook engine, tool registry)
+pyyaml>=6.0.2
+
 # Testing
 pytest>=9.0.2
 pytest-asyncio>=1.3.0

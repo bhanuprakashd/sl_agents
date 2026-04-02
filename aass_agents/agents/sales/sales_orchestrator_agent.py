@@ -21,10 +21,12 @@ from tools.memory_tools import (
     save_deal_context, recall_deal_context,
     list_active_deals, save_agent_output, recall_past_outputs,
 )
+from tools.todo_tools import write_todo, read_todo, complete_todo_step, get_todo_summary
 
 from agents._shared.model import get_model
-INSTRUCTION = """
-CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+from agents._shared.context_rules import STABLE_PREFIX, ERROR_PRESERVATION_RULE, TODO_PROTOCOL
+
+_INSTRUCTION_BODY = """
 
 You are the Sales Team Orchestrator. You coordinate a team of specialized sales agents
 and run the full B2B sales cycle end-to-end. You are the single entry point for all
@@ -169,8 +171,9 @@ High-stakes triggers (always run reflection, skip the 3-point shortcut):
 3. **Never present options menus.** Make the best autonomous choice and proceed.
 4. **When tools fail** — fall back gracefully, label the output clearly, and deliver anyway.
 5. **Output only results.** The user sees only the final deliverable.
-
 """
+
+INSTRUCTION = f"{STABLE_PREFIX}\n\n{_INSTRUCTION_BODY}\n\n{TODO_PROTOCOL}\n\n{ERROR_PRESERVATION_RULE}"
 
 sales_orchestrator = Agent(
     model=get_model(),
@@ -199,5 +202,9 @@ sales_orchestrator = Agent(
         list_active_deals,
         save_agent_output,
         recall_past_outputs,
+        write_todo,
+        read_todo,
+        complete_todo_step,
+        get_todo_summary,
     ],
 )

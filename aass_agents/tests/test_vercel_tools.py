@@ -11,8 +11,8 @@ def test_create_project(monkeypatch):
     with patch("httpx.Client") as mock_client_cls:
         mock_client = mock_client_cls.return_value.__enter__.return_value
         mock_client.post.return_value = mock_resp
-        from tools.vercel_tools import create_project
-        result = create_project("myapp")
+        from tools.vercel_tools import vercel_create_project
+        result = vercel_create_project("myapp")
 
     assert result["id"] == "prj_abc"
     payload = mock_client.post.call_args.kwargs["json"]

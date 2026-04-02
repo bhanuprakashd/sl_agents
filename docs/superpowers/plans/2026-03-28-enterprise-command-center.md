@@ -1,3 +1,387 @@
+# Enterprise Command Center Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Transform the SL Agents dashboard into an enterprise-grade command center with live monitoring, interactive org chart, autonomous pipeline visualization, and full supervisor observability — all zero-dependency (pure HTML/CSS/JS/SVG).
+
+**Architecture:** Two files changed: `aass_agents/api.py` (add ~12 REST endpoints reading from existing SQLite DBs) and `aass_agents/dashboard.html` (complete rewrite as a sidebar-nav SPA with 11 views). The dashboard fetches all live data from the API; static agent metadata is defined as a JS constant in the HTML.
+
+**Tech Stack:** Python/FastAPI (backend), HTML/CSS/JS/SVG (frontend), SQLite (existing DBs: sales_memory.db, skill_forge.db, evolution.db, product_pipeline.db)
+
+**Spec:** `docs/superpowers/specs/2026-03-28-enterprise-command-center-design.md`
+
+---
+
+## File Map
+
+| File | Action | Responsibility |
+|------|--------|----------------|
+| `aass_agents/api.py` | Modify | Add 12 new API endpoints for agent registry, supervisor stats, circuits, DLQ, runs, events, evolution, forge registry, live status |
+| `aass_agents/dashboard.html` | Rewrite | Enterprise command center SPA — sidebar nav, 11 views, interactive SVG org chart, live pipeline viz, SSE console |
+
+---
+
+## Task 1: API — Live Status & Supervisor Stats Endpoints
+
+**Files:**
+- Modify: `aass_agents/api.py`
+
+These endpoints power the top status bar and dashboard KPIs.
+
+- [ ] **Step 1: Add imports for supervisor_db and evolution_db at top of api.py**
+
+After the existing imports in `api.py`, add:
+
+```python
+from tools.supervisor_db import (
+    _get_conn as sup_conn,
+    init_supervisor_tables,
+    get_circuit,
+    upsert_circuit,
+    list_dlq_entries,
+    get_run,
+    AGENT_TTL_DAYS,
+)
+from tools.skill_forge_db import SKILL_FORGE_DB_PATH
+from tools.evolution_db import EVOLUTION_DB_PATH
+import time
+```
+
+Add a startup time tracker right after the `app = FastAPI()` line:
+
+```python
+_start_time = time.time()
+```
+
+- [ ] **Step 2: Add GET /api/status/live endpoint**
+
+```python
+@app.get("/api/status/live")
+async def status_live():
+    """Expanded status for the top bar — agent counts, active runs, breakers, DLQ, uptime."""
+    conn = sup_conn()
+    try:
+        active_runs = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_runs WHERE status IN ('pending', 'running')"
+        ).fetchone()[0]
+        open_breakers = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_circuit_breakers WHERE state = 'open'"
+        ).fetchone()[0]
+        dlq_count = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_dlq"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    return {
+        "status": "operational",
+        "model": os.getenv("MODEL_ID", "gemini-2.0-flash"),
+        "agent": "company_orchestrator",
+        "agent_count": 62,
+        "department_count": 9,
+        "active_runs": active_runs,
+        "open_breakers": open_breakers,
+        "dlq_count": dlq_count,
+        "uptime_seconds": int(time.time() - _start_time),
+    }
+```
+
+- [ ] **Step 3: Add GET /api/supervisor/stats endpoint**
+
+```python
+@app.get("/api/supervisor/stats")
+async def supervisor_stats():
+    """KPI summary for the dashboard command center."""
+    conn = sup_conn()
+    try:
+        active_runs = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_runs WHERE status IN ('pending', 'running')"
+        ).fetchone()[0]
+        open_breakers = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_circuit_breakers WHERE state = 'open'"
+        ).fetchone()[0]
+        dlq_count = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_dlq"
+        ).fetchone()[0]
+        events_24h = conn.execute(
+            "SELECT COUNT(*) FROM supervisor_events WHERE created_at > datetime('now', '-1 day')"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    return {
+        "active_runs": active_runs,
+        "open_breakers": open_breakers,
+        "dlq_count": dlq_count,
+        "events_24h": events_24h,
+    }
+```
+
+- [ ] **Step 4: Verify the server starts**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && python -c "from api import app; print('OK')"`
+Expected: `OK`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add aass_agents/api.py
+git commit -m "feat: add /api/status/live and /api/supervisor/stats endpoints"
+```
+
+---
+
+## Task 2: API — Circuit Breakers, DLQ, Runs, Events Endpoints
+
+**Files:**
+- Modify: `aass_agents/api.py`
+
+- [ ] **Step 1: Add GET /api/supervisor/circuits endpoint**
+
+```python
+@app.get("/api/supervisor/circuits")
+async def supervisor_circuits():
+    """All circuit breaker states for the 62 agents."""
+    conn = sup_conn()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM supervisor_circuit_breakers ORDER BY state DESC, agent_name"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+```
+
+- [ ] **Step 2: Add POST /api/supervisor/circuits/{agent_name}/reset endpoint**
+
+```python
+@app.post("/api/supervisor/circuits/{agent_name}/reset")
+async def reset_circuit(agent_name: str):
+    """Reset a circuit breaker to closed state."""
+    upsert_circuit(agent_name, failure_count=0, state="closed",
+                   last_failure_at=None, opened_at=None)
+    return {"success": True, "agent_name": agent_name}
+```
+
+- [ ] **Step 3: Add GET /api/supervisor/dlq endpoint**
+
+```python
+@app.get("/api/supervisor/dlq")
+async def supervisor_dlq():
+    """All dead letter queue entries."""
+    return list_dlq_entries()
+```
+
+- [ ] **Step 4: Add POST /api/supervisor/dlq/{run_id}/resume endpoint**
+
+```python
+from tools.supervisor_db import push_dlq
+import sqlite3 as _sqlite3
+
+@app.post("/api/supervisor/dlq/{run_id}/resume")
+async def resume_dlq(run_id: str):
+    """Remove a run from DLQ so it can be re-queued."""
+    conn = sup_conn()
+    try:
+        conn.execute("DELETE FROM supervisor_dlq WHERE run_id = ?", (run_id,))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"success": True, "run_id": run_id}
+```
+
+- [ ] **Step 5: Add GET /api/supervisor/runs endpoint**
+
+```python
+from typing import Optional as Opt
+
+@app.get("/api/supervisor/runs")
+async def supervisor_runs(status: Opt[str] = None, type: Opt[str] = None, limit: int = 20):
+    """Pipeline runs — filterable by status, type."""
+    conn = sup_conn()
+    try:
+        query = "SELECT * FROM supervisor_runs WHERE 1=1"
+        params: list = []
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        if type:
+            query += " AND pipeline_type = ?"
+            params.append(type)
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(query, params).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+```
+
+- [ ] **Step 6: Add GET /api/supervisor/events endpoint**
+
+```python
+@app.get("/api/supervisor/events")
+async def supervisor_events(
+    agent: Opt[str] = None,
+    type: Opt[str] = None,
+    run_id: Opt[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Event log — filterable, paginated."""
+    conn = sup_conn()
+    try:
+        query = "SELECT * FROM supervisor_events WHERE 1=1"
+        params: list = []
+        if agent:
+            query += " AND agent_name = ?"
+            params.append(agent)
+        if type:
+            query += " AND event_type = ?"
+            params.append(type)
+        if run_id:
+            query += " AND run_id = ?"
+            params.append(run_id)
+        query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        rows = conn.execute(query, params).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+```
+
+- [ ] **Step 7: Verify the server starts**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && python -c "from api import app; print('OK')"`
+Expected: `OK`
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add aass_agents/api.py
+git commit -m "feat: add supervisor circuits, DLQ, runs, events API endpoints"
+```
+
+---
+
+## Task 3: API — Evolution History & Forge Registry Endpoints
+
+**Files:**
+- Modify: `aass_agents/api.py`
+
+- [ ] **Step 1: Add GET /api/supervisor/evolution endpoint**
+
+```python
+@app.get("/api/supervisor/evolution")
+async def supervisor_evolution():
+    """Evolution history — agent versions joined with hypotheses."""
+    import sqlite3
+    conn = sqlite3.connect(str(EVOLUTION_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute("""
+            SELECT v.agent_name, v.version, v.status, v.score_baseline,
+                   v.baseline_sampled_at, v.created_at,
+                   h.root_cause, h.hypothesis_text, h.confidence
+            FROM agent_versions v
+            LEFT JOIN hypotheses h ON h.agent_name = v.agent_name AND h.version = v.version
+            ORDER BY v.created_at DESC
+        """).fetchall()
+    except Exception:
+        return []
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+```
+
+- [ ] **Step 2: Add GET /api/forge/registry endpoint**
+
+```python
+@app.get("/api/forge/registry")
+async def forge_registry():
+    """Staged skills from the Skill Forge pipeline."""
+    import sqlite3
+    conn = sqlite3.connect(str(SKILL_FORGE_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM staging_registry ORDER BY updated_at DESC"
+        ).fetchall()
+    except Exception:
+        return {"skills": []}
+    finally:
+        conn.close()
+    return {"skills": [dict(r) for r in rows]}
+```
+
+- [ ] **Step 3: Add GET /api/agents/status endpoint**
+
+```python
+@app.get("/api/agents/status")
+async def agents_status():
+    """Live status for all agents — circuit state, last invoked, cache validity."""
+    conn = sup_conn()
+    try:
+        circuits = conn.execute("SELECT * FROM supervisor_circuit_breakers").fetchall()
+        circuit_map = {r["agent_name"]: dict(r) for r in circuits}
+
+        # Get last invoked time per agent
+        last_invoked = conn.execute("""
+            SELECT agent_name, MAX(created_at) as last_invoked
+            FROM supervisor_events
+            WHERE event_type = 'agent.called'
+            GROUP BY agent_name
+        """).fetchall()
+        invoked_map = {r["agent_name"]: r["last_invoked"] for r in last_invoked}
+    finally:
+        conn.close()
+
+    results = []
+    for agent_name in AGENT_TTL_DAYS:
+        if agent_name == "_default":
+            continue
+        c = circuit_map.get(agent_name, {})
+        results.append({
+            "name": agent_name,
+            "circuit_state": c.get("state", "closed"),
+            "failure_count": c.get("failure_count", 0),
+            "last_invoked": invoked_map.get(agent_name),
+            "ttl_days": AGENT_TTL_DAYS.get(agent_name),
+        })
+    return results
+```
+
+- [ ] **Step 4: Verify the server starts**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && python -c "from api import app; print('OK')"`
+Expected: `OK`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add aass_agents/api.py
+git commit -m "feat: add evolution history, forge registry, agent status API endpoints"
+```
+
+---
+
+## Task 4: Dashboard — HTML Shell, CSS Theme, Sidebar Navigation
+
+**Files:**
+- Rewrite: `aass_agents/dashboard.html`
+
+This is the foundation: the layout shell with sidebar, top bar, and all CSS custom properties/animations. The main content area starts empty — each subsequent task adds a view.
+
+- [ ] **Step 1: Write the HTML document head, CSS variables, global reset, and theme**
+
+Create `aass_agents/dashboard.html` with the full CSS foundation. This includes:
+- CSS custom properties for all colors (base, surface, elevated, departments, text, accents)
+- Global reset, scrollbar styling, typography
+- Glass morphism utilities
+- Keyframe animations (pulse, fadeIn, slideIn)
+- Responsive breakpoints
+- Status pill, badge, and card component styles
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -493,38 +877,6 @@ body {
 }
 .slide-panel-overlay.open { display: block; }
 
-/* ── Monitor View ─────────────────────────────────────────────────────── */
-.monitor-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-.monitor-toolbar select, .monitor-toolbar input {
-  background: var(--elevated); border: 1px solid var(--border-strong); color: var(--text); border-radius: 6px;
-  padding: 6px 10px; font-size: 12px; outline: none;
-}
-.monitor-toolbar select:focus, .monitor-toolbar input:focus { border-color: var(--indigo); }
-.monitor-toolbar .spacer { flex: 1; }
-.monitor-log {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 12px; line-height: 1.6; overflow-y: auto; padding: 12px 16px;
-  max-height: calc(100vh - 240px); scroll-behavior: smooth;
-}
-.log-entry { padding: 3px 0; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: baseline; }
-.log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--muted); white-space: nowrap; min-width: 80px; font-variant-numeric: tabular-nums; }
-.log-agent { min-width: 140px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.log-type { min-width: 100px; }
-.log-msg { flex: 1; color: var(--text-secondary); word-break: break-word; }
-.log-entry.level-error { background: rgba(239,68,68,0.06); }
-.log-entry.level-error .log-msg { color: var(--danger); }
-.log-entry.level-warning .log-msg { color: var(--warning); }
-.log-entry.level-success .log-msg { color: var(--success); }
-.monitor-stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.monitor-stat {
-  background: var(--elevated); border: 1px solid var(--border); border-radius: 8px;
-  padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 120px;
-}
-.monitor-stat-value { font-size: 20px; font-weight: 700; }
-.monitor-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-
 /* ── Section Heading ───────────────────────────────────────────────────── */
 .view-header { margin-bottom: 24px; }
 .view-title { font-size: 22px; font-weight: 700; }
@@ -550,6 +902,15 @@ body {
 .empty-state-text { font-size: 13px; }
 </style>
 </head>
+```
+
+This is just the `<head>` and `<style>` block. Continue in the next step.
+
+- [ ] **Step 2: Write the HTML body — top bar, sidebar, main content containers, and slide-out panel**
+
+Append after `</head>`:
+
+```html
 <body>
 <div class="app" id="app">
   <!-- ── Top Bar ──────────────────────────────────────────────────────── -->
@@ -621,10 +982,6 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span class="nav-label">Supervisor</span>
       </div>
-      <div class="nav-item" data-view="monitor">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="10" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span class="nav-label">Monitor</span>
-      </div>
     </div>
     <div class="sidebar-footer">
       <button class="collapse-btn" id="collapse-btn" title="Toggle sidebar">
@@ -636,6 +993,8 @@ body {
 
   <!-- ── Main Content ─────────────────────────────────────────────────── -->
   <div class="main-content" id="main-content">
+
+    <!-- View placeholders — each gets populated by JS -->
     <div class="view active" id="view-dashboard"></div>
     <div class="view" id="view-pipeline"></div>
     <div class="view" id="view-orgchart"></div>
@@ -647,7 +1006,7 @@ body {
     <div class="view" id="view-ramp"></div>
     <div class="view" id="view-techstack"></div>
     <div class="view" id="view-supervisor"></div>
-    <div class="view" id="view-monitor"></div>
+
   </div>
 </div>
 
@@ -659,6 +1018,36 @@ body {
 </div>
 
 <script>
+// Script will be added in subsequent tasks
+</script>
+</body>
+</html>
+```
+
+- [ ] **Step 3: Verify the HTML loads without errors**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && python -c "print(open('dashboard.html').read()[:50])"`
+Expected: `<!DOCTYPE html>`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard HTML shell — layout, sidebar, top bar, full CSS theme"
+```
+
+---
+
+## Task 5: Dashboard JS — Core Framework (Navigation, Polling, Data Layer)
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (inside the `<script>` tag)
+
+- [ ] **Step 1: Write the core JS framework — state, navigation, polling, API helpers**
+
+Replace the `<script>` tag content with:
+
+```javascript
 'use strict';
 // ── State ─────────────────────────────────────────────────────────────────
 const S = {
@@ -706,8 +1095,7 @@ function relTime(iso) {
   if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
   return `${Math.floor(d / 86400)}d ago`;
 }
-function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
-function truncate(s, n = 60) { const e = esc(s); return e && e.length > n ? e.slice(0, n) + '...' : (e || '—'); }
+function truncate(s, n = 60) { return s && s.length > n ? s.slice(0, n) + '...' : (s || '—'); }
 function deptColor(dept) {
   const map = { sales: 'var(--sales)', marketing: 'var(--marketing)', product: 'var(--product)',
     engineering: 'var(--engineering)', research: 'var(--research)', qa: 'var(--qa)',
@@ -723,6 +1111,7 @@ function navigate(view) {
   S.view = view;
   $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  // Render the view
   const renderFn = views[view];
   if (renderFn) renderFn();
 }
@@ -759,6 +1148,7 @@ async function refreshTopBar() {
     $('#chip-breakers').textContent = d.open_breakers || 0;
     $('#chip-dlq').textContent = d.dlq_count || 0;
     $('#chip-model').textContent = d.model || '—';
+    // Alert styling
     const bw = $('#chip-breakers-wrap');
     const dw = $('#chip-dlq-wrap');
     const rw = $('#chip-runs-wrap');
@@ -767,6 +1157,7 @@ async function refreshTopBar() {
     rw.classList.toggle('alert', false);
     if (d.active_runs > 0) { rw.style.borderColor = 'rgba(99,102,241,0.3)'; rw.style.background = 'rgba(99,102,241,0.08)'; }
     else { rw.style.borderColor = ''; rw.style.background = ''; }
+    // Connection dot
     $('#conn-dot').classList.remove('error');
     $('#conn-dot').classList.add('pulse');
     $('#last-refresh').textContent = new Date().toLocaleTimeString();
@@ -776,6 +1167,35 @@ async function refreshTopBar() {
   }
 }
 
+// ── Polling Manager ───────────────────────────────────────────────────────
+function startPolling() {
+  refreshTopBar();
+  S.pollTimer = setInterval(refreshTopBar, 5000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+startPolling();
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard JS core — navigation, polling, API layer, slide panel"
+```
+
+---
+
+## Task 6: Dashboard JS — Agent Registry Data & Department Map
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add AGENTS constant before the boot section in `<script>`)
+
+- [ ] **Step 1: Write the complete agent registry as a JS constant**
+
+Add this before the `startPolling()` call. This is the static metadata for all 62 agents. Live status (circuit breaker, last invoked) comes from the API and gets merged at render time.
+
+```javascript
 // ── Agent Registry (all 62 agents) ────────────────────────────────────────
 const DEPTS = [
   { id: 'sales', name: 'Sales', color: 'var(--sales)', agents: 7 },
@@ -817,19 +1237,19 @@ const AGENTS = [
   { name: 'brand_voice_agent', dept: 'marketing', title: 'Brand Voice', desc: 'Voice consistency review, brand guidelines', inputs: ['Content draft'], outputs: ['Review with suggestions'], tools: [], reflection: false, ttl: 90 },
   // ── Product ──
   { name: 'pm_agent', dept: 'product', title: 'Product Manager', desc: 'PRD generation, feature prioritization', inputs: ['Product idea'], outputs: ['PRD document'], tools: ['generate_code'], reflection: true, ttl: null },
-  { name: 'architect_agent', dept: 'product', title: 'Architect', desc: 'System design, component diagrams, ADRs', inputs: ['PRD'], outputs: ['Architecture doc', 'File tree', 'Tech decisions'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'architect_agent', dept: 'product', title: 'Architect', desc: 'System design, component diagrams, ADRs', inputs: ['PRD'], outputs: ['Architecture doc', 'File tree', 'Tech decisions'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: 'inf' },
   { name: 'devops_agent', dept: 'product', title: 'DevOps Engineer', desc: 'Infra setup: Vercel, Railway, Supabase, NeonDB', inputs: ['Architecture', 'Repo'], outputs: ['Deployed infra', 'Env vars'], tools: ['create_repo', 'push_file', 'create_project', 'add_env_var', 'connect_github', 'trigger_deploy', 'run_sql'], reflection: false, ttl: null },
   { name: 'db_agent', dept: 'product', title: 'Database Engineer', desc: 'Schema design, SQL migrations', inputs: ['Architecture'], outputs: ['SQL schema', 'Migrations'], tools: ['generate_code', 'run_sql', 'get_connection_uri'], reflection: true, ttl: null },
   { name: 'backend_builder_agent', dept: 'product', title: 'Backend Builder', desc: 'FastAPI backend code generation', inputs: ['Architecture', 'DB schema'], outputs: ['FastAPI server code'], tools: ['generate_code', 'generate_fastapi_backend', 'push_file'], reflection: true, ttl: null },
   { name: 'frontend_builder_agent', dept: 'product', title: 'Frontend Builder', desc: 'Next.js 14 frontend generation', inputs: ['Architecture', 'API spec'], outputs: ['Next.js app code'], tools: ['generate_code', 'generate_nextjs_frontend', 'push_file'], reflection: true, ttl: null },
   { name: 'qa_agent', dept: 'product', title: 'Product QA', desc: 'Feature testing, smoke tests', inputs: ['Live URL', 'Requirements'], outputs: ['QA report'], tools: ['check_url', 'smoke_test', 'health_check', 'auth_smoke_test', 'read_document'], reflection: true, ttl: null },
   // ── Engineering ──
-  { name: 'solutions_architect_agent', dept: 'engineering', title: 'Solutions Architect', desc: 'System design, architectural decisions', inputs: ['Requirements'], outputs: ['System design', 'ADRs'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'solutions_architect_agent', dept: 'engineering', title: 'Solutions Architect', desc: 'System design, architectural decisions', inputs: ['Requirements'], outputs: ['System design', 'ADRs'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: 'inf' },
   { name: 'data_engineer_agent', dept: 'engineering', title: 'Data Engineer', desc: 'ETL/ELT pipelines, streaming, feature stores', inputs: ['Data requirements'], outputs: ['Pipeline spec', 'Schema'], tools: ['generate_code'], reflection: true, ttl: null },
   { name: 'ml_engineer_agent', dept: 'engineering', title: 'ML Engineer', desc: 'Training pipelines, inference, model serving', inputs: ['Model spec'], outputs: ['Training pipeline', 'Serving config'], tools: ['generate_code'], reflection: true, ttl: null },
-  { name: 'systems_engineer_agent', dept: 'engineering', title: 'Systems Engineer', desc: 'EDA toolchains, compiler pipelines, embedded builds', inputs: ['System requirements'], outputs: ['Toolchain config', 'Build pipeline'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'systems_engineer_agent', dept: 'engineering', title: 'Systems Engineer', desc: 'EDA toolchains, compiler pipelines, embedded builds', inputs: ['System requirements'], outputs: ['Toolchain config', 'Build pipeline'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: 'inf' },
   { name: 'integration_engineer_agent', dept: 'engineering', title: 'Integration Engineer', desc: 'API connectors, middleware, service mesh', inputs: ['Integration spec'], outputs: ['Connector code', 'Middleware config'], tools: ['generate_code'], reflection: true, ttl: null },
-  { name: 'platform_engineer_agent', dept: 'engineering', title: 'Platform Engineer', desc: 'IaC, CI/CD, container orchestration', inputs: ['Platform requirements'], outputs: ['IaC templates', 'CI/CD config'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
+  { name: 'platform_engineer_agent', dept: 'engineering', title: 'Platform Engineer', desc: 'IaC, CI/CD, container orchestration', inputs: ['Platform requirements'], outputs: ['IaC templates', 'CI/CD config'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: 'inf' },
   { name: 'sdet_agent', dept: 'engineering', title: 'SDET', desc: 'Pipeline validation, smoke tests, integration tests', inputs: ['Test spec'], outputs: ['Test suite', 'Results'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
   // ── Research ──
   { name: 'research_scientist_agent', dept: 'research', title: 'Research Scientist', desc: 'Literature reviews, hypothesis docs, experiments', inputs: ['Research question'], outputs: ['Literature review', 'Experiment design'], tools: ['search_company_web', 'search_news', 'deep_research', 'read_document'], reflection: true, ttl: 30 },
@@ -840,7 +1260,7 @@ const AGENTS = [
   { name: 'user_researcher_agent', dept: 'research', title: 'User Researcher', desc: 'Interview guides, usability reports, personas', inputs: ['Product context'], outputs: ['Interview guide', 'Personas'], tools: ['read_document'], reflection: true, ttl: 30 },
   { name: 'knowledge_manager_agent', dept: 'research', title: 'Knowledge Manager', desc: 'Research briefs, cross-domain synthesis', inputs: ['Research outputs'], outputs: ['Synthesis brief', 'Knowledge base'], tools: ['read_document', 'search_document'], reflection: true, ttl: 30 },
   // ── QA ──
-  { name: 'test_architect_agent', dept: 'qa', title: 'Test Architect', desc: 'Test strategy, quality gates, frameworks', inputs: ['Product spec'], outputs: ['Test strategy', 'Quality gates'], tools: ['generate_code'], reflection: true, ttl: null },
+  { name: 'test_architect_agent', dept: 'qa', title: 'Test Architect', desc: 'Test strategy, quality gates, frameworks', inputs: ['Product spec'], outputs: ['Test strategy', 'Quality gates'], tools: ['generate_code'], reflection: true, ttl: 'inf' },
   { name: 'test_automation_engineer_agent', dept: 'qa', title: 'Test Automation Engineer', desc: 'Automated suites, CI configs, regression', inputs: ['Test strategy'], outputs: ['Test suites', 'CI config'], tools: ['generate_code', 'build_and_run'], reflection: true, ttl: null },
   { name: 'performance_engineer_agent', dept: 'qa', title: 'Performance Engineer', desc: 'Load tests, benchmark baselines', inputs: ['Endpoints', 'SLAs'], outputs: ['Load test results', 'Baselines'], tools: ['generate_code', 'check_url'], reflection: true, ttl: 7 },
   { name: 'security_tester_agent', dept: 'qa', title: 'Security Tester', desc: 'Penetration tests, OWASP, fuzz testing', inputs: ['Target URL', 'Scope'], outputs: ['Security report', 'Findings'], tools: ['generate_code', 'check_url'], reflection: true, ttl: 7 },
@@ -866,7 +1286,25 @@ const AGENTS = [
 
 function getAgentsByDept(dept) { return AGENTS.filter(a => a.dept === dept); }
 function getAgent(name) { return AGENTS.find(a => a.name === name); }
+```
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard agent registry — all 62 agents with metadata"
+```
+
+---
+
+## Task 7: Dashboard JS — View Renderers (Dashboard, Agents, Console)
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add view render functions before `startPolling()`)
+
+- [ ] **Step 1: Write the Dashboard (home) view renderer**
+
+```javascript
 // ── View Renderers ────────────────────────────────────────────────────────
 const views = {};
 
@@ -967,8 +1405,8 @@ views.dashboard = async function() {
     ? '<div class="empty-state"><div class="empty-state-text">No recent activity — run a prompt from Console or Company Pipeline</div></div>'
     : events.map(e => `<div style="display:flex;gap:8px;padding:6px 0;font-size:11px;border-bottom:1px solid var(--border)">
         <span style="color:var(--muted);min-width:55px;font-variant-numeric:tabular-nums">${relTime(e.created_at)}</span>
-        <span class="${eventBadgeClass(e.event_type)}">${esc(e.event_type)}</span>
-        <span style="color:${deptColor(getAgent(e.agent_name)?.dept)};font-family:monospace">${esc(e.agent_name)}</span>
+        <span class="${eventBadgeClass(e.event_type)}">${e.event_type}</span>
+        <span style="color:${deptColor(getAgent(e.agent_name)?.dept)};font-family:monospace">${e.agent_name}</span>
       </div>`).join('')
   );
 
@@ -987,7 +1425,11 @@ views.dashboard = async function() {
       </tbody></table>`
   );
 };
+```
 
+- [ ] **Step 2: Write the Agents view renderer**
+
+```javascript
 views.agents = async function() {
   const el = $('#view-agents');
   const statusData = await API.get('/api/agents/status') || [];
@@ -1081,7 +1523,11 @@ views.agents = async function() {
     renderAgents(active?.dataset.dept || 'all', e.target.value.toLowerCase());
   });
 };
+```
 
+- [ ] **Step 3: Write the Console view renderer**
+
+```javascript
 views.console = function() {
   const el = $('#view-console');
   html(el, `
@@ -1117,7 +1563,7 @@ views.console = function() {
           <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(S.consoleOutput)">Copy</button>
         </div>
         <div class="console-pane-body" id="console-output-body">
-          ${S.consoleOutput ? `<div class="console-output-content">${esc(S.consoleOutput)}</div>` : '<div class="empty-state"><div class="empty-state-text">Output will appear here...</div></div>'}
+          ${S.consoleOutput ? `<div class="console-output-content">${S.consoleOutput}</div>` : '<div class="empty-state"><div class="empty-state-text">Output will appear here...</div></div>'}
         </div>
       </div>
     </div>
@@ -1144,9 +1590,9 @@ function renderConsoleEvent(e) {
   const t = types[e.type] || { border: 'var(--muted)', icon: '' };
   const isIndented = e.type === 'tool_result';
   return `<div class="console-event" style="border-left-color:${t.border};${isIndented ? 'padding-left:28px' : ''}">
-    <span class="console-event-time">${esc(e.time)}</span>
-    <span class="console-event-agent" style="color:${agentColor}">${esc(e.agent)}</span>
-    <span class="console-event-text">${esc(e.text)}</span>
+    <span class="console-event-time">${e.time || ''}</span>
+    <span class="console-event-agent" style="color:${agentColor}">${e.agent || ''}</span>
+    <span class="console-event-text">${e.text || ''}</span>
   </div>`;
 }
 
@@ -1214,7 +1660,7 @@ async function runConsole() {
           }
           const outBody = $('#console-output-body');
           if (outBody && S.consoleOutput) {
-            outBody.innerHTML = `<div class="console-output-content">${esc(S.consoleOutput)}</div>`;
+            outBody.innerHTML = `<div class="console-output-content">${S.consoleOutput}</div>`;
           }
           const activeAgent = $('#console-active-agent');
           if (activeAgent && data.agent) activeAgent.textContent = data.agent;
@@ -1236,7 +1682,25 @@ async function runConsole() {
   const statusText = $('.console-status-bar span:first-child span:last-child');
   if (statusText) statusText.textContent = 'Done';
 }
+```
 
+- [ ] **Step 4: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard views — command center home, agents grid, SSE console"
+```
+
+---
+
+## Task 8: Dashboard JS — Company Pipeline View
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add to views object)
+
+- [ ] **Step 1: Write the Company Pipeline view renderer**
+
+```javascript
 views.pipeline = async function() {
   const el = $('#view-pipeline');
   html(el, `
@@ -1333,7 +1797,25 @@ function runPipeline() {
   navigate('console');
   setTimeout(() => runConsole(), 100);
 }
+```
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard Company Pipeline view — launcher, idle architecture diagram, history"
+```
+
+---
+
+## Task 9: Dashboard JS — Org Chart View (Interactive SVG)
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add to views object)
+
+- [ ] **Step 1: Write the Org Chart view renderer with interactive SVG tree**
+
+```javascript
 views.orgchart = async function() {
   const el = $('#view-orgchart');
   const statusData = await API.get('/api/agents/status') || [];
@@ -1518,7 +2000,25 @@ function openAgentPanel(agent, statusMap) {
     <div style="font-size:11px;color:var(--muted)">Failures: ${st.failure_count || 0} · Last invoked: ${relTime(st.last_invoked)}</div>
   `);
 }
+```
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard Org Chart — interactive SVG tree with pan/zoom/filter/click-detail"
+```
+
+---
+
+## Task 10: Dashboard JS — Workflows View
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add to views object)
+
+- [ ] **Step 1: Write the Workflows view renderer with all 8 department pipelines**
+
+```javascript
 views.workflows = function() {
   const el = $('#view-workflows');
   const WORKFLOWS = {
@@ -1684,7 +2184,25 @@ views.workflows = function() {
     });
   });
 };
+```
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard Workflows — all 8 department pipelines with step flows"
+```
+
+---
+
+## Task 11: Dashboard JS — Handoffs, Skill Forge, RAMP, Tech Stack Views
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add to views object)
+
+- [ ] **Step 1: Write the Handoffs view renderer**
+
+```javascript
 views.handoffs = function() {
   const el = $('#view-handoffs');
   const HANDOFFS = [
@@ -1729,7 +2247,11 @@ views.handoffs = function() {
     </div>
   `);
 };
+```
 
+- [ ] **Step 2: Write the Skill Forge view renderer**
+
+```javascript
 views.forge = async function() {
   const el = $('#view-forge');
   const STAGES = [
@@ -1784,8 +2306,8 @@ views.forge = async function() {
       ${skills.length === 0 ? '<div class="empty-state"><div class="empty-state-text">No staged skills yet — forge one from the Console</div></div>' :
       `<table class="data-table"><thead><tr><th>Name</th><th>Domain</th><th>Dept</th><th>Score</th><th>Runs</th><th>Status</th></tr></thead><tbody>
       ${skills.map(s => `<tr>
-        <td style="font-weight:600">${esc(s.name)}</td><td>${esc(s.domain)}</td>
-        <td><span class="${deptClass(s.department)} dept-badge">${esc(s.department)}</span></td>
+        <td style="font-weight:600">${s.name}</td><td>${s.domain}</td>
+        <td><span class="${deptClass(s.department)} dept-badge">${s.department}</span></td>
         <td style="color:var(--forge)">${s.composite_score?.toFixed(2) || '—'}</td>
         <td>${s.production_runs || 0}</td>
         <td><span class="${s.needs_review ? 'pill pill-pending_watch' : 'pill pill-stable'}">${s.needs_review ? 'Needs Review' : 'Staged'}</span></td>
@@ -1794,7 +2316,11 @@ views.forge = async function() {
     </div>
   `);
 };
+```
 
+- [ ] **Step 3: Write the RAMP view renderer**
+
+```javascript
 views.ramp = function() {
   const el = $('#view-ramp');
   html(el, `
@@ -1830,7 +2356,11 @@ views.ramp = function() {
     </div>
   `);
 };
+```
 
+- [ ] **Step 4: Write the Tech Stack view renderer**
+
+```javascript
 views.techstack = function() {
   const el = $('#view-techstack');
   const sections = [
@@ -1924,7 +2454,25 @@ views.techstack = function() {
     </div>`).join('')}
   `);
 };
+```
 
+- [ ] **Step 5: Commit**
+
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard Handoffs, Skill Forge, RAMP, Tech Stack views"
+```
+
+---
+
+## Task 12: Dashboard JS — Supervisor View (Full Observability)
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (add to views object)
+
+- [ ] **Step 1: Write the Supervisor view renderer with 6 sub-tabs**
+
+```javascript
 views.supervisor = async function() {
   const el = $('#view-supervisor');
   html(el, `
@@ -1967,13 +2515,13 @@ views.supervisor = async function() {
           ${(circuits.length > 0 ? circuits : AGENTS.filter(a => !a.name.includes('orchestrator')).map(a => ({ agent_name: a.name, state: 'closed', failure_count: 0 }))).map(r => {
             const agent = getAgent(r.agent_name);
             return `<tr style="${r.state === 'open' ? 'background:rgba(239,68,68,0.05)' : ''}">
-              <td class="mono">${esc(r.agent_name)}</td>
-              <td><span class="${deptClass(agent?.dept)} dept-badge">${esc(agent?.dept) || '—'}</span></td>
-              <td><span class="${pillClass(r.state)}">${esc(r.state) || 'closed'}</span></td>
+              <td class="mono">${r.agent_name}</td>
+              <td><span class="${deptClass(agent?.dept)} dept-badge">${agent?.dept || '—'}</span></td>
+              <td><span class="${pillClass(r.state)}">${r.state || 'closed'}</span></td>
               <td>${r.failure_count || 0}</td>
               <td style="color:var(--muted)">${relTime(r.last_failure_at)}</td>
               <td style="color:var(--muted)">${relTime(r.opened_at)}</td>
-              <td>${r.state === 'open' ? `<button class="btn btn-danger btn-sm" onclick="resetCircuit('${esc(r.agent_name)}')">Reset</button>` : ''}</td>
+              <td>${r.state === 'open' ? `<button class="btn btn-danger btn-sm" onclick="resetCircuit('${r.agent_name}')">Reset</button>` : ''}</td>
             </tr>`;
           }).join('')}
           </tbody></table>
@@ -1988,12 +2536,12 @@ views.supervisor = async function() {
             <table class="data-table"><thead><tr><th>Run ID</th><th>Type</th><th>Blocked On</th><th>Error</th><th>Steps Done</th><th>Created</th><th>Action</th></tr></thead><tbody>
             ${dlq.map(d => `<tr>
               <td class="mono">${truncate(d.run_id, 12)}</td>
-              <td>${esc(d.pipeline_type) || '—'}</td>
-              <td class="mono" style="color:var(--warning)">${esc(d.blocked_on) || '—'}</td>
-              <td class="truncate" title="${esc(d.last_error)}">${truncate(d.last_error, 40)}</td>
+              <td>${d.pipeline_type || '—'}</td>
+              <td class="mono" style="color:var(--warning)">${d.blocked_on || '—'}</td>
+              <td class="truncate" title="${d.last_error || ''}">${truncate(d.last_error, 40)}</td>
               <td>${d.completed_steps_json ? JSON.parse(d.completed_steps_json).length : 0}</td>
               <td style="color:var(--muted)">${relTime(d.created_at)}</td>
-              <td><button class="btn btn-primary btn-sm" onclick="resumeDlq('${esc(d.run_id)}')">Resume</button></td>
+              <td><button class="btn btn-primary btn-sm" onclick="resumeDlq('${d.run_id}')">Resume</button></td>
             </tr>`).join('')}
             </tbody></table>
           </div>`
@@ -2007,8 +2555,8 @@ views.supervisor = async function() {
           ${runs.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">No pipeline runs</td></tr>' :
           runs.map(r => `<tr style="cursor:pointer" onclick="navigate('pipeline')">
             <td class="mono">${truncate(r.run_id, 12)}</td>
-            <td>${esc(r.pipeline_type) || '—'}</td>
-            <td><span class="${pillClass(r.status)}">${esc(r.status)}</span></td>
+            <td>${r.pipeline_type || '—'}</td>
+            <td><span class="${pillClass(r.status)}">${r.status}</span></td>
             <td>${r.current_step || 0}/${r.total_steps || '?'}</td>
             <td style="color:var(--muted)">${relTime(r.created_at)}</td>
             <td style="color:var(--muted)">${relTime(r.updated_at)}</td>
@@ -2028,9 +2576,9 @@ views.supervisor = async function() {
             return `<tr>
               <td style="color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap">${relTime(e.created_at)}</td>
               <td class="mono">${truncate(e.run_id, 8)}</td>
-              <td style="color:${deptColor(agent?.dept)};font-family:monospace;font-size:11px">${esc(e.agent_name)}</td>
-              <td><span class="${eventBadgeClass(e.event_type)}">${esc(e.event_type)}</span></td>
-              <td class="truncate mono" title="${esc(e.payload_json)}">${truncate(e.payload_json, 50)}</td>
+              <td style="color:${deptColor(agent?.dept)};font-family:monospace;font-size:11px">${e.agent_name}</td>
+              <td><span class="${eventBadgeClass(e.event_type)}">${e.event_type}</span></td>
+              <td class="truncate mono" title="${e.payload_json || ''}">${truncate(e.payload_json, 50)}</td>
             </tr>`;
           }).join('')}
           </tbody></table>
@@ -2044,12 +2592,12 @@ views.supervisor = async function() {
           <table class="data-table"><thead><tr><th>Agent</th><th>Version</th><th>Status</th><th>Score</th><th>Hypothesis</th><th>Confidence</th><th>Created</th></tr></thead><tbody>
           ${evo.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">No evolution history — run autoresearcher to start evolving agents</td></tr>' :
           evo.map(e => `<tr>
-            <td class="mono">${esc(e.agent_name)}</td>
-            <td>v${esc(e.version)}</td>
-            <td><span class="${pillClass(e.status)}">${esc(e.status)}</span></td>
+            <td class="mono">${e.agent_name}</td>
+            <td>v${e.version}</td>
+            <td><span class="${pillClass(e.status)}">${e.status}</span></td>
             <td>${e.score_baseline?.toFixed(2) || '—'}</td>
-            <td class="truncate" title="${esc(e.hypothesis_text)}">${truncate(e.hypothesis_text, 40)}</td>
-            <td>${esc(e.confidence) || '—'}</td>
+            <td class="truncate" title="${e.hypothesis_text || ''}">${truncate(e.hypothesis_text, 40)}</td>
+            <td>${e.confidence || '—'}</td>
             <td style="color:var(--muted)">${relTime(e.created_at)}</td>
           </tr>`).join('')}
           </tbody></table>
@@ -2078,131 +2626,94 @@ async function resumeDlq(runId) {
   await API.post(`/api/supervisor/dlq/${runId}/resume`);
   views.supervisor();
 }
+```
 
-// ── Monitor View ──────────────────────────────────────────────────────────
-const monitorState = { paused: false, filter: { level: 'all', agent: '', search: '' }, pollId: null };
+- [ ] **Step 2: Commit**
 
-function classifyEvent(eventType, payload) {
-  const t = (eventType || '').toLowerCase();
-  const p = (payload || '').toLowerCase();
-  if (t.includes('error') || t.includes('fail') || t.includes('circuit_open') || p.includes('error') || p.includes('traceback')) return 'error';
-  if (t.includes('warn') || t.includes('retry') || t.includes('dlq') || t.includes('timeout')) return 'warning';
-  if (t.includes('success') || t.includes('complete') || t.includes('done')) return 'success';
-  return 'info';
-}
+```bash
+git add aass_agents/dashboard.html
+git commit -m "feat: dashboard Supervisor view — circuits, DLQ, runs, events, evolution"
+```
 
-views.monitor = async function() {
-  const el = $('#view-monitor');
-  html(el, `
-    <div class="view-header">
-      <div class="view-title">Monitor</div>
-      <div class="view-subtitle">Live log stream — errors, warnings, and agent activity</div>
-    </div>
-    <div class="monitor-stats" id="monitor-stats"></div>
-    <div class="monitor-toolbar" id="monitor-toolbar">
-      <select id="mon-level">
-        <option value="all">All Levels</option>
-        <option value="error">Errors</option>
-        <option value="warning">Warnings</option>
-        <option value="success">Success</option>
-        <option value="info">Info</option>
-      </select>
-      <select id="mon-agent">
-        <option value="">All Agents</option>
-        ${AGENTS.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('')}
-      </select>
-      <input type="text" id="mon-search" placeholder="Search payload..." style="min-width:180px" />
-      <div class="spacer"></div>
-      <button class="btn btn-sm" id="mon-pause" style="min-width:70px">Pause</button>
-      <button class="btn btn-sm btn-primary" id="mon-refresh">Refresh</button>
-    </div>
-    <div class="monitor-log" id="monitor-log">
-      <div style="text-align:center;color:var(--muted);padding:32px">Loading events...</div>
-    </div>
-  `);
+---
 
-  async function fetchAndRender() {
-    const f = monitorState.filter;
-    let url = '/api/supervisor/events?limit=200';
-    if (f.agent) url += '&agent=' + encodeURIComponent(f.agent);
-    const events = await API.get(url) || [];
+## Task 13: Boot Sequence & Final Integration
 
-    // Stats
-    let errors = 0, warnings = 0, successes = 0, total = events.length;
-    events.forEach(e => {
-      const level = classifyEvent(e.event_type, e.payload_json);
-      if (level === 'error') errors++;
-      else if (level === 'warning') warnings++;
-      else if (level === 'success') successes++;
-    });
-    html($('#monitor-stats'), `
-      <div class="monitor-stat"><div class="monitor-stat-value" style="color:var(--text)">${total}</div><div class="monitor-stat-label">Total Events</div></div>
-      <div class="monitor-stat"><div class="monitor-stat-value" style="color:var(--danger)">${errors}</div><div class="monitor-stat-label">Errors</div></div>
-      <div class="monitor-stat"><div class="monitor-stat-value" style="color:var(--warning)">${warnings}</div><div class="monitor-stat-label">Warnings</div></div>
-      <div class="monitor-stat"><div class="monitor-stat-value" style="color:var(--success)">${successes}</div><div class="monitor-stat-label">Success</div></div>
-    `);
+**Files:**
+- Modify: `aass_agents/dashboard.html` (update boot section at end of script)
 
-    // Filter
-    const filtered = events.filter(e => {
-      const level = classifyEvent(e.event_type, e.payload_json);
-      if (f.level !== 'all' && level !== f.level) return false;
-      if (f.search) {
-        const s = f.search.toLowerCase();
-        const haystack = ((e.payload_json || '') + ' ' + (e.event_type || '') + ' ' + (e.agent_name || '')).toLowerCase();
-        if (!haystack.includes(s)) return false;
-      }
-      return true;
-    });
+- [ ] **Step 1: Update the boot section to initialize the dashboard view on load**
 
-    if (filtered.length === 0) {
-      html($('#monitor-log'), '<div style="text-align:center;color:var(--muted);padding:32px">No matching events</div>');
-      return;
-    }
+Make sure these lines are at the very end of the `<script>` block (after all view definitions):
 
-    html($('#monitor-log'), filtered.map(e => {
-      const level = classifyEvent(e.event_type, e.payload_json);
-      const agent = getAgent(e.agent_name);
-      const color = deptColor(agent?.dept);
-      let payload = e.payload_json || '';
-      if (payload.length > 200) payload = payload.slice(0, 200) + '...';
-      return `<div class="log-entry level-${level}">
-        <span class="log-time">${relTime(e.created_at)}</span>
-        <span class="log-agent" style="color:${color}" title="${esc(e.agent_name)}">${esc(e.agent_name)}</span>
-        <span class="log-type"><span class="${eventBadgeClass(e.event_type)}">${esc(e.event_type)}</span></span>
-        <span class="log-msg" title="${esc(e.payload_json)}">${esc(payload)}</span>
-      </div>`;
-    }).join(''));
-  }
-
-  fetchAndRender();
-
-  // Filter handlers
-  $('#mon-level').addEventListener('change', e => { monitorState.filter.level = e.target.value; fetchAndRender(); });
-  $('#mon-agent').addEventListener('change', e => { monitorState.filter.agent = e.target.value; fetchAndRender(); });
-  $('#mon-search').addEventListener('input', e => { monitorState.filter.search = e.target.value; fetchAndRender(); });
-  $('#mon-refresh').addEventListener('click', fetchAndRender);
-  $('#mon-pause').addEventListener('click', () => {
-    monitorState.paused = !monitorState.paused;
-    $('#mon-pause').textContent = monitorState.paused ? 'Resume' : 'Pause';
-    $('#mon-pause').classList.toggle('btn-warning', monitorState.paused);
-  });
-
-  // Auto-refresh every 5s when on monitor view
-  clearInterval(monitorState.pollId);
-  monitorState.pollId = setInterval(() => {
-    if (S.view === 'monitor' && !monitorState.paused) fetchAndRender();
-  }, 5000);
-};
-
-// ── Polling Manager ───────────────────────────────────────────────────────
-function startPolling() {
-  refreshTopBar();
-  S.pollTimer = setInterval(refreshTopBar, 5000);
-}
-
+```javascript
 // ── Boot ──────────────────────────────────────────────────────────────────
 startPolling();
 navigate('dashboard');
-</script>
-</body>
-</html>
+```
+
+- [ ] **Step 2: Verify the HTML is syntactically valid**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && python -c "
+with open('dashboard.html') as f:
+    content = f.read()
+assert '<!DOCTYPE html>' in content
+assert '</html>' in content
+assert '</script>' in content
+assert 'views.dashboard' in content
+assert 'views.supervisor' in content
+assert 'views.orgchart' in content
+assert 'views.pipeline' in content
+assert 'views.agents' in content
+assert 'views.console' in content
+assert 'views.workflows' in content
+assert 'views.handoffs' in content
+assert 'views.forge' in content
+assert 'views.ramp' in content
+assert 'views.techstack' in content
+print('ALL CHECKS PASSED')
+"`
+
+Expected: `ALL CHECKS PASSED`
+
+- [ ] **Step 3: Test that the API server starts and serves the dashboard**
+
+Run: `cd E:/Workspace/sl_agents/aass_agents && timeout 5 python -c "from api import app; print('API OK')" 2>&1 || true`
+Expected: `API OK`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add aass_agents/dashboard.html aass_agents/api.py
+git commit -m "feat: enterprise command center — complete integration, all 11 views functional"
+```
+
+---
+
+## Self-Review
+
+**1. Spec coverage check:**
+- Section 2 (Layout Shell) → Task 4 ✓
+- Section 3 (Dashboard) → Task 7 ✓
+- Section 4 (Company Pipeline) → Task 8 ✓
+- Section 5 (Org Chart) → Task 9 ✓
+- Section 6 (Agents) → Task 7 ✓
+- Section 7 (Console) → Task 7 ✓
+- Section 8 (Workflows) → Task 10 ✓
+- Section 9 (Handoffs) → Task 11 ✓
+- Section 10 (Skill Forge) → Task 11 ✓
+- Section 11 (RAMP) → Task 11 ✓
+- Section 12 (Tech Stack) → Task 11 ✓
+- Section 13 (Supervisor) → Task 12 ✓
+- Section 14 (API endpoints) → Tasks 1-3 ✓
+- All 11 views covered, all 12 API endpoints covered.
+
+**2. Placeholder scan:** No TBDs, TODOs, or "implement later" found.
+
+**3. Type/name consistency:**
+- `API.get()` and `API.post()` used consistently
+- `navigate()` used consistently for view switching
+- `views.xxx` function names match `data-view` attributes
+- `deptColor()`, `deptClass()`, `pillClass()` used consistently
+- Agent names match between AGENTS array and API data
+- All `$$`/`$` selectors reference IDs that exist in the HTML

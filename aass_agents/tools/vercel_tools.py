@@ -14,7 +14,7 @@ def _headers() -> dict:
     return {"Authorization": f"Bearer {os.environ['VERCEL_TOKEN']}"}
 
 
-def create_project(name: str, framework: str = "nextjs", root_directory: str = "frontend") -> dict:
+def vercel_create_project(name: str, framework: str = "nextjs", root_directory: str = "frontend") -> dict:
     """Create a Vercel project. Returns project id and name."""
     with httpx.Client(timeout=_TIMEOUT) as c:
         r = c.post(
@@ -26,7 +26,7 @@ def create_project(name: str, framework: str = "nextjs", root_directory: str = "
         return r.json()
 
 
-def add_env_var(project_id: str, key: str, value: str, target: list[str] | None = None) -> dict:
+def vercel_add_env_var(project_id: str, key: str, value: str, target: list[str] | None = None) -> dict:
     """Add an environment variable to a Vercel project."""
     with httpx.Client(timeout=_TIMEOUT) as c:
         r = c.post(

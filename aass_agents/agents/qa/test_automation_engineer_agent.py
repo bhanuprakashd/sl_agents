@@ -2,6 +2,7 @@
 import os
 from google.adk.agents import Agent
 from tools.code_gen_tools import generate_code
+from tools.browser_tools import navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_run_script, browser_crawl
 
 
 from agents._shared.model import get_model
@@ -51,5 +52,5 @@ test_automation_engineer_agent = Agent(
         "Use for automating product feature tests. Scope: application QA only (not pipeline testing)."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code],
+    tools=[generate_code, navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_run_script, browser_crawl],
 )

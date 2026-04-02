@@ -1,0 +1,303 @@
+# Tool Registry — capability and department metadata for all tools.
+# Used by tool_registry.py for dynamic discovery and tool_mask.py for capability-based masking.
+
+tools:
+  # ── Research & Enrichment ──────────────────────────────────────────────────
+  deep_research:
+    module: tools.research_tools
+    capabilities: [research, web, analysis]
+    departments: [all]
+    tier: std
+    description: "Deep research on a topic using multiple sources"
+
+  search_company_web:
+    module: tools.research_tools
+    capabilities: [research, web, company]
+    departments: [sales, marketing, research]
+    tier: fast
+    description: "Search the web for company information"
+
+  enrich_company:
+    module: tools.research_tools
+    capabilities: [research, enrichment, company]
+    departments: [sales, marketing]
+    tier: fast
+    description: "Enrich company data with additional details"
+
+  find_contacts:
+    module: tools.research_tools
+    capabilities: [research, contacts, company]
+    departments: [sales]
+    tier: fast
+    description: "Find contact information for company employees"
+
+  search_news:
+    module: tools.research_tools
+    capabilities: [research, news, web]
+    departments: [sales, marketing, research]
+    tier: fast
+    description: "Search recent news about a company or topic"
+
+  # ── Browser Automation ─────────────────────────────────────────────────────
+  navigate_and_read:
+    module: tools.browser_tools
+    capabilities: [browser, web, read]
+    departments: [all]
+    tier: fast
+    description: "Navigate to a URL and read page content"
+
+  browser_screenshot:
+    module: tools.browser_tools
+    capabilities: [browser, web, visual]
+    departments: [all]
+    tier: fast
+    description: "Take a screenshot of a web page"
+
+  browser_extract_links:
+    module: tools.browser_tools
+    capabilities: [browser, web, read]
+    departments: [all]
+    tier: fast
+    description: "Extract all links from a web page"
+
+  browser_crawl:
+    module: tools.browser_tools
+    capabilities: [browser, web, crawl]
+    departments: [sales, marketing, research]
+    tier: std
+    description: "Crawl multiple pages from a website"
+
+  browser_click:
+    module: tools.browser_tools
+    capabilities: [browser, web, interact]
+    departments: [all]
+    tier: fast
+    description: "Click an element on a web page"
+
+  browser_fill_form:
+    module: tools.browser_tools
+    capabilities: [browser, web, interact, write]
+    departments: [all]
+    tier: fast
+    description: "Fill out a form on a web page"
+
+  # ── Memory & Context ───────────────────────────────────────────────────────
+  save_deal_context:
+    module: tools.memory_tools
+    capabilities: [memory, write, deals]
+    departments: [sales]
+    tier: fast
+    description: "Save deal context to persistent memory"
+
+  recall_deal_context:
+    module: tools.memory_tools
+    capabilities: [memory, read, deals]
+    departments: [sales]
+    tier: fast
+    description: "Recall deal context from persistent memory"
+
+  list_active_deals:
+    module: tools.memory_tools
+    capabilities: [memory, read, deals]
+    departments: [sales]
+    tier: fast
+    description: "List all active deals in memory"
+
+  save_agent_output:
+    module: tools.memory_tools
+    capabilities: [memory, write]
+    departments: [all]
+    tier: fast
+    description: "Save agent output for future reference"
+
+  recall_past_outputs:
+    module: tools.memory_tools
+    capabilities: [memory, read]
+    departments: [all]
+    tier: fast
+    description: "Recall past agent outputs"
+
+  save_product_state:
+    module: tools.product_memory_tools
+    capabilities: [memory, write, product]
+    departments: [product]
+    tier: fast
+    description: "Save product pipeline state"
+
+  recall_product_state:
+    module: tools.product_memory_tools
+    capabilities: [memory, read, product]
+    departments: [product]
+    tier: fast
+    description: "Recall product pipeline state"
+
+  # ── Todo & Tracking ────────────────────────────────────────────────────────
+  write_todo:
+    module: tools.todo_tools
+    capabilities: [tracking, write]
+    departments: [all]
+    tier: fast
+    description: "Write a todo list for session tracking"
+
+  read_todo:
+    module: tools.todo_tools
+    capabilities: [tracking, read]
+    departments: [all]
+    tier: fast
+    description: "Read current todo list"
+
+  complete_todo_step:
+    module: tools.todo_tools
+    capabilities: [tracking, write]
+    departments: [all]
+    tier: fast
+    description: "Mark a todo step as complete"
+
+  get_todo_summary:
+    module: tools.todo_tools
+    capabilities: [tracking, read]
+    departments: [all]
+    tier: fast
+    description: "Get summary of todo progress"
+
+  # ── Code & Build ───────────────────────────────────────────────────────────
+  build_and_run:
+    module: tools.claude_code_tools
+    capabilities: [build, code, execute]
+    departments: [product, engineering]
+    tier: std
+    description: "Build and run code using Claude Code CLI"
+
+  build_review_improve:
+    module: tools.claude_code_tools
+    capabilities: [build, code, review]
+    departments: [product, engineering]
+    tier: std
+    description: "Build, review, and improve code iteratively"
+
+  build_with_feedback_loop:
+    module: tools.claude_code_tools
+    capabilities: [build, code, feedback]
+    departments: [product]
+    tier: deep
+    description: "Multi-phase build with human feedback loop"
+
+  open_in_browser:
+    module: tools.claude_code_tools
+    capabilities: [browser, utility]
+    departments: [product]
+    tier: fast
+    description: "Open a URL in the default browser"
+
+  # ── GitHub ─────────────────────────────────────────────────────────────────
+  search_github_repos:
+    module: tools.github_tools
+    capabilities: [research, code, github]
+    departments: [product, engineering, research]
+    tier: fast
+    description: "Search GitHub repositories"
+
+  search_github_code:
+    module: tools.github_tools
+    capabilities: [research, code, github]
+    departments: [product, engineering, research]
+    tier: fast
+    description: "Search code on GitHub"
+
+  # ── Deployment ─────────────────────────────────────────────────────────────
+  deploy_to_railway:
+    module: tools.railway_tools
+    capabilities: [deploy, infrastructure]
+    departments: [product, engineering]
+    tier: std
+    description: "Deploy application to Railway"
+
+  deploy_to_vercel:
+    module: tools.vercel_tools
+    capabilities: [deploy, infrastructure]
+    departments: [product, engineering]
+    tier: std
+    description: "Deploy application to Vercel"
+
+  # ── Skill Memory ──────────────────────────────────────────────────────────
+  find_similar_skills:
+    module: tools.skill_memory
+    capabilities: [memory, read, skills]
+    departments: [product, forge]
+    tier: fast
+    description: "Find similar past builds for skill reuse"
+
+  save_learned_skill:
+    module: tools.skill_memory
+    capabilities: [memory, write, skills]
+    departments: [product, forge]
+    tier: fast
+    description: "Save a learned skill from a build"
+
+  # ── Feedback ───────────────────────────────────────────────────────────────
+  get_feedback_history:
+    module: tools.human_feedback_loop
+    capabilities: [feedback, read]
+    departments: [product]
+    tier: fast
+    description: "Get feedback history for a product build"
+
+  get_feedback_patterns:
+    module: tools.human_feedback_loop
+    capabilities: [feedback, read, analysis]
+    departments: [product]
+    tier: fast
+    description: "Get common feedback patterns across builds"
+
+  # ── Inter-Agent Messaging ──────────────────────────────────────────────────
+  send_agent_message:
+    module: tools.message_bus
+    capabilities: [messaging, write]
+    departments: [all]
+    tier: fast
+    description: "Send a message to another agent"
+
+  check_agent_messages:
+    module: tools.message_bus
+    capabilities: [messaging, read]
+    departments: [all]
+    tier: fast
+    description: "Check for pending messages from other agents"
+
+  reply_to_agent:
+    module: tools.message_bus
+    capabilities: [messaging, write]
+    departments: [all]
+    tier: fast
+    description: "Reply to a message from another agent"
+
+  # ── Tool Discovery ─────────────────────────────────────────────────────────
+  discover_tools:
+    module: tools.tool_registry
+    capabilities: [meta, discovery]
+    departments: [all]
+    tier: fast
+    description: "Discover available tools by capability or department"
+
+  # ── Parallel Execution ─────────────────────────────────────────────────────
+  run_parallel_pipeline:
+    module: tools.parallel_executor
+    capabilities: [orchestration, parallel]
+    departments: [product, research, qa, sales]
+    tier: std
+    description: "Execute a named parallel pipeline"
+
+  # ── Build Progress ─────────────────────────────────────────────────────────
+  log_build_phase:
+    module: tools.build_progress
+    capabilities: [tracking, write, build]
+    departments: [product]
+    tier: fast
+    description: "Log a build phase status update"
+
+  get_build_progress:
+    module: tools.build_progress
+    capabilities: [tracking, read, build]
+    departments: [product]
+    tier: fast
+    description: "Get build phase progress for a product"

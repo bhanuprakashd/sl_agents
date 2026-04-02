@@ -12,7 +12,7 @@ def test_create_project(monkeypatch):
     with patch("httpx.Client") as mock_client_cls:
         mock_client = mock_client_cls.return_value.__enter__.return_value
         mock_client.post.return_value = mock_resp
-        from tools.railway_tools import create_project
+        from tools.railway_tools import railway_create_project as create_project
         result = create_project("myapp")
 
     assert result["id"] == "rwy_123"
@@ -27,7 +27,7 @@ def test_gql_raises_on_errors(monkeypatch):
     with patch("httpx.Client") as mock_client_cls:
         mock_client = mock_client_cls.return_value.__enter__.return_value
         mock_client.post.return_value = mock_resp
-        from tools.railway_tools import create_project
+        from tools.railway_tools import railway_create_project as create_project
         with pytest.raises(RuntimeError, match="Railway GraphQL error"):
             create_project("bad")
 

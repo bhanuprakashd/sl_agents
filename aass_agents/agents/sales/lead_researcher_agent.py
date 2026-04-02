@@ -2,24 +2,8 @@
 
 import os
 from google.adk.agents import Agent
-from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
 from tools.research_tools import search_company_web, enrich_company, find_contacts, search_news, deep_research
-
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_MEDIUM_MCP_PATH = os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..", "medium-mcp-server")
-_MEDIUM_MCP_PATH = os.path.abspath(_MEDIUM_MCP_PATH)
-_medium_mcp = None
-if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
-    _medium_mcp = McpToolset(
-        connection_params=StdioConnectionParams(
-            server_params=StdioServerParameters(
-                command="node",
-                args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
-                cwd=_MEDIUM_MCP_PATH,
-                env={**os.environ},
-            )
-        )
-    )
+from tools.browser_tools import navigate_and_read, browser_screenshot, browser_extract_links, browser_crawl
 
 from agents._shared.model import get_model
 INSTRUCTION = """
@@ -40,8 +24,10 @@ produce a comprehensive, actionable profile a sales rep can use immediately.
    - `search_company_web(company_name, "tech stack job postings")` — tech signals
    - `find_contacts(domain, title_filter)` — decision makers
    - `search-medium(keywords)` — search Medium articles for thought leadership, industry trends, and competitor content
+   - `navigate_and_read(url)` — visit the prospect's actual website with a real browser (JS-rendered, bypasses simple blocks)
+   - `browser_crawl(start_url, max_pages)` — crawl the prospect's site to find pricing pages, case studies, blog posts, job listings
 
-   Prefer `deep_research` for comprehensive analysis; use `search-medium` to find what experts are writing about the prospect's industry.
+   Prefer `deep_research` for comprehensive analysis; use `navigate_and_read` to verify claims by visiting the prospect's actual website; use `browser_crawl` to map their entire public site.
 
 3. **Synthesize into a structured profile:**
 
@@ -110,5 +96,6 @@ lead_researcher_agent = Agent(
         "Use before outreach or call prep."
     ),
     instruction=INSTRUCTION,
-    tools=[t for t in [deep_research, search_company_web, enrich_company, find_contacts, search_news, _medium_mcp] if t is not None],
+    tools=[deep_research, search_company_web, enrich_company, find_contacts, search_news,
+           navigate_and_read, browser_screenshot, browser_extract_links, browser_crawl],
 )

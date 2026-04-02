@@ -145,7 +145,10 @@ async def _stream_run(prompt: str, session_id: str) -> AsyncGenerator[str, None]
         yield _sse({"type": "done"})
 
     except Exception as exc:
-        yield _sse({"type": "error", "message": str(exc)})
+        import traceback
+        tb = traceback.format_exc()
+        print(f"[STREAM ERROR] {exc}\n{tb}", flush=True)
+        yield _sse({"type": "error", "message": str(exc), "traceback": tb})
         yield _sse({"type": "done"})
 
 
@@ -400,6 +403,251 @@ async def agents_status():
             "ttl_days": AGENT_TTL_DAYS.get(agent_name),
         })
     return results
+
+
+# ── Build Progress Endpoints ──────────────────────────────────────────
+from tools.build_progress import get_build_progress, get_active_builds
+from tools.skill_memory import find_similar_skills, get_skill_context
+
+@app.get("/api/build/progress/{product_id}")
+async def api_build_progress(product_id: str):
+    """Get build phase progress for a specific product."""
+    import json as _json
+    return _json.loads(get_build_progress(product_id))
+
+@app.get("/api/build/active")
+async def api_active_builds():
+    """Get all currently active (in-progress) builds."""
+    import json as _json
+    return _json.loads(get_active_builds())
+
+@app.get("/api/build/progress/{product_id}/stream")
+async def api_build_progress_stream(product_id: str):
+    """SSE stream of build progress for real-time dashboard updates."""
+    import json as _json
+
+    async def _stream():
+        last_data = ""
+        for _ in range(600):  # 10 minutes max
+            data = get_build_progress(product_id)
+            if data != last_data:
+                last_data = data
+                yield f"data: {data}\n\n"
+                parsed = _json.loads(data)
+                if parsed.get("overall_status") in ("completed", "failed"):
+                    break
+            await asyncio.sleep(2)
+        yield "data: {\"type\": \"done\"}\n\n"
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
+
+@app.get("/api/skills/similar")
+async def api_similar_skills(product_name: str = "", product_type: str = ""):
+    """Find similar past builds for skill reuse."""
+    import json as _json
+    prd = {"product_type": product_type} if product_type else {}
+    return _json.loads(find_similar_skills(product_name, prd))
+
+
+# ── Feedback Loop endpoints ──────────────────────────────────────
+
+@app.get("/api/feedback/{product_id}")
+async def api_feedback_history(product_id: str):
+    """Get feedback round history for a product build."""
+    import json as _json
+    from tools.human_feedback_loop import get_feedback_history
+    return _json.loads(get_feedback_history(product_id))
+
+
+@app.get("/api/feedback/patterns/common")
+async def api_feedback_patterns(limit: int = 20):
+    """Get most common feedback patterns across all builds for learning."""
+    import json as _json
+    from tools.human_feedback_loop import get_feedback_patterns
+    return _json.loads(get_feedback_patterns(limit=limit))
+
+
+# ── Cost Tracking Endpoints ──────────────────────────────────────────────────
+from tools.cost_tracker_db import get_cost_summary, get_costs_by_run, get_costs_by_agent, get_costs_by_department
+from agents._shared.agent_registry import AGENT_DEPARTMENT_MAP, ALL_DEPARTMENTS
+
+@app.get("/api/costs/summary")
+async def api_cost_summary(since: Opt[str] = None):
+    """Aggregate cost summary — total tokens, USD, breakdown by tier and agent."""
+    return get_cost_summary(since)
+
+@app.get("/api/costs/by-run/{run_id}")
+async def api_costs_by_run(run_id: str):
+    """All cost events for a specific pipeline run."""
+    return get_costs_by_run(run_id)
+
+@app.get("/api/costs/by-agent")
+async def api_costs_by_agent(agent: str, since: Opt[str] = None):
+    """Cost events for a specific agent."""
+    return get_costs_by_agent(agent, since)
+
+@app.get("/api/costs/by-department/{department}")
+async def api_costs_by_department(department: str, since: Opt[str] = None):
+    """Aggregate costs for all agents in a department."""
+    return get_costs_by_department(department, AGENT_DEPARTMENT_MAP, since)
+
+@app.get("/api/costs/departments")
+async def api_cost_departments():
+    """List all departments with their agent counts."""
+    return {
+        dept: len([a for a, d in AGENT_DEPARTMENT_MAP.items() if d == dept])
+        for dept in ALL_DEPARTMENTS
+    }
+
+
+# ── Progress Streaming Endpoints ─────────────────────────────────────────────
+from tools.progress_callbacks import broadcaster
+
+@app.get("/api/events/stream")
+async def api_global_event_stream():
+    """SSE stream of ALL progress events system-wide (for dashboard monitor)."""
+    async def _stream():
+        async for event in broadcaster.subscribe():
+            yield f"data: {json.dumps(event)}\n\n"
+    return StreamingResponse(_stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+@app.get("/api/events/stream/{product_id}")
+async def api_product_event_stream(product_id: str):
+    """SSE stream of progress events for a specific product/run."""
+    async def _stream():
+        async for event in broadcaster.subscribe(product_id):
+            yield f"data: {json.dumps(event)}\n\n"
+            if event.get("status") in ("completed", "failed"):
+                break
+    return StreamingResponse(_stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ── Inter-Agent Messaging Endpoints ──────────────────────────────────────────
+from tools.message_bus_db import get_all_messages as get_run_messages, read_messages as get_agent_messages
+
+@app.get("/api/messages/{run_id}")
+async def api_messages_by_run(run_id: str):
+    """All inter-agent messages for a pipeline run."""
+    return get_run_messages(run_id)
+
+@app.get("/api/messages/{run_id}/{agent_name}")
+async def api_messages_by_agent(run_id: str, agent_name: str):
+    """Pending messages for a specific agent in a run."""
+    return get_agent_messages(run_id, agent_name, mark_read=False)
+
+
+# ── Tool Registry Endpoints ─────────────────────────────────────────────────
+from tools.tool_registry import registry as _tool_registry
+from pathlib import Path as _Path
+_tool_registry.load_from_yaml(str(_Path(__file__).parent / "tool_registry.yaml"))
+
+@app.get("/api/tools/registry")
+async def api_tool_registry(capability: Opt[str] = None, department: Opt[str] = None):
+    """Query the tool registry by capability and/or department."""
+    if capability and department:
+        entries = [
+            e for e in _tool_registry.find_by_any_capability(capability)
+            if department in e.departments or "all" in e.departments
+        ]
+    elif capability:
+        entries = _tool_registry.find_by_any_capability(capability)
+    elif department:
+        entries = _tool_registry.find_by_department(department)
+    else:
+        entries = _tool_registry.list_all()
+
+    return {
+        "tools": [
+            {"name": e.name, "capabilities": list(e.capabilities),
+             "departments": list(e.departments), "tier": e.tier,
+             "description": e.description}
+            for e in entries
+        ],
+        "count": len(entries),
+    }
+
+@app.get("/api/tools/capabilities")
+async def api_tool_capabilities():
+    """List all unique tool capabilities."""
+    return _tool_registry.list_capabilities()
+
+
+# ── Hook System Endpoints ────────────────────────────────────────────────────
+from main import _hooks
+
+@app.get("/api/hooks")
+async def api_list_hooks():
+    """List all registered lifecycle hooks."""
+    return _hooks.list_hooks()
+
+@app.post("/api/hooks/reload")
+async def api_reload_hooks():
+    """Hot-reload hooks from hooks.yaml."""
+    import os
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hooks.yaml")
+    _hooks.reload(config_path)
+    return {"success": True, "hooks": len(_hooks.list_hooks())}
+
+
+# ── Audit Log Endpoints ─────────────────────────────────────────────────────
+from tools.supervisor_db import get_audit_log, verify_audit_chain
+
+@app.get("/api/supervisor/audit")
+async def api_audit_log(run_id: Opt[str] = None, agent: Opt[str] = None, limit: int = 100):
+    """Query the immutable audit trail."""
+    return get_audit_log(run_id, agent, limit)
+
+@app.get("/api/supervisor/audit/{run_id}/verify")
+async def api_verify_audit(run_id: str):
+    """Verify the integrity of the audit chain for a run."""
+    return verify_audit_chain(run_id)
+
+
+# ── Skill Forge Graduation Endpoints ─────────────────────────────────────────
+from tools.skill_forge_db import (
+    check_promotion_eligible, promote_skill_sync,
+    demote_skill_sync, get_promotion_dashboard_sync,
+)
+
+@app.get("/api/forge/promotion-dashboard")
+async def api_promotion_dashboard():
+    """Skill promotion status — eligible, needs review, not ready."""
+    return get_promotion_dashboard_sync()
+
+@app.get("/api/forge/check/{skill_id}")
+async def api_check_promotion(skill_id: str):
+    """Check if a specific skill is eligible for promotion."""
+    return check_promotion_eligible(skill_id)
+
+@app.post("/api/forge/promote/{skill_id}")
+async def api_promote_skill(skill_id: str):
+    """Promote a staged skill to active status."""
+    return promote_skill_sync(skill_id)
+
+@app.post("/api/forge/demote/{skill_id}")
+async def api_demote_skill(skill_id: str, reason: str = ""):
+    """Demote a skill back to review-needed state."""
+    return demote_skill_sync(skill_id, reason)
+
+
+# ── Parallel Pipeline Endpoints ──────────────────────────────────────────────
+from agents._shared.pipeline_defs import PIPELINES
+
+@app.get("/api/pipelines")
+async def api_list_pipelines():
+    """List available parallel pipelines."""
+    return {
+        name: {
+            "tasks": [
+                {"agent": t.agent_name, "depends_on": list(t.depends_on)}
+                for t in tasks
+            ],
+            "task_count": len(tasks),
+        }
+        for name, tasks in PIPELINES.items()
+    }
 
 
 @app.get("/")

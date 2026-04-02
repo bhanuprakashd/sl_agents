@@ -1,58 +1,74 @@
 # aass_agents/agents/architect_agent.py
 """
-Architect Agent — picks tech stack deterministically and generates file tree.
-Does NOT use DeerFlow — stack selection is rule-based to avoid non-determinism.
+Architect Agent — picks tech stack from open-source options and generates file tree.
+Uses ADK output_key to auto-save architecture to session state.
 """
 import os
 from google.adk.agents import Agent
-from tools.product_memory_tools import save_product_state, recall_product_state, log_step
+from google.adk.tools import ToolContext
+from tools.agent_reach_tools import search_github_repos, search_github_code, read_webpage
 
-from agents._shared.model import get_model
+from agents._shared.model import get_model, DEEP
+
+
+def read_state(key: str, tool_context: ToolContext) -> str:
+    """Read a value from session state. Use this to get data saved by previous agents (e.g. key='prd_output' for the PRD)."""
+    value = tool_context.state.get(key)
+    if value is None:
+        return f"No value found in state for key '{key}'"
+    return str(value)
+
+
 INSTRUCTION = """
-CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
+You are an architect agent. Design the tech stack and file structure based on the PRD.
+First, call read_state(key="prd_output") to get the PRD from session state.
+Your response will be automatically saved to session state via output_key.
 
-You are a Software Architect agent. Your job is to pick the tech stack and generate
-a complete file tree for the product.
+100% open-source, localhost only. No Supabase/Vercel/Firebase/Auth0/AWS.
 
-## Stack Decision Table (USE EXACTLY — no deviation)
+## Stack Table
+full-stack SaaS: Next.js 14 + API routes + SQLite + Prisma
+full-stack python: Jinja2+HTMX+Alpine / Flask|FastAPI + SQLite + SQLAlchemy
+API-heavy backend: React(Vite) + Express|Fastify + PostgreSQL + Prisma
+API-heavy python: React(Vite) + FastAPI + PostgreSQL + SQLAlchemy
+data-heavy app: Next.js 14 + PostgreSQL + Prisma
+data-heavy python: Dash|Streamlit + FastAPI + PostgreSQL + SQLAlchemy
+simple landing: Astro+Tailwind + SQLite + better-sqlite3
+static: Astro|Hugo, no backend
+CLI: Node|Python + SQLite
 
-| product_type           | Frontend              | Backend                      | Database  |
-|------------------------|-----------------------|------------------------------|-----------|
-| full-stack SaaS        | Vercel (Next.js 14)  | Next.js API routes           | Supabase  |
-| API-heavy backend      | Vercel (Next.js 14)  | Railway (FastAPI)            | NeonDB    |
-| simple landing + auth  | Vercel (Next.js 14)  | Supabase Edge Functions      | Supabase  |
-| data-heavy app         | Vercel (Next.js 14)  | Railway (FastAPI)            | NeonDB    |
+PRD tech_preferences OVERRIDE the table. User choice always wins.
+Default styling: Tailwind+Headless UI. Auth: bcryptjs+JWT httpOnly cookies. Icons: Lucide/Heroicons.
 
-## Selection Criteria
-- full-stack SaaS: user-facing UI with CRUD operations
-- API-heavy backend: primarily an API/webhook/data processing service, minimal UI
-- simple landing + auth: marketing site or waitlist with basic signup
-- data-heavy app: analytics, dashboards, large dataset queries
+## Process
+1. Call read_state(key="prd_output") to get the PRD
+2. Research (do ALL before designing):
+   a. search_github_repos for similar projects — find 3-5 repos
+   b. search_github_code for key patterns
+   c. read_webpage on top 1-2 repos for architecture patterns
+3. Select stack from table (respecting tech_preferences)
+4. Output the architecture as a single JSON object (no markdown, no code fences, just raw JSON)
 
-## Your Process
+## Architecture JSON Fields
+{
+  "stack": {"frontend": "", "backend": "", "database": "", "orm": "", "styling": "", "auth": "", "runtime": ""},
+  "file_tree": [{"file": "", "purpose": ""}],
+  "api_endpoints": [{"method": "", "path": "", "description": ""}],
+  "database_schema": "CREATE TABLE SQL with indexes and seed data",
+  "design_system": {"primary_color": "", "secondary_color": "", "accent_color": "", "background": "", "font": "", "border_radius": "", "shadows": ""},
+  "research_findings": {"repos_analyzed": [{"url": "", "stars": 0, "relevance": ""}], "patterns_to_reuse": [], "build_from_scratch": []}
+}
 
-1. Call `recall_product_state` to get the PRD
-3. Read `product_type` from PRD and select stack from table above
-4. Generate architecture as JSON:
-   - stack: {frontend, backend, database}
-   - file_tree: flat list of all files to generate with their purpose
-     - frontend files: all under /frontend/
-     - backend files: all under /backend/
-   - api_endpoints: list of endpoints the backend will expose
-5. Call `save_product_state` with the architecture JSON
-6. Call `log_step` with step="architect" and the stack summary
-
-## File Tree Requirements
-- /frontend/: package.json, next.config.js, tailwind.config.js, src/app/layout.tsx,
-  src/app/page.tsx, src/app/globals.css, src/components/ (key UI components)
-- /backend/: (FastAPI) main.py, requirements.txt, Dockerfile, routes/, models/
-- /backend/: (Next.js API) included in /frontend/src/app/api/
+## Rules
+- On tool failure: use knowledge, label [Knowledge-Based], deliver anyway.
+- Output ONLY the JSON object. No explanation, no markdown, no code fences.
 """
 
 architect_agent = Agent(
-    model=get_model(),
+    model=get_model(DEEP),  # Architecture decisions need maximum reasoning
     name="architect_agent",
-    description="Picks tech stack deterministically and generates project file tree from PRD.",
+    description="Picks open-source tech stack and generates comprehensive project file tree from PRD. Respects user tech preferences.",
     instruction=INSTRUCTION,
-    tools=[save_product_state, recall_product_state, log_step],
+    output_key="architecture_output",  # Auto-save response to state["architecture_output"]
+    tools=[read_state, search_github_repos, search_github_code, read_webpage],
 )

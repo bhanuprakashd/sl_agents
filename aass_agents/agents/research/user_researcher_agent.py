@@ -2,6 +2,7 @@
 import os
 from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
+from tools.browser_tools import navigate_and_read, browser_screenshot, browser_crawl
 
 from agents._shared.model import get_model
 INSTRUCTION = """
@@ -49,5 +50,5 @@ user_researcher_agent = Agent(
         "Use for understanding user behaviour, needs, and product usability."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web],
+    tools=[deep_research, search_company_web, navigate_and_read, browser_screenshot, browser_crawl],
 )

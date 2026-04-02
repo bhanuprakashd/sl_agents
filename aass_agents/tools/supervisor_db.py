@@ -103,12 +103,30 @@ def init_supervisor_tables() -> None:
                 ON supervisor_events(agent_name, created_at);
 
             CREATE TABLE IF NOT EXISTS supervisor_circuit_breakers (
-                agent_name      TEXT PRIMARY KEY,
-                failure_count   INT NOT NULL DEFAULT 0,
-                last_failure_at TEXT,
-                opened_at       TEXT,
-                state           TEXT NOT NULL DEFAULT 'closed'
+                agent_name             TEXT PRIMARY KEY,
+                failure_count          INT NOT NULL DEFAULT 0,
+                last_failure_at        TEXT,
+                last_failure_category  TEXT,
+                opened_at              TEXT,
+                state                  TEXT NOT NULL DEFAULT 'closed'
             );
+
+            CREATE TABLE IF NOT EXISTS supervisor_audit_log (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id      TEXT NOT NULL,
+                agent_name  TEXT NOT NULL,
+                action      TEXT NOT NULL,
+                detail_json TEXT NOT NULL,
+                entry_hash  TEXT NOT NULL,
+                prev_hash   TEXT NOT NULL,
+                actor       TEXT NOT NULL DEFAULT 'system',
+                created_at  TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_audit_run
+                ON supervisor_audit_log(run_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_agent
+                ON supervisor_audit_log(agent_name, created_at);
 
             CREATE TABLE IF NOT EXISTS supervisor_dlq (
                 run_id               TEXT PRIMARY KEY,
@@ -197,7 +215,7 @@ def get_circuit(agent_name: str) -> dict:
         if row:
             return dict(row)
         return {"agent_name": agent_name, "failure_count": 0, "state": "closed",
-                "last_failure_at": None, "opened_at": None}
+                "last_failure_at": None, "last_failure_category": None, "opened_at": None}
 
 
 def upsert_circuit(agent_name: str, **kwargs) -> None:
@@ -206,15 +224,78 @@ def upsert_circuit(agent_name: str, **kwargs) -> None:
     with _get_conn() as conn:
         conn.execute(
             """INSERT INTO supervisor_circuit_breakers
-               (agent_name, failure_count, last_failure_at, opened_at, state)
-               VALUES (:agent_name, :failure_count, :last_failure_at, :opened_at, :state)
+               (agent_name, failure_count, last_failure_at, last_failure_category, opened_at, state)
+               VALUES (:agent_name, :failure_count, :last_failure_at, :last_failure_category, :opened_at, :state)
                ON CONFLICT(agent_name) DO UPDATE SET
-                   failure_count   = excluded.failure_count,
-                   last_failure_at = excluded.last_failure_at,
-                   opened_at       = excluded.opened_at,
-                   state           = excluded.state""",
+                   failure_count          = excluded.failure_count,
+                   last_failure_at        = excluded.last_failure_at,
+                   last_failure_category  = excluded.last_failure_category,
+                   opened_at              = excluded.opened_at,
+                   state                  = excluded.state""",
             existing,
         )
+
+
+# ── Audit Log ────────────────────────────────────────────────────────────────
+
+def append_audit(run_id: str, agent_name: str, action: str, detail: dict,
+                 entry_hash: str, prev_hash: str, actor: str = "system") -> None:
+    """Append an immutable audit log entry."""
+    with _get_conn() as conn:
+        conn.execute(
+            """INSERT INTO supervisor_audit_log
+               (run_id, agent_name, action, detail_json, entry_hash, prev_hash, actor, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (run_id, agent_name, action, json.dumps(detail),
+             entry_hash, prev_hash, actor, _now()),
+        )
+
+
+def get_audit_log(run_id: Optional[str] = None, agent_name: Optional[str] = None,
+                  limit: int = 100) -> list[dict]:
+    """Query the audit log with optional filters."""
+    query = "SELECT * FROM supervisor_audit_log WHERE 1=1"
+    params: list = []
+    if run_id:
+        query += " AND run_id = ?"
+        params.append(run_id)
+    if agent_name:
+        query += " AND agent_name = ?"
+        params.append(agent_name)
+    query += " ORDER BY id DESC LIMIT ?"
+    params.append(limit)
+
+    with _get_conn() as conn:
+        rows = conn.execute(query, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+def verify_audit_chain(run_id: str) -> dict:
+    """Verify the integrity of the audit chain for a run."""
+    with _get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM supervisor_audit_log WHERE run_id = ? ORDER BY id ASC",
+            (run_id,),
+        ).fetchall()
+
+    if not rows:
+        return {"valid": True, "entries": 0, "message": "No audit entries"}
+
+    entries = [dict(r) for r in rows]
+    broken_at = None
+    for i, entry in enumerate(entries):
+        if i == 0:
+            continue
+        if entry["prev_hash"] != entries[i - 1]["entry_hash"]:
+            broken_at = i
+            break
+
+    return {
+        "valid": broken_at is None,
+        "entries": len(entries),
+        "broken_at": broken_at,
+        "message": "Chain intact" if broken_at is None else f"Chain broken at entry {broken_at}",
+    }
 
 
 # ── DLQ ──────────────────────────────────────────────────────────────────────

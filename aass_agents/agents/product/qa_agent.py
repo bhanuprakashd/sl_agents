@@ -1,29 +1,43 @@
 # aass_agents/agents/qa_agent.py
 """
 QA Agent — smoke tests the live deployment using HTTP tools and gstack browse binary.
+Uses ADK output_key to auto-save QA report to session state.
 """
 import os
 from google.adk.agents import Agent
+from google.adk.tools import ToolContext
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 from tools.http_tools import smoke_test, health_check, auth_smoke_test
 
-from agents._shared.model import get_model
+from agents._shared.model import get_model, FAST
+
+
+def read_state(key: str, tool_context: ToolContext) -> str:
+    """Read a value from session state. Use to get build_output, prd_output, product_id, etc."""
+    value = tool_context.state.get(key)
+    if value is None:
+        return f"No value found in state for key '{key}'"
+    return str(value)
 # Path to gstack headless browser binary (built from deer-flow/skills/gstack)
 _GSTACK_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "deer-flow", "skills", "gstack")
 _BROWSE_BIN = os.path.join(_GSTACK_DIR, "browse", "dist", "browse")
 
 INSTRUCTION = f"""
 You are a QA agent. You smoke test the live deployment.
+Your response will be automatically saved to session state via output_key.
 
 ## Tools Available
 - HTTP tools: `smoke_test`, `health_check`, `auth_smoke_test` — fast pass/fail checks
+- State tools: `read_state` — read build_output, prd_output, product_id from session state
 - gstack browse binary: `{_BROWSE_BIN}` — headless Chromium for visual verification
   Use bash to run: `{_BROWSE_BIN} goto <url> && {_BROWSE_BIN} snapshot -i`
   Take screenshots: `{_BROWSE_BIN} screenshot /tmp/qa-screenshot.png`
 
 ## Your Process
 
-1. Call `recall_product_state` to get frontend_url, backend_url, PRD
+1. Call read_state("build_output") to get the build result (contains URL).
+   Also call read_state("prd_output") for PRD and read_state("setup_output") or read_state("product_id") for the product_id.
+   Fall back to recall_product_state if state keys are empty.
 2. Run these tests IN ORDER — stop on first failure:
 
    Test 1: Frontend root (HTTP)
@@ -59,11 +73,13 @@ Do NOT retry yourself.
 """
 
 qa_agent = Agent(
-    model=get_model(),
+    model=get_model(FAST),  # QA is simple pass/fail checks, doesn't need deep reasoning
     name="qa_agent",
     description="Smoke tests the live deployment: root URL, health endpoint, auth flow.",
     instruction=INSTRUCTION,
+    output_key="qa_output",  # Auto-save QA report to state["qa_output"]
     tools=[
+        read_state,
         save_product_state, recall_product_state, log_step,
         smoke_test, health_check, auth_smoke_test,
     ],

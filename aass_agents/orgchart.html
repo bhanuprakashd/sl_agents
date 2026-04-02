@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SL Agents — Org Chart</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0d;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 40px 20px;
+      overflow-x: auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      color: #e94560;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 0.85rem;
+      margin-bottom: 40px;
+    }
+
+    /* Tree layout */
+    .node-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .children {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 16px;
+      position: relative;
+      padding-top: 28px;
+    }
+
+    /* Vertical connector from parent down */
+    .node-wrap > .children::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 28px;
+      background: #444;
+    }
+
+    /* Horizontal connector across children */
+    .node-wrap > .children::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: calc(50px);
+      right: calc(50px);
+      height: 2px;
+      background: #444;
+    }
+
+    /* Vertical connector from horizontal bar down to each child */
+    .children > .node-wrap {
+      position: relative;
+    }
+
+    .children > .node-wrap::before {
+      content: '';
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 28px;
+      background: #444;
+    }
+
+    /* Agent card */
+    .node {
+      width: 200px;
+      border-radius: 8px;
+      padding: 14px 12px;
+      cursor: default;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .node:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    .node-role {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+
+    .node-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f0f0f0;
+      margin-bottom: 3px;
+    }
+
+    .node-name {
+      font-size: 0.7rem;
+      color: #888;
+      font-family: monospace;
+      margin-bottom: 8px;
+    }
+
+    .node-caps {
+      font-size: 0.72rem;
+      color: #bbb;
+      line-height: 1.4;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 50px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SL Agents — Org Chart</h1>
+  <p class="subtitle">Auto-generated from ADK agent hierarchy</p>
+
+  <div style="display:flex; justify-content:center; overflow-x:auto; padding-bottom:20px;">
+    
+<div class="node-wrap">
+  <div class="node" style="background:#1a1a2e; border-top: 3px solid #e94560;">
+    <div class="node-role" style="color:#e94560;">CEO</div>
+    <div class="node-title">Company Orchestrator</div>
+    <div class="node-name">company_orchestrator</div>
+    <div class="node-caps">Top-level GTM orchestrator — routes to Sales, Marketing, and Product teams</div>
+  </div>
+  <div class="children">
+<div class="node-wrap">
+  <div class="node" style="background:#533483; border-top: 3px solid #e8d5b7;">
+    <div class="node-role" style="color:#e8d5b7;">CMO</div>
+    <div class="node-title">Marketing Orchestrator</div>
+    <div class="node-name">marketing_orchestrator</div>
+    <div class="node-caps">Demand generation, campaigns, content, SEO, performance analytics</div>
+  </div>
+  <div class="children">
+<div class="node-wrap">
+  <div class="node" style="background:#212529; border-top: 3px solid #74c0fc;">
+    <div class="node-role" style="color:#74c0fc;">RESEARCHER</div>
+    <div class="node-title">Audience Builder</div>
+    <div class="node-name">audience_builder</div>
+    <div class="node-caps">Builds ICP audiences and Tier 1 MQL lists</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Campaign Composer</div>
+    <div class="node-name">campaign_composer</div>
+    <div class="node-caps">Creates email, LinkedIn, and landing page campaigns</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Content Strategist</div>
+    <div class="node-name">content_strategist</div>
+    <div class="node-caps">Content briefs, blog posts, SEO-aligned content plans</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#212529; border-top: 3px solid #74c0fc;">
+    <div class="node-role" style="color:#74c0fc;">RESEARCHER</div>
+    <div class="node-title">SEO Analyst</div>
+    <div class="node-name">seo_analyst</div>
+    <div class="node-caps">Keyword strategy, on-page SEO, search signal analysis</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#212529; border-top: 3px solid #74c0fc;">
+    <div class="node-role" style="color:#74c0fc;">RESEARCHER</div>
+    <div class="node-title">Campaign Analyst</div>
+    <div class="node-name">campaign_analyst</div>
+    <div class="node-caps">Campaign performance measurement and A/B test analysis</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Brand Voice Agent</div>
+    <div class="node-name">brand_voice</div>
+    <div class="node-caps">Reviews copy for brand consistency before launch</div>
+  </div>
+  
+</div>
+</div>
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Sales Orchestrator</div>
+    <div class="node-name">sales_orchestrator</div>
+    <div class="node-caps">Full revenue cycle — research, outreach, proposals, CRM, pipeline</div>
+  </div>
+  <div class="children">
+<div class="node-wrap">
+  <div class="node" style="background:#212529; border-top: 3px solid #74c0fc;">
+    <div class="node-role" style="color:#74c0fc;">RESEARCHER</div>
+    <div class="node-title">Lead Researcher</div>
+    <div class="node-name">lead_researcher</div>
+    <div class="node-caps">Researches prospects and builds structured company profiles</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Outreach Composer</div>
+    <div class="node-name">outreach_composer</div>
+    <div class="node-caps">Writes personalised cold emails and LinkedIn messages</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Sales Call Prep</div>
+    <div class="node-name">sales_call_prep</div>
+    <div class="node-caps">Generates call briefs and discovery question frameworks</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Objection Handler</div>
+    <div class="node-name">objection_handler</div>
+    <div class="node-caps">Live deal support — counters objections with evidence</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">Proposal Generator</div>
+    <div class="node-name">proposal_generator</div>
+    <div class="node-caps">Writes tailored business cases and proposals</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#343a40; border-top: 3px solid #ced4da;">
+    <div class="node-role" style="color:#ced4da;">GENERAL</div>
+    <div class="node-title">CRM Updater</div>
+    <div class="node-name">crm_updater</div>
+    <div class="node-caps">Logs calls, updates deal stages, creates follow-up tasks</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#212529; border-top: 3px solid #74c0fc;">
+    <div class="node-role" style="color:#74c0fc;">RESEARCHER</div>
+    <div class="node-title">Deal Analyst</div>
+    <div class="node-name">deal_analyst</div>
+    <div class="node-caps">Pipeline reviews, deal health scoring, and forecasting</div>
+  </div>
+  
+</div>
+</div>
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#0f3460; border-top: 3px solid #16213e;">
+    <div class="node-role" style="color:#16213e;">CTO</div>
+    <div class="node-title">Product Orchestrator</div>
+    <div class="node-name">product_orchestrator</div>
+    <div class="node-caps">Autonomous product pipeline — requirement to live deployed SaaS</div>
+  </div>
+  <div class="children">
+<div class="node-wrap">
+  <div class="node" style="background:#1b4332; border-top: 3px solid #52b788;">
+    <div class="node-role" style="color:#52b788;">PM</div>
+    <div class="node-title">PM Agent</div>
+    <div class="node-name">pm_agent</div>
+    <div class="node-caps">Converts requirements into structured PRDs with market research</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#1c3144; border-top: 3px solid #4dabf7;">
+    <div class="node-role" style="color:#4dabf7;">ENGINEER</div>
+    <div class="node-title">Architect Agent</div>
+    <div class="node-name">architect_agent</div>
+    <div class="node-caps">Picks tech stack deterministically and generates file tree</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#7f4f24; border-top: 3px solid #ffd166;">
+    <div class="node-role" style="color:#ffd166;">DEVOPS</div>
+    <div class="node-title">DevOps Agent</div>
+    <div class="node-name">devops_agent</div>
+    <div class="node-caps">Provisions GitHub repo, Vercel project, Railway project</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#1c3144; border-top: 3px solid #4dabf7;">
+    <div class="node-role" style="color:#4dabf7;">ENGINEER</div>
+    <div class="node-title">DB Agent</div>
+    <div class="node-name">db_agent</div>
+    <div class="node-caps">Generates SQL schema, provisions NeonDB or Supabase</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#1c3144; border-top: 3px solid #4dabf7;">
+    <div class="node-role" style="color:#4dabf7;">ENGINEER</div>
+    <div class="node-title">Backend Builder</div>
+    <div class="node-name">backend_builder_agent</div>
+    <div class="node-caps">Generates FastAPI backend code and deploys to Railway</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#3d1c56; border-top: 3px solid #da77f2;">
+    <div class="node-role" style="color:#da77f2;">DESIGNER</div>
+    <div class="node-title">Frontend Builder</div>
+    <div class="node-name">frontend_builder_agent</div>
+    <div class="node-caps">Generates Next.js + Tailwind UI and deploys to Vercel</div>
+  </div>
+  
+</div>
+
+
+<div class="node-wrap">
+  <div class="node" style="background:#495057; border-top: 3px solid #a9c5a0;">
+    <div class="node-role" style="color:#a9c5a0;">QA</div>
+    <div class="node-title">QA Agent</div>
+    <div class="node-name">qa_agent</div>
+    <div class="node-caps">Smoke tests the live deployment — root, health, auth</div>
+  </div>
+  
+</div>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#e94560;"></div>ceo</div><div class="legend-item"><div class="legend-dot" style="background:#16213e;"></div>cto</div><div class="legend-item"><div class="legend-dot" style="background:#e8d5b7;"></div>cmo</div><div class="legend-item"><div class="legend-dot" style="background:#82c0cc;"></div>cfo</div><div class="legend-item"><div class="legend-dot" style="background:#52b788;"></div>pm</div><div class="legend-item"><div class="legend-dot" style="background:#4dabf7;"></div>engineer</div><div class="legend-item"><div class="legend-dot" style="background:#da77f2;"></div>designer</div><div class="legend-item"><div class="legend-dot" style="background:#ffd166;"></div>devops</div><div class="legend-item"><div class="legend-dot" style="background:#a9c5a0;"></div>qa</div><div class="legend-item"><div class="legend-dot" style="background:#74c0fc;"></div>researcher</div><div class="legend-item"><div class="legend-dot" style="background:#ced4da;"></div>general</div>
+  </div>
+</body>
+</html>

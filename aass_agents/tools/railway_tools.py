@@ -28,7 +28,7 @@ def _gql(query: str, variables: dict | None = None) -> dict:
         return data["data"]
 
 
-def create_project(name: str) -> dict:
+def railway_create_project(name: str) -> dict:
     """Create a Railway project. Returns project id."""
     query = """
     mutation ProjectCreate($input: ProjectCreateInput!) {
@@ -38,7 +38,7 @@ def create_project(name: str) -> dict:
     return _gql(query, {"input": {"name": name}})["projectCreate"]
 
 
-def add_env_var(project_id: str, service_id: str, key: str, value: str) -> dict:
+def railway_add_env_var(project_id: str, service_id: str, key: str, value: str) -> dict:
     """Add an environment variable to a Railway service."""
     query = """
     mutation VariableUpsert($input: VariableUpsertInput!) {

@@ -20,22 +20,27 @@ load_dotenv()
 from agents.company_orchestrator_agent import company_orchestrator
 from tools.supervisor import Supervisor
 from tools.supervisor_db import init_supervisor_tables
+from tools.hook_engine import HookEngine
 
 # Initialise supervisor tables before any agent runs
 init_supervisor_tables()
 
 _supervisor = Supervisor()
 
+# Load declarative hook engine
+_hooks = HookEngine(
+    config_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "hooks.yaml")
+)
 
-# ── ADK Callbacks ─────────────────────────────────────────────────────────────
+
+# ── ADK Callbacks (thin wrappers delegating to hook engine) ──────────────────
 
 def _before_agent_callback(callback_context):
     """
     Runs BEFORE ADK dispatches any agent call in the tree.
+    Delegates to declarative hooks defined in hooks.yaml.
     Returns Content to skip the agent (guard triggered); None to allow.
     """
-    from google.genai.types import Content, Part
-
     run_id = callback_context.state.get("supervisor_run_id")
     agent_name = getattr(callback_context, "agent_name", "unknown")
     user_content = getattr(callback_context, "user_content", None)
@@ -43,27 +48,57 @@ def _before_agent_callback(callback_context):
     if user_content and hasattr(user_content, "parts") and user_content.parts:
         input_text = user_content.parts[0].text or ""
 
-    block_msg = _supervisor.pre_call_check(run_id, agent_name, input_text)
-    if block_msg:
-        return Content(parts=[Part(text=block_msg)])
+    print(f"[PIPELINE] >>> Starting agent: {agent_name}", flush=True)
 
-    _supervisor.log_called(run_id, agent_name, input_text)
+    try:
+        state_dict = dict(callback_context.state)
+    except (KeyError, TypeError):
+        state_dict = {}
+
+    context = {
+        "run_id": run_id,
+        "agent_name": agent_name,
+        "input_text": input_text,
+        "state": state_dict,
+        "supervisor": _supervisor,
+    }
+
+    results = _hooks.fire("pre_agent", context)
+
+    # If any hook returns a Content object, use it to block the agent
+    for result in results:
+        if result is not None and hasattr(result, "parts"):
+            return result
+
     return None
 
 
 def _after_agent_callback(callback_context):
     """
     Runs AFTER ADK gets the agent's response.
-    Used for logging, checkpointing, and validity updates.
-    ADK v1.27+ calls this with a single CallbackContext argument.
+    Delegates to declarative hooks defined in hooks.yaml.
     """
     run_id = callback_context.state.get("supervisor_run_id")
     agent_name = getattr(callback_context, "agent_name", "unknown")
-    output_text = ""
 
-    _supervisor.log_returned(run_id, agent_name, output_text)
-    _supervisor.checkpoint(run_id, agent_name)
-    _supervisor.update_validity(run_id, agent_name, dict(callback_context.state))
+    # Log state keys populated so far (shows data flow between agents)
+    try:
+        state_dict = dict(callback_context.state)
+    except (KeyError, TypeError):
+        state_dict = {}
+
+    state_keys = [k for k in state_dict if k not in ("supervisor_run_id",)]
+    print(f"[PIPELINE] <<< Finished agent: {agent_name} | state keys: {state_keys}", flush=True)
+
+    context = {
+        "run_id": run_id,
+        "agent_name": agent_name,
+        "output_text": "",
+        "state": state_dict,
+        "supervisor": _supervisor,
+    }
+
+    _hooks.fire("post_agent", context)
     return None  # pass response through unchanged
 
 

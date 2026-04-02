@@ -41,7 +41,7 @@ def test_build_and_run_timeout(tmp_path, monkeypatch):
          patch("tools.claude_code_tools.subprocess.run",
                side_effect=subprocess.TimeoutExpired("claude", 600)):
         result = build_and_run("test-proj", "build something")
-    assert result == "Error: timed out after 600s"
+    assert result == "Error: timed out after 900s"
 
 
 def test_build_and_run_creates_project_dir(tmp_path, monkeypatch):

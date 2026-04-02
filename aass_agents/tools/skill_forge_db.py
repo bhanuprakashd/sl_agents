@@ -338,5 +338,155 @@ def list_staged_skills_sync() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+# ── Skill Graduation Pipeline ────────────────────────────────────────────────
+#
+# Graduation path: staged → review → promoted → active
+#
+# Criteria for auto-promotion:
+#   1. composite_score >= PROMOTION_SCORE_THRESHOLD
+#   2. production_runs >= PROMOTION_RUN_THRESHOLD
+#   3. needs_review == 0 (human review complete, or score high enough to skip)
+
+PROMOTION_SCORE_THRESHOLD = 0.85
+PROMOTION_RUN_THRESHOLD = 3
+AUTO_PROMOTE_SCORE = 0.95  # Skip human review if score is this high
+
+
+def check_promotion_eligible(skill_id: str) -> dict:
+    """
+    Check if a staged skill is eligible for promotion to active.
+
+    Returns:
+        dict with eligible (bool), reasons (list), and skill data
+    """
+    skill = get_staged_skill_sync(skill_id)
+    if skill is None:
+        return {"eligible": False, "reasons": ["Skill not found"], "skill": None}
+
+    reasons: list[str] = []
+    eligible = True
+
+    score = skill["composite_score"]
+    runs = skill["production_runs"]
+    needs_review = skill["needs_review"]
+
+    if score < PROMOTION_SCORE_THRESHOLD:
+        eligible = False
+        reasons.append(
+            f"Score {score:.2f} < threshold {PROMOTION_SCORE_THRESHOLD}"
+        )
+
+    if runs < PROMOTION_RUN_THRESHOLD:
+        eligible = False
+        reasons.append(
+            f"Production runs {runs} < threshold {PROMOTION_RUN_THRESHOLD}"
+        )
+
+    if needs_review and score < AUTO_PROMOTE_SCORE:
+        eligible = False
+        reasons.append(
+            f"Needs human review (score {score:.2f} < auto-promote {AUTO_PROMOTE_SCORE})"
+        )
+
+    if eligible:
+        reasons.append("All promotion criteria met")
+
+    return {
+        "eligible": eligible,
+        "reasons": reasons,
+        "skill": skill,
+    }
+
+
+def promote_skill_sync(skill_id: str) -> dict:
+    """
+    Promote a staged skill to active status.
+
+    Copies the skill from staging_registry to a 'promoted' state
+    and clears the needs_review flag.
+
+    Returns:
+        dict with success, message, and skill data
+    """
+    check = check_promotion_eligible(skill_id)
+    if not check["eligible"]:
+        return {
+            "success": False,
+            "message": f"Not eligible: {'; '.join(check['reasons'])}",
+            "skill": check["skill"],
+        }
+
+    with _connect() as conn:
+        conn.execute(
+            """UPDATE staging_registry
+               SET needs_review = 0, updated_at = ?
+               WHERE skill_id = ?""",
+            (_now_iso(), skill_id),
+        )
+
+    return {
+        "success": True,
+        "message": f"Skill '{skill_id}' promoted to active",
+        "skill": get_staged_skill_sync(skill_id),
+    }
+
+
+def demote_skill_sync(skill_id: str, reason: str = "") -> dict:
+    """
+    Demote a skill back to review-needed state.
+
+    Returns:
+        dict with success and message
+    """
+    skill = get_staged_skill_sync(skill_id)
+    if skill is None:
+        return {"success": False, "message": "Skill not found"}
+
+    with _connect() as conn:
+        conn.execute(
+            """UPDATE staging_registry
+               SET needs_review = 1, production_runs = 0, updated_at = ?
+               WHERE skill_id = ?""",
+            (_now_iso(), skill_id),
+        )
+
+    return {
+        "success": True,
+        "message": f"Skill '{skill_id}' demoted. Reason: {reason or 'none given'}",
+    }
+
+
+def get_promotion_dashboard_sync() -> dict:
+    """
+    Get promotion status for all staged skills.
+
+    Returns:
+        dict with skills grouped by status (eligible, needs_review, not_ready)
+    """
+    skills = list_staged_skills_sync()
+
+    eligible = []
+    needs_review = []
+    not_ready = []
+
+    for skill in skills:
+        check = check_promotion_eligible(skill["skill_id"])
+        entry = {**skill, "promotion_check": check}
+
+        if check["eligible"]:
+            eligible.append(entry)
+        elif skill["needs_review"]:
+            needs_review.append(entry)
+        else:
+            not_ready.append(entry)
+
+    return {
+        "eligible": eligible,
+        "needs_review": needs_review,
+        "not_ready": not_ready,
+        "total": len(skills),
+    }
+
+
 # Init on import
 init_db()

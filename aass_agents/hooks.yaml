@@ -1,0 +1,70 @@
+# Hook Definitions — declarative lifecycle hooks for sl_agents.
+#
+# Events: pre_agent, post_agent, pre_tool, post_tool, task_start, task_end, error
+#
+# Each hook specifies:
+#   event:       When to fire
+#   handler:     Dotted path to a function (module.function)
+#   description: What it does (for dashboard/docs)
+#   agents:      Optional list — only fire for these agents (omit for all)
+#   priority:    Lower number = runs first (default: 100)
+
+hooks:
+  # ── Pre-Agent Hooks (run before agent dispatch) ────────────────────────────
+
+  - event: pre_agent
+    handler: tools.hook_handlers.check_circuit_breaker
+    description: "Circuit breaker check — block agents with open circuits"
+    priority: 10
+
+  - event: pre_agent
+    handler: tools.hook_handlers.check_loop_guard
+    description: "Loop guard — detect repeated agent calls with same input"
+    priority: 20
+
+  - event: pre_agent
+    handler: tools.hook_handlers.set_cost_context
+    description: "Set cost tracking context vars for token accounting"
+    priority: 30
+
+  - event: pre_agent
+    handler: tools.hook_handlers.set_message_context
+    description: "Set inter-agent messaging context"
+    priority: 40
+
+  - event: pre_agent
+    handler: tools.hook_handlers.log_agent_called
+    description: "Log agent invocation to supervisor event log"
+    priority: 50
+
+  # ── Post-Agent Hooks (run after agent responds) ────────────────────────────
+
+  - event: post_agent
+    handler: tools.hook_handlers.log_agent_returned
+    description: "Log agent completion, record success/failure"
+    priority: 10
+
+  - event: post_agent
+    handler: tools.hook_handlers.checkpoint_run
+    description: "Checkpoint pipeline run for DLQ recovery"
+    priority: 20
+
+  - event: post_agent
+    handler: tools.hook_handlers.update_validity
+    description: "Update staleness/validity cache for the agent"
+    priority: 30
+
+  - event: post_agent
+    handler: tools.hook_handlers.clear_cost_context
+    description: "Clear cost tracking context vars"
+    priority: 40
+
+  - event: post_agent
+    handler: tools.hook_handlers.clear_message_context
+    description: "Clear messaging context"
+    priority: 50
+
+  - event: post_agent
+    handler: tools.hook_handlers.emit_progress
+    description: "Broadcast agent completion to SSE subscribers"
+    priority: 60

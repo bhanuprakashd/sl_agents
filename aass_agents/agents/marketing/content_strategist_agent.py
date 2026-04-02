@@ -1,25 +1,8 @@
 """Content Strategist Agent — builds content strategies, briefs, and assets."""
 
-import os
 from google.adk.agents import Agent
-from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams, StdioServerParameters
 from tools.marketing_tools import get_trending_topics, search_competitor_content, fetch_rss_feed
 from tools.research_tools import search_company_web
-
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_MEDIUM_MCP_PATH = os.path.abspath(os.getenv("MEDIUM_MCP_PATH") or os.path.join(_HERE, "..", "..", "medium-mcp-server"))
-_medium_mcp = None
-if os.path.isfile(os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")):
-    _medium_mcp = McpToolset(
-        connection_params=StdioConnectionParams(
-            server_params=StdioServerParameters(
-                command="node",
-                args=[os.path.join(_MEDIUM_MCP_PATH, "dist", "index.js")],
-                cwd=_MEDIUM_MCP_PATH,
-                env={**os.environ},
-            )
-        )
-    )
 
 from agents._shared.model import get_model
 INSTRUCTION = """
@@ -134,5 +117,5 @@ content_strategist_agent = Agent(
         "Uses competitor content analysis and trending topics to find angles."
     ),
     instruction=INSTRUCTION,
-    tools=[t for t in [get_trending_topics, search_competitor_content, fetch_rss_feed, search_company_web, _medium_mcp] if t is not None],
+    tools=[get_trending_topics, search_competitor_content, fetch_rss_feed, search_company_web],
 )

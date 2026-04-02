@@ -9,8 +9,8 @@ import os
 from google.adk.agents import Agent
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
 from tools.github_tools import create_repo
-from tools.vercel_tools import create_project as vercel_create, add_env_var as vercel_add_env, connect_github, get_deployment_url
-from tools.railway_tools import create_project as railway_create, add_env_var as railway_add_env, deploy_from_github
+from tools.vercel_tools import vercel_create_project, vercel_add_env_var, connect_github, get_deployment_url
+from tools.railway_tools import railway_create_project, railway_add_env_var, deploy_from_github
 
 from agents._shared.model import get_model
 INSTRUCTION = """
@@ -52,7 +52,7 @@ devops_agent = Agent(
     instruction=INSTRUCTION,
     tools=[
         save_product_state, recall_product_state, log_step,
-        create_repo, vercel_create, vercel_add_env, connect_github,
-        railway_create, railway_add_env,
+        create_repo, vercel_create_project, vercel_add_env_var, connect_github,
+        railway_create_project, railway_add_env_var,
     ],
 )
