@@ -8,6 +8,7 @@ Runs first in the SequentialAgent pipeline.
 from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 from tools.product_memory_tools import generate_product_id, save_product_state, log_step
+from tools.system_env_tools import detect_system_environment
 
 from agents._shared.model import get_model, FAST
 
@@ -25,8 +26,10 @@ You initialize the product pipeline. Do these steps IN ORDER:
 2. Extract the product name from the user's requirement (use PascalCase, e.g. "SpaceMissionControl").
 3. Call save_product_state(product_id=<uuid>, product_name=<name>, status="running").
 4. Call log_step(product_id=<uuid>, step="start", message=<the user's original requirement>).
-5. Call _save_to_state(key="product_id", value=<uuid>) to make it available to downstream agents.
-6. Output ONLY the product_id UUID as plain text. Nothing else.
+5. Call detect_system_environment() to scan the machine for installed runtimes, databases, and tools.
+6. Call _save_to_state(key="system_environment", value=<the full JSON result from detect_system_environment>).
+7. Call _save_to_state(key="product_id", value=<uuid>) to make it available to downstream agents.
+8. Output ONLY the product_id UUID as plain text. Nothing else.
 """
 
 setup_agent = Agent(
@@ -35,5 +38,5 @@ setup_agent = Agent(
     description="Initializes product pipeline: generates product_id, saves initial state, logs start.",
     instruction=INSTRUCTION,
     output_key="setup_output",
-    tools=[generate_product_id, save_product_state, log_step, _save_to_state],
+    tools=[generate_product_id, save_product_state, log_step, _save_to_state, detect_system_environment],
 )

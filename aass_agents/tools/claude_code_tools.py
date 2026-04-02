@@ -278,9 +278,13 @@ def build_review_improve(
         _log_progress("server_start", "starting", "Starting dev server...")
         start_result = _run_claude(
             str(project_dir),
-            "Read the existing project files. Install dependencies if needed (npm install). "
-            "Then start the dev server (npm run dev). The project is already built — "
-            "just get it running.",
+            "Read the existing project files to understand the stack. "
+            "For Python/Django/FastAPI/Flask projects: install deps with pip install -r requirements.txt, "
+            "run migrations if needed (python manage.py migrate), then start the server "
+            "(python manage.py runserver OR uvicorn main:app). "
+            "For Node/React projects: run npm install, then npm run dev. "
+            "For full-stack (backend + frontend): start the backend server only. "
+            "The project is already built — just get it running.",
             timeout=PHASE_TIMEOUTS["server_start"],
         )
         if start_result["ok"]:

@@ -121,12 +121,19 @@ def save_product_state(
                 vals,
             )
         else:
-            set_clause = ", ".join(f"{k} = ?" for k in serialized)
-            vals = list(serialized.values()) + [now, product_id]
-            conn.execute(
-                f"UPDATE product_pipeline_state SET {set_clause}, updated_at = ? WHERE product_id = ?",
-                vals,
-            )
+            if not serialized:
+                # Nothing to update besides the timestamp
+                conn.execute(
+                    "UPDATE product_pipeline_state SET updated_at = ? WHERE product_id = ?",
+                    [now, product_id],
+                )
+            else:
+                set_clause = ", ".join(f"{k} = ?" for k in serialized)
+                vals = list(serialized.values()) + [now, product_id]
+                conn.execute(
+                    f"UPDATE product_pipeline_state SET {set_clause}, updated_at = ? WHERE product_id = ?",
+                    vals,
+                )
     return f"Product state saved for {product_id}: {list(fields.keys())}"
 
 
