@@ -59,7 +59,11 @@ Pass the full PRD and architecture JSON as context so the LLM knows the data mod
 """
 
 # MCP tools: docs, packages, cve, github (code patterns), duckduckgo (web search)
-_mcp_tools = mcp_hub.get_toolsets(["docs", "packages", "cve", "github", "duckduckgo"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs", "packages", "cve", "github", "duckduckgo",
+    # New: API spec, linting, testing, security
+    "openapi", "py_lint", "pytest", "sec_audit",
+])
 
 backend_builder_agent = Agent(
     model=get_model(),

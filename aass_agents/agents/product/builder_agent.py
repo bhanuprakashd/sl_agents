@@ -76,6 +76,9 @@ _mcp_tools = mcp_hub.get_toolsets([
     "docs", "repomap", "js_sandbox", "code_analysis", "npm_search", "sqlite",
     "github", "duckduckgo",
     "image_gen", "charts", "svg",
+    # New: code quality, testing, design
+    "eslint", "prettier", "jest", "lighthouse",
+    "colors", "placeholder", "fonts",
 ])
 
 builder_agent = Agent(

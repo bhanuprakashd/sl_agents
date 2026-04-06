@@ -45,7 +45,11 @@ You are a Database agent. You generate the SQLite schema and migration script.
 """
 
 # MCP tools: sqlite, docs, github (schema patterns), duckduckgo
-_mcp_tools = mcp_hub.get_toolsets(["sqlite", "docs", "github", "duckduckgo"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "sqlite", "docs", "github", "duckduckgo",
+    # New: database engines
+    "postgres", "duckdb", "redis", "mongodb",
+])
 
 db_agent = Agent(
     model=get_model(FAST),

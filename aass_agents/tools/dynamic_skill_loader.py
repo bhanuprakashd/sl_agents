@@ -33,35 +33,77 @@ _log = logging.getLogger(__name__)
 
 DOMAIN_MCP_MAP: dict[str, list[str]] = {
     # Core (always available)
-    "_core": ["docs", "fetch", "duckduckgo", "thinking", "memory"],
+    "_core": ["docs", "fetch", "duckduckgo", "thinking", "memory", "github", "wikipedia", "readability"],
 
     # Design (available to all visual-heavy domains)
-    "_design": ["image_gen", "charts", "diagrams", "svg", "drawio"],
+    "_design": ["image_gen", "charts", "diagrams", "svg", "drawio", "colors", "placeholder", "favicon"],
 
-    # Industries
-    "agriculture": ["docs", "fetch", "duckduckgo", "sqlite", "calc", "time", "charts"],
-    "ecommerce": ["docs", "fetch", "npm_search", "js_sandbox", "packages", "cve", "image_gen", "charts", "svg"],
-    "finance": ["docs", "fetch", "calc", "cve", "sqlite", "time", "charts", "diagrams"],
-    "healthcare": ["docs", "fetch", "cve", "sqlite", "time", "markitdown", "charts", "diagrams"],
-    "education": ["docs", "fetch", "npm_search", "js_sandbox", "markitdown", "image_gen", "charts", "svg"],
-    "social": ["docs", "fetch", "npm_search", "js_sandbox", "browser", "image_gen", "svg"],
-    "project_management": ["docs", "fetch", "npm_search", "tasks", "sqlite", "time", "charts", "diagrams", "drawio"],
-    "content": ["docs", "fetch", "markitdown", "pandoc", "npm_search", "image_gen", "svg", "charts"],
-    "analytics": ["docs", "fetch", "sqlite", "calc", "npm_search", "js_sandbox", "charts", "diagrams"],
-    "real_estate": ["docs", "fetch", "sqlite", "calc", "duckduckgo", "image_gen", "charts"],
-    "logistics": ["docs", "fetch", "sqlite", "calc", "time", "duckduckgo", "charts", "diagrams"],
-    "manufacturing": ["docs", "fetch", "sqlite", "calc", "time", "charts", "diagrams"],
-    "legal": ["docs", "fetch", "markitdown", "pandoc", "duckduckgo", "cve"],
-    "hr": ["docs", "fetch", "sqlite", "time", "markitdown", "charts"],
-    "marketing": ["docs", "fetch", "duckduckgo", "npm_search", "browser", "image_gen", "charts", "svg"],
-    "security": ["docs", "fetch", "cve", "code_analysis", "duckduckgo", "diagrams"],
-    "devops": ["docs", "fetch", "docker", "git", "code_analysis", "cve", "diagrams", "drawio"],
-    "iot": ["docs", "fetch", "sqlite", "calc", "time", "npm_search", "diagrams", "charts"],
-    "gaming": ["docs", "fetch", "npm_search", "js_sandbox", "code_analysis", "image_gen", "svg"],
-    "ai_ml": ["docs", "fetch", "npm_search", "calc", "duckduckgo", "code_analysis", "charts", "diagrams"],
+    # Industries (30+)
+    "agriculture": ["sqlite", "calc", "time", "charts", "weather", "geo", "agri", "image_gen", "stats"],
+    "ecommerce": ["npm_search", "js_sandbox", "packages", "cve", "image_gen", "charts", "svg",
+                   "ecom", "lighthouse", "a11y", "colors", "screenshot", "qrcode", "barcode"],
+    "finance": ["calc", "cve", "sqlite", "time", "charts", "diagrams", "findata", "currency",
+                "stats", "duckdb", "excel", "pdf", "sec_audit"],
+    "healthcare": ["cve", "sqlite", "time", "markitdown", "charts", "diagrams", "fhir", "hl7",
+                   "privacy", "pdf", "latex", "stats"],
+    "education": ["npm_search", "js_sandbox", "markitdown", "image_gen", "charts", "svg",
+                  "edu", "latex", "slides", "pdf", "arxiv", "wikipedia"],
+    "social": ["npm_search", "js_sandbox", "browser", "image_gen", "svg", "websocket",
+               "screenshot", "lighthouse", "a11y", "colors"],
+    "project_management": ["npm_search", "tasks", "sqlite", "time", "charts", "diagrams", "drawio",
+                           "ci", "git", "changelog", "slides"],
+    "content": ["markitdown", "pandoc", "npm_search", "image_gen", "svg", "charts",
+                "pdf", "md_tools", "latex", "slides", "rss_gen", "email_tpl", "ascii"],
+    "analytics": ["sqlite", "calc", "npm_search", "js_sandbox", "charts", "diagrams",
+                  "duckdb", "stats", "plot", "excel", "data_transform", "geo"],
+    "real_estate": ["sqlite", "calc", "duckduckgo", "image_gen", "charts", "realestate",
+                    "geo", "pdf", "currency", "screenshot"],
+    "logistics": ["sqlite", "calc", "time", "duckduckgo", "charts", "diagrams", "geo",
+                  "weather", "qrcode", "barcode", "units"],
+    "manufacturing": ["sqlite", "calc", "time", "charts", "diagrams", "barcode", "qrcode",
+                      "stats", "plot", "excel", "data_transform"],
+    "legal": ["markitdown", "pandoc", "duckduckgo", "cve", "legal", "pdf", "privacy",
+              "arxiv", "sec_audit", "sbom"],
+    "hr": ["sqlite", "time", "markitdown", "charts", "hr_tools", "pdf", "email_tpl",
+            "slides", "calendar"],
+    "marketing": ["duckduckgo", "npm_search", "browser", "image_gen", "charts", "svg",
+                  "screenshot", "lighthouse", "a11y", "colors", "hacker_news", "rss", "email_tpl"],
+    "security": ["cve", "code_analysis", "duckduckgo", "diagrams", "sec_audit", "secrets",
+                 "dep_audit", "ssl", "cors", "sbom", "osint", "privacy", "dns"],
+    "devops": ["docker", "git", "code_analysis", "cve", "diagrams", "drawio", "compose",
+               "helm", "dockerfile", "ci", "makefile", "shell", "nginx", "systemd",
+               "cron", "process", "logs", "yaml_tools", "sec_audit", "dep_audit"],
+    "iot": ["sqlite", "calc", "time", "npm_search", "diagrams", "charts", "mqtt",
+            "websocket", "webhook", "weather", "geo", "stats"],
+    "gaming": ["npm_search", "js_sandbox", "code_analysis", "image_gen", "svg",
+               "colors", "placeholder", "fonts", "audio", "websocket"],
+    "ai_ml": ["npm_search", "calc", "duckduckgo", "code_analysis", "charts", "diagrams",
+              "prompts", "embeddings", "tokenizer", "dataset", "model_card", "confusion",
+              "stats", "plot", "arxiv", "vector_db", "duckdb"],
+    "telecom": ["sqlite", "calc", "diagrams", "charts", "nettools", "dns", "ssl",
+                "mqtt", "websocket", "logs", "stats"],
+    "energy": ["sqlite", "calc", "time", "charts", "diagrams", "weather", "geo",
+               "stats", "plot", "units", "data_transform"],
+    "insurance": ["sqlite", "calc", "charts", "pdf", "privacy", "stats",
+                  "findata", "currency", "excel", "data_transform"],
+    "automotive": ["sqlite", "calc", "charts", "diagrams", "geo", "barcode",
+                   "stats", "plot", "image_gen", "units"],
+    "food_service": ["sqlite", "time", "charts", "image_gen", "qrcode", "barcode",
+                     "calendar", "geo", "weather", "ecom"],
+    "travel": ["sqlite", "time", "charts", "image_gen", "geo", "weather", "currency",
+               "calendar", "wikipedia", "screenshot"],
+    "media": ["npm_search", "image_gen", "svg", "charts", "audio", "video",
+              "img_resize", "colors", "fonts", "screenshot", "rss_gen"],
+    "government": ["sqlite", "charts", "diagrams", "pdf", "privacy", "sec_audit",
+                   "a11y", "sbom", "geo", "data_transform", "excel"],
+    "nonprofit": ["sqlite", "charts", "image_gen", "pdf", "email_tpl", "slides",
+                  "geo", "calendar", "rss_gen"],
+    "supply_chain": ["sqlite", "calc", "time", "charts", "diagrams", "barcode", "qrcode",
+                     "geo", "webhook", "data_transform", "excel"],
 
     # Fallback
-    "general": ["docs", "fetch", "duckduckgo", "npm_search", "sqlite", "charts", "image_gen"],
+    "general": ["duckduckgo", "npm_search", "sqlite", "charts", "image_gen",
+                "arxiv", "wikipedia", "web_search", "screenshot", "lighthouse"],
 }
 
 
@@ -281,6 +323,26 @@ def detect_industry(requirement: str) -> str:
                     "sprite", "physics engine", "unity", "godot"],
         "ai_ml": ["model", "training", "inference", "dataset", "neural", "llm",
                    "fine-tune", "embeddings", "vector", "ml pipeline"],
+        "telecom": ["telecom", "network", "5g", "bandwidth", "voip", "sip",
+                     "tower", "signal", "spectrum", "carrier", "ott"],
+        "energy": ["solar", "wind", "battery", "grid", "power plant", "renewable",
+                    "energy", "utility", "kwh", "turbine", "carbon"],
+        "insurance": ["policy", "claim", "premium", "underwriting", "actuarial",
+                       "coverage", "deductible", "insurer", "reinsurance"],
+        "automotive": ["vehicle", "car", "fleet", "vin", "dealer", "auto",
+                        "mechanic", "parts", "obd", "diagnostic"],
+        "food_service": ["restaurant", "menu", "reservation", "kitchen", "recipe",
+                          "food delivery", "catering", "pos", "table"],
+        "travel": ["hotel", "booking", "flight", "itinerary", "travel", "tourism",
+                    "destination", "passport", "visa", "resort"],
+        "media": ["stream", "broadcast", "podcast", "video", "audio",
+                   "playlist", "studio", "editing", "media player"],
+        "government": ["citizen", "permit", "license", "public service", "gov",
+                        "municipality", "regulation", "census", "election", "tax"],
+        "nonprofit": ["donation", "volunteer", "charity", "grant", "fundrais",
+                       "ngo", "nonprofit", "cause", "impact report"],
+        "supply_chain": ["supply chain", "procurement", "vendor", "purchase order",
+                          "inventory management", "sourcing", "logistics platform"],
     }
 
     scores: dict[str, int] = {}
@@ -304,7 +366,7 @@ def list_supported_industries() -> str:
     """
     industries = []
     for domain, caps in sorted(DOMAIN_MCP_MAP.items()):
-        if domain == "_core":
+        if domain.startswith("_"):
             continue
         available = len(mcp_hub.get_toolsets(caps))
         industries.append({

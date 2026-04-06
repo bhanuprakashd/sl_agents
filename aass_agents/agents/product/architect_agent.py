@@ -93,6 +93,9 @@ _mcp_tools = mcp_hub.get_toolsets([
     "npm_search", "cve", "calc", "time",
     "github", "duckduckgo",
     "diagrams", "drawio",
+    # New: security, API spec, cloud docs, research
+    "sec_audit", "dep_audit", "openapi", "aws_docs",
+    "arxiv", "wikipedia", "hacker_news",
 ])
 
 architect_agent = Agent(

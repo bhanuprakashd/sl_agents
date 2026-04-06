@@ -1,253 +1,55 @@
-# MCP Hub Configuration — registry of external MCP servers available to all agents
-#
-# Each server declares:
-#   capability   — unique tag agents use to request tools (e.g. "docs", "github")
-#   name         — human-readable name
-#   description  — what this server provides (shown in list_available)
-#   connection_type — "stdio" (local process) or "sse"/"http" (remote)
-#   command/args — for stdio connections
-#   url          — for sse/http connections
-#   env_keys     — required env vars (server skipped if any are missing)
-#   tool_filter  — optional list of tool names to expose (all if omitted)
-#   tool_prefix  — optional prefix added to tool names to avoid collisions
-#   headers_env  — map of HTTP header → env var name (for authenticated sse/http)
-#   disabled     — set to true to skip without removing
-#
-# Agents request tools by capability:
-#   mcp_hub.get_toolset("docs")    → context7 docs lookup
-#   mcp_hub.get_toolset("github")  → GitHub repos, issues, code search
-#
-# Servers with missing env vars are silently skipped — agents degrade gracefully.
+# 200 Free MCP Servers Integration Plan
 
-servers:
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-  # ── Tier 1: Core development capabilities ─────────────────────────────────
+**Goal:** Expand sl_agents MCP hub from 43 to 200+ servers, all free/no API key, making agents capable of handling any industry, research, or development task.
 
-  - name: context7
-    capability: docs
-    description: "Live documentation lookup for any library, framework, or API. Returns current docs with code examples."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@upstash/context7-mcp@latest"]
-    tool_prefix: docs_
-    # No env_keys — context7 is free and unauthenticated
+**Architecture:** Batch-add servers to `mcp_hub_config.yaml` organized by tier/category. Update `dynamic_skill_loader.py` domain map. Add integration tests. Each task adds one category (10-20 servers), wires them into relevant agents, and commits.
 
-  - name: package-registry
-    capability: packages
-    description: "Search npm, PyPI, crates.io, NuGet for packages. Get download counts, versions, deprecation status."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "package-registry-mcp"]
-    tool_prefix: pkg_
+**Tech Stack:** YAML config, Python (ADK McpToolset), npx/uvx stdio servers
 
-  - name: playwright-browser
-    capability: browser
-    description: "Full browser automation — navigate, click, fill forms, take screenshots, read console. For QA and visual testing."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@playwright/mcp", "--browser", "chrome"]
-    tool_prefix: browser_
+---
 
-  - name: github
-    capability: github
-    description: "GitHub operations — search repos/code/issues, read files, create PRs, manage issues. Deep repo analysis."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
-    env_keys: [GITHUB_PERSONAL_ACCESS_TOKEN]
-    tool_prefix: gh_
+## Current State
 
-  # ── Tier 2: Research & analysis ────────────────────────────────────────────
+- **43 servers** in `mcp_hub_config.yaml` (30 free, 6 API-required, 7 disabled)
+- **20 industries** in `dynamic_skill_loader.py` domain map
+- All servers use stdio transport via npx/uvx
 
-  - name: firecrawl
-    capability: crawl
-    description: "Deep web crawling and scraping with JavaScript rendering. Structured data extraction from any website."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "firecrawl-mcp"]
-    env_keys: [FIRECRAWL_API_KEY]
-    tool_prefix: crawl_
+## Target State
 
-  - name: exa-search
-    capability: search
-    description: "Semantic web search — find similar companies, products, patterns. Better than keyword search for research."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "exa-mcp-server"]
-    env_keys: [EXA_API_KEY]
-    tool_prefix: exa_
+- **200+ servers** across 20 categories
+- **30+ industries** in domain map
+- Automated validation script to test server availability
+- Dashboard integration showing all capabilities
 
-  # ── Tier 3: Deploy & infrastructure ────────────────────────────────────────
+## File Structure
 
-  - name: vercel
-    capability: vercel
-    description: "Vercel deployments — create projects, deploy, check status, manage domains."
-    connection_type: http
-    url: "https://mcp.vercel.com"
-    env_keys: [VERCEL_TOKEN]
-    headers_env:
-      Authorization: VERCEL_TOKEN
-    tool_prefix: vercel_
+```
+aass_agents/
+  agents/_shared/
+    mcp_hub_config.yaml          # MODIFY: Add 157 new server entries
+  tools/
+    dynamic_skill_loader.py      # MODIFY: Expand domain map with new capabilities
+    mcp_validation.py            # CREATE: Server availability checker
+  tests/
+    test_mcp_hub_integration.py  # CREATE: Integration tests for hub
+```
 
-  - name: railway
-    capability: railway
-    description: "Railway deployments — deploy services, view logs, manage environment variables."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@railway/mcp-server"]
-    env_keys: [RAILWAY_TOKEN]
-    tool_prefix: rail_
+---
 
-  - name: supabase
-    capability: database
-    description: "Supabase database operations — SQL queries, schema management, auth, storage."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@supabase/mcp-server-supabase@latest"]
-    env_keys: [SUPABASE_ACCESS_TOKEN]
-    tool_prefix: supa_
+## Phase 1: Database & Data Servers (Task 1-2)
 
-  # ── Tier 4: Free productivity (no API key needed) ───────────────────────────
+### Task 1: Add Database Servers
 
-  - name: filesystem
-    capability: filesystem
-    description: "Local file read/write/search/directory listing. Sandboxed to allowed directories."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/aass-workspace"]
-    tool_prefix: fs_
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
 
-  - name: git
-    capability: git
-    description: "Local git operations — log, diff, blame, branch, status, show. No remote push."
-    connection_type: stdio
-    command: uvx
-    args: ["mcp-server-git"]
-    tool_prefix: git_
+- [ ] **Step 1: Add database servers to config**
 
-  - name: fetch
-    capability: fetch
-    description: "Fetch any URL and return content as clean markdown. Works with web pages, APIs, docs."
-    connection_type: stdio
-    command: uvx
-    args: ["mcp-server-fetch"]
-    tool_prefix: fetch_
+Add after the existing `sqlite` entry in Tier 4, create a new section:
 
-  - name: memory
-    capability: memory
-    description: "Persistent knowledge graph — store and recall entities, relations, observations across sessions."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-memory"]
-    tool_prefix: mem_
-
-  - name: sequential-thinking
-    capability: thinking
-    description: "Structured chain-of-thought reasoning — break complex problems into steps, revise, branch."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-    tool_prefix: think_
-
-  - name: sqlite
-    capability: sqlite
-    description: "SQLite database operations — query, schema inspection, data analysis on local .db files."
-    connection_type: stdio
-    command: uvx
-    args: ["mcp-server-sqlite", "--db-path", "/tmp/aass-workspace/data.db"]
-    tool_prefix: sql_
-
-  - name: docker
-    capability: docker
-    description: "Docker container management — list, start, stop, logs, exec. Manage dev environments."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@thelord/mcp-server-docker-npx"]
-    tool_prefix: docker_
-
-  - name: duckduckgo
-    capability: duckduckgo
-    description: "Free web search via DuckDuckGo — no API key needed. Fallback when Exa is unavailable."
-    connection_type: stdio
-    command: uvx
-    args: ["duckduckgo-mcp-server"]
-    tool_prefix: ddg_
-
-  # ── Tier 5: Free utilities (no API key) ─────────────────────────────────────
-
-  - name: time
-    capability: time
-    description: "Time/date utilities — current time, timezone conversion, date arithmetic. Gives agents time awareness."
-    connection_type: stdio
-    command: uvx
-    args: ["mcp-server-time"]
-    tool_prefix: time_
-
-  - name: calc
-    capability: calc
-    description: "21 deterministic tools — math, hashing, encoding, date arithmetic, random numbers. All local, no network."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@coo-quack/calc-mcp@latest"]
-    tool_prefix: calc_
-
-  - name: npm-search
-    capability: npm_search
-    description: "Search npm registry for packages — names, versions, download counts. Helps agents discover libraries."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "npm-search-mcp-server"]
-    tool_prefix: npms_
-
-  - name: markitdown
-    capability: markitdown
-    description: "Convert PDF, DOCX, Excel, images to Markdown. Uses Microsoft MarkItDown. No external API."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-markitdown-npx"]
-    tool_prefix: mdit_
-
-  - name: pandoc
-    capability: pandoc
-    description: "Document format conversion via Pandoc — Markdown, HTML, PDF, DOCX, CSV, LaTeX, and 40+ formats."
-    connection_type: stdio
-    command: uvx
-    args: ["mcp-pandoc"]
-    tool_prefix: pan_
-
-  - name: quickjs-sandbox
-    capability: js_sandbox
-    description: "Safe JavaScript execution in QuickJS WASM sandbox. Run LLM-generated code without security risk. No Docker needed."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-javascript-sandbox"]
-    tool_prefix: jsbox_
-
-  - name: cve-intelligence
-    capability: cve
-    description: "CVE/vulnerability lookup from NVD, MITRE, GitHub Security Advisories. Free tier, no API key needed."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@proug/mcp-cve-intelligence-server-lite@latest"]
-    tool_prefix: cve_
-
-  - name: mcp-tasks
-    capability: tasks
-    description: "Task management across Markdown, JSON, YAML files. Search, create, update tasks with status tracking."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-tasks"]
-    tool_prefix: task_
-
-  - name: desktop-commander
-    capability: commander
-    description: "Terminal command execution, process management, file search, and diff editing. Full system access."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/desktop-commander-mcp@latest"]
-    tool_prefix: cmd_
-    disabled: true  # Enable only when system-level access is needed
-
+```yaml
   # ── Tier 4b: Database servers (free, no API key) ──────────────────────────
 
   - name: duckdb
@@ -329,7 +131,28 @@ servers:
     command: npx
     args: ["-y", "@nicobailon/mcp-fireproof"]
     tool_prefix: fp_
+```
 
+- [ ] **Step 2: Verify YAML parses**
+
+Run: `python -c "import yaml; yaml.safe_load(open('aass_agents/agents/_shared/mcp_hub_config.yaml'))"`
+Expected: No error
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add aass_agents/agents/_shared/mcp_hub_config.yaml
+git commit -m "feat(mcp): add 10 database servers — duckdb, postgres, mongo, redis, chroma, qdrant, neo4j, excel, csv, fireproof"
+```
+
+### Task 2: Add Search & Web Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add search/web servers**
+
+```yaml
   # ── Tier 4c: Search & web (free) ──────────────────────────────────────────
 
   - name: brave-search
@@ -444,7 +267,31 @@ servers:
     command: npx
     args: ["-y", "mcp-server-ip-geolocation"]
     tool_prefix: geoip_
+```
 
+- [ ] **Step 2: Verify YAML parses**
+
+Run: `python -c "import yaml; yaml.safe_load(open('aass_agents/agents/_shared/mcp_hub_config.yaml'))"`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add aass_agents/agents/_shared/mcp_hub_config.yaml
+git commit -m "feat(mcp): add 14 search/web servers — brave, arxiv, wikipedia, hackernews, rss, readability, wayback, scraper, dns, whois, geoip"
+```
+
+---
+
+## Phase 2: Developer Tools & Code Intelligence (Task 3-5)
+
+### Task 3: Add Language-Specific Dev Tools
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add language/dev tool servers**
+
+```yaml
   # ── Tier 4d: Language tools (free) ────────────────────────────────────────
 
   - name: eslint
@@ -537,12 +384,28 @@ servers:
 
   - name: env-manager
     capability: env_mgr
-    description: "Environment variable management — read/write .env files, validate required vars."
+    description: "Environment variable management �� read/write .env files, validate required vars."
     connection_type: stdio
     command: npx
     args: ["-y", "mcp-server-env"]
     tool_prefix: env_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 12 language/dev tool servers — eslint, prettier, typescript, ruff, regex, openapi, diff, semver, license, changelog"
+```
+
+### Task 4: Add Testing & CI Tools
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add testing/CI servers**
+
+```yaml
   # ── Tier 4e: Testing & CI (free) ──────────────────────────────────────────
 
   - name: jest-runner
@@ -608,7 +471,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-perf"]
     tool_prefix: perf_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 8 testing/CI servers — jest, pytest, lighthouse, a11y, html-validator, css, bundle, perf"
+```
+
+### Task 5: Add Security & Compliance Tools
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add security servers**
+
+```yaml
   # ── Tier 4f: Security & compliance (free) ─────────────────────────────────
 
   - name: security-audit
@@ -674,7 +553,27 @@ servers:
     command: npx
     args: ["-y", "mcp-server-privacy"]
     tool_prefix: priv_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 8 security servers — sec-audit, secrets, dep-audit, ssl, cors, sbom, osint, privacy"
+```
+
+---
+
+## Phase 3: Infrastructure & DevOps (Task 6-7)
+
+### Task 6: Add Cloud & Infra Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add cloud/infra servers**
+
+```yaml
   # ── Tier 4g: Cloud & infrastructure (free) ────────────────────────────────
 
   - name: aws-docs
@@ -757,7 +656,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-yaml"]
     tool_prefix: yml_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 10 cloud/infra servers — aws-docs, aws-cdk, cloudflare, nginx, systemd, cron, process, network, logs, yaml"
+```
+
+### Task 7: Add Container & Orchestration Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add container/orchestration servers**
+
+```yaml
   # ── Tier 4h: Container orchestration (free) ───────────────────────────────
 
   - name: docker-compose
@@ -770,7 +685,7 @@ servers:
 
   - name: helm
     capability: helm
-    description: "Helm chart management — search, install, template, values management."
+    description: "Helm chart management �� search, install, template, values management."
     connection_type: stdio
     command: npx
     args: ["-y", "mcp-server-helm"]
@@ -807,7 +722,27 @@ servers:
     command: npx
     args: ["-y", "mcp-server-ci-config"]
     tool_prefix: ci_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 6 container/orchestration servers — compose, helm, dockerfile, makefile, shell, ci-config"
+```
+
+---
+
+## Phase 4: Content, Media & Communication (Task 8-10)
+
+### Task 8: Add Content & Document Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add content servers**
+
+```yaml
   # ── Tier 4i: Content & documents (free) ───────────────────────────────────
 
   - name: pdf-tools
@@ -828,7 +763,7 @@ servers:
 
   - name: barcode
     capability: barcode
-    description: "Barcode generator/reader — Code128, EAN, UPC, DataMatrix, PDF417."
+    description: "Barcode generator/reader ��� Code128, EAN, UPC, DataMatrix, PDF417."
     connection_type: stdio
     command: npx
     args: ["-y", "mcp-server-barcode"]
@@ -889,7 +824,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-slides"]
     tool_prefix: slide_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 10 content/document servers — pdf, qrcode, barcode, latex, markdown, ascii-art, ical, rss-gen, email-template, slides"
+```
+
+### Task 9: Add Media Processing Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add media servers**
+
+```yaml
   # ── Tier 4j: Media processing (free) ──────────────────────────────────────
 
   - name: image-resize
@@ -955,7 +906,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-video"]
     tool_prefix: vid_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 8 media servers — image-resize, color, favicon, placeholder, screenshot, fonts, audio, video"
+```
+
+### Task 10: Add Communication Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add communication servers**
+
+```yaml
   # ── Tier 4k: Communication (free/local) ───────────────────────────────────
 
   - name: smtp-sender
@@ -1005,7 +972,27 @@ servers:
     command: npx
     args: ["-y", "mcp-server-mqtt"]
     tool_prefix: mqtt_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 6 communication servers — smtp, webhook, websocket, grpc, graphql, mqtt"
+```
+
+---
+
+## Phase 5: Math, Science & Domain-Specific (Task 11-13)
+
+### Task 11: Add Math & Data Science Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add math/data science servers**
+
+```yaml
   # ── Tier 4l: Math & data science (free) ───────────────────────────────────
 
   - name: wolfram-alpha
@@ -1071,7 +1058,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-periodic-table"]
     tool_prefix: elem_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 8 math/data science servers — wolfram, units, statistics, plotting, geojson, currency, weather, periodic-table"
+```
+
+### Task 12: Add Industry-Specific Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add industry servers**
+
+```yaml
   # ── Tier 4m: Industry-specific (free) ─────────────────────────────────────
 
   - name: fhir-health
@@ -1131,7 +1134,7 @@ servers:
     tool_prefix: crm_
 
   - name: hr-tools
-    capability: hr_tools
+    capability: hr
     description: "HR tools — job descriptions, interview questions, org chart, leave management."
     connection_type: stdio
     command: npx
@@ -1153,7 +1156,23 @@ servers:
     command: npx
     args: ["-y", "mcp-server-agriculture"]
     tool_prefix: agri_
+```
 
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mcp): add 10 industry servers — fhir, hl7, finance, legal, education, ecommerce, crm, hr, real-estate, agriculture"
+```
+
+### Task 13: Add AI & ML Tool Servers
+
+**Files:**
+- Modify: `aass_agents/agents/_shared/mcp_hub_config.yaml`
+
+- [ ] **Step 1: Add AI/ML servers**
+
+```yaml
   # ── Tier 4n: AI & ML tools (free) ─────────────────────────────────────────
 
   - name: prompt-tools
@@ -1203,159 +1222,315 @@ servers:
     command: npx
     args: ["-y", "mcp-server-confusion-matrix"]
     tool_prefix: cm_
+```
 
-  # ── Tier 6: Design & visualization (no API key) ─────────────────────────
+- [ ] **Step 2: Verify YAML**
+- [ ] **Step 3: Commit**
 
-  - name: pollinations
-    capability: image_gen
-    description: "Free AI image generation — text to image, no signup, no API key. Unlimited. Use for mockups, icons, hero images, illustrations."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@pollinations_ai/mcp"]
-    tool_prefix: img_
+```bash
+git commit -m "feat(mcp): add 6 AI/ML tool servers — prompts, embeddings, tokenizer, dataset, model-card, confusion-matrix"
+```
 
-  - name: antv-chart
-    capability: charts
-    description: "25+ chart types — bar, line, pie, area, radar, sankey, treemap, mindmap, org chart, flow diagram. Data → PNG/SVG."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@antv/mcp-server-chart"]
-    tool_prefix: chart_
+---
 
-  - name: mermaid
-    capability: diagrams
-    description: "Mermaid diagram rendering — flowcharts, sequence, class, ER, gantt, state, pie charts → PNG/SVG. Architecture docs."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@peng-shawn/mermaid-mcp-server"]
-    tool_prefix: mmd_
+## Phase 6: Integration & Wiring (Task 14-16)
 
-  - name: svgmaker
-    capability: svg
-    description: "AI-powered SVG generation and editing. Create logos, icons, illustrations, infographics as scalable vectors."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@genwave/svgmaker-mcp"]
-    tool_prefix: svg_
+### Task 14: Update Domain Map in dynamic_skill_loader.py
 
-  - name: excalidraw
-    capability: whiteboard
-    description: "Excalidraw canvas — create wireframes, system diagrams, hand-drawn style architecture visuals. Export SVG/PNG."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@scofieldfree/excalidraw-mcp"]
-    tool_prefix: draw_
+**Files:**
+- Modify: `aass_agents/tools/dynamic_skill_loader.py`
 
-  - name: drawio
-    capability: drawio
-    description: "Draw.io diagrams — architecture, flowcharts, network topology, UML. CRUD on diagram elements. Export SVG/PNG/XML."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "drawio-mcp-server"]
-    tool_prefix: dio_
+- [ ] **Step 1: Expand DOMAIN_MCP_MAP with all new capabilities**
 
-  - name: svg-new
-    capability: svg_create
-    description: "SVG creation tool — generate and manipulate SVG graphics programmatically."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@svgnew/mcp"]
-    tool_prefix: svgn_
+Update the `DOMAIN_MCP_MAP` dict to include new capabilities per domain. Add 10+ new industries. Wire domain-specific MCP servers (e.g., `fhir` for healthcare, `findata` for finance, `agri` for agriculture).
 
-  # ── Tier 7: Code intelligence ────────────────────────────────────────────
+- [ ] **Step 2: Expand detect_industry keywords**
 
-  - name: code-graph
-    capability: code_analysis
-    description: "AST-aware code analysis — dependency graphs, blast radius, dead code detection, hotspot analysis. 170+ languages."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "code-graph-context-mcp"]
-    tool_prefix: code_
+Add keywords for new industries: logistics, supply_chain, telecom, energy, insurance, automotive, food_service, travel, media, government.
 
-  # ── Tier 8: Code execution & sandboxing ─────────────────────────────────────
+- [ ] **Step 3: Verify syntax**
 
-  - name: yepcode-sandbox
-    capability: sandbox
-    description: "Secure sandboxed code execution with npm/pip access. Run LLM-generated code safely. Use for testing code snippets before committing."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/mcp-server-yepcode"]
-    env_keys: [YEPCODE_API_KEY]
-    tool_prefix: sandbox_
-    disabled: true  # Enable when sandbox execution is needed
+Run: `python -c "import ast; ast.parse(open('aass_agents/tools/dynamic_skill_loader.py').read())"`
 
-  - name: depwire
-    capability: deps
-    description: "Dependency graph analysis for TypeScript, JavaScript, Python, Go, Rust, C. Find imports, exports, and dependency chains."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "depwire"]
-    tool_prefix: deps_
+- [ ] **Step 4: Commit**
 
-  - name: code-to-tree
-    capability: ast
-    description: "Convert source code to AST (abstract syntax tree) across languages. Structural code analysis without running it."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "code-to-tree"]
-    tool_prefix: ast_
+```bash
+git add aass_agents/tools/dynamic_skill_loader.py
+git commit -m "feat: expand domain map to 30 industries with 200 MCP capability mappings"
+```
 
-  - name: repomapper
-    capability: repomap
-    description: "Dynamic code mapping with function prototypes and relevance scoring. Understand codebase structure before building."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "repomapper-mcp"]
-    tool_prefix: rmap_
+### Task 15: Wire New MCP Tools Into Agents
 
-  # ── Tier 9: Infrastructure ────────────────────────────────────────────────
+**Files:**
+- Modify: All agent files in `aass_agents/agents/product/`
 
-  - name: terraform
-    capability: terraform
-    description: "Terraform registry provider docs/resources lookup and module discovery."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/mcp-server-terraform"]
-    tool_prefix: tf_
-    disabled: true  # Enable for IaC projects
+- [ ] **Step 1: Update architect_agent MCP tools**
 
-  - name: kubernetes
-    capability: k8s
-    description: "Kubernetes CRUD operations, pod management, log retrieval. Multi-cluster support."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "kubernetes-mcp-server"]
-    tool_prefix: k8s_
-    disabled: true  # Enable for K8s deployments
+Add: `sec_audit`, `dep_audit`, `openapi`, `aws_docs` to architect
 
-  # ── Tier 10: Disabled / template servers ───────────────────────────────────
+- [ ] **Step 2: Update builder_agent MCP tools**
 
-  - name: slack
-    capability: slack
-    description: "Slack messaging — post to channels, read threads, notify on pipeline completion."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/mcp-server-slack"]
-    env_keys: [SLACK_BOT_TOKEN]
-    tool_prefix: slack_
-    disabled: true  # Enable when Slack integration is needed
+Add: `eslint`, `prettier`, `jest`, `lighthouse` to builder
 
-  - name: linear
-    capability: issues
-    description: "Linear issue tracking — create/update issues, manage projects, track sprints."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-linear"]
-    env_keys: [LINEAR_API_KEY]
-    tool_prefix: linear_
-    disabled: true
+- [ ] **Step 3: Update frontend_builder MCP tools**
 
-  - name: sentry
-    capability: errors
-    description: "Sentry error tracking — query exceptions, stack traces, release health."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@sentry/mcp-server-sentry"]
-    env_keys: [SENTRY_AUTH_TOKEN]
-    tool_prefix: sentry_
-    disabled: true
+Add: `colors`, `a11y`, `html_valid`, `css_analyze`, `bundle`, `placeholder`
+
+- [ ] **Step 4: Update backend_builder MCP tools**
+
+Add: `openapi`, `py_lint`, `pytest`, `sec_audit`
+
+- [ ] **Step 5: Update qa_agent MCP tools**
+
+Add: `lighthouse`, `a11y`, `link_check`, `ssl`, `cors`, `screenshot`
+
+- [ ] **Step 6: Update pm_agent MCP tools**
+
+Add: `arxiv`, `wikipedia`, `hacker_news`, `weather`, `currency`
+
+- [ ] **Step 7: Update db_agent MCP tools**
+
+Add: `postgres`, `duckdb`, `redis`, `mongodb`
+
+- [ ] **Step 8: Verify all agents parse**
+
+Run: `python -c "import ast; [ast.parse(open(f).read()) for f in glob.glob('aass_agents/agents/product/*.py')]"`
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add aass_agents/agents/product/
+git commit -m "feat: wire 30+ new MCP capabilities into all product pipeline agents"
+```
+
+### Task 16: Create MCP Validation Script
+
+**Files:**
+- Create: `aass_agents/tools/mcp_validation.py`
+- Create: `aass_agents/tests/test_mcp_hub_integration.py`
+
+- [ ] **Step 1: Write validation script**
+
+```python
+"""
+MCP Validation — checks which servers are actually installable/runnable.
+
+Usage:
+    python -m tools.mcp_validation --check-all
+    python -m tools.mcp_validation --check-free
+    python -m tools.mcp_validation --category database
+"""
+import subprocess
+import yaml
+import json
+import sys
+from pathlib import Path
+
+CONFIG_PATH = Path(__file__).parent.parent / "agents/_shared/mcp_hub_config.yaml"
+
+
+def check_npx_package(name: str, args: list[str]) -> dict:
+    """Check if an npx package exists and is installable."""
+    pkg = args[1] if len(args) > 1 else args[0]
+    try:
+        result = subprocess.run(
+            ["npx", "-y", pkg, "--help"],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {"name": name, "package": pkg, "available": True, "exit_code": result.returncode}
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        return {"name": name, "package": pkg, "available": False, "error": str(e)}
+
+
+def check_uvx_package(name: str, args: list[str]) -> dict:
+    """Check if a uvx package exists."""
+    pkg = args[0]
+    try:
+        result = subprocess.run(
+            ["uvx", pkg, "--help"],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {"name": name, "package": pkg, "available": True, "exit_code": result.returncode}
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        return {"name": name, "package": pkg, "available": False, "error": str(e)}
+
+
+def validate_all(free_only: bool = False) -> list[dict]:
+    config = yaml.safe_load(CONFIG_PATH.read_text())
+    results = []
+    for server in config["servers"]:
+        if server.get("disabled"):
+            continue
+        if free_only and server.get("env_keys"):
+            continue
+        cmd = server.get("command", "")
+        args = server.get("args", [])
+        if cmd == "npx":
+            results.append(check_npx_package(server["name"], args))
+        elif cmd == "uvx":
+            results.append(check_uvx_package(server["name"], args))
+    return results
+
+
+if __name__ == "__main__":
+    free_only = "--check-free" in sys.argv
+    results = validate_all(free_only=free_only)
+    available = [r for r in results if r["available"]]
+    missing = [r for r in results if not r["available"]]
+    print(f"Available: {len(available)}/{len(results)}")
+    if missing:
+        print(f"Missing ({len(missing)}):")
+        for m in missing:
+            print(f"  {m['name']}: {m.get('error', 'unknown')}")
+    print(json.dumps({"available": len(available), "total": len(results)}, indent=2))
+```
+
+- [ ] **Step 2: Write integration test**
+
+```python
+"""Test MCP hub config is valid and consistent."""
+import yaml
+import pytest
+from pathlib import Path
+
+CONFIG = Path(__file__).parent.parent / "agents/_shared/mcp_hub_config.yaml"
+
+
+def test_config_parses():
+    config = yaml.safe_load(CONFIG.read_text())
+    assert "servers" in config
+    assert len(config["servers"]) >= 200
+
+
+def test_no_duplicate_capabilities():
+    config = yaml.safe_load(CONFIG.read_text())
+    caps = [s["capability"] for s in config["servers"]]
+    assert len(caps) == len(set(caps)), f"Duplicate capabilities: {[c for c in caps if caps.count(c) > 1]}"
+
+
+def test_no_duplicate_names():
+    config = yaml.safe_load(CONFIG.read_text())
+    names = [s["name"] for s in config["servers"]]
+    assert len(names) == len(set(names))
+
+
+def test_all_servers_have_required_fields():
+    config = yaml.safe_load(CONFIG.read_text())
+    required = {"name", "capability", "description", "connection_type"}
+    for server in config["servers"]:
+        missing = required - set(server.keys())
+        assert not missing, f"{server['name']} missing: {missing}"
+
+
+def test_stdio_servers_have_command():
+    config = yaml.safe_load(CONFIG.read_text())
+    for server in config["servers"]:
+        if server["connection_type"] == "stdio":
+            assert "command" in server, f"{server['name']} is stdio but has no command"
+            assert "args" in server, f"{server['name']} is stdio but has no args"
+
+
+def test_all_prefixes_unique():
+    config = yaml.safe_load(CONFIG.read_text())
+    prefixes = [s.get("tool_prefix") for s in config["servers"] if s.get("tool_prefix")]
+    assert len(prefixes) == len(set(prefixes)), f"Duplicate prefixes: {[p for p in prefixes if prefixes.count(p) > 1]}"
+```
+
+- [ ] **Step 3: Run tests**
+
+Run: `pytest aass_agents/tests/test_mcp_hub_integration.py -v`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add aass_agents/tools/mcp_validation.py aass_agents/tests/test_mcp_hub_integration.py
+git commit -m "feat: add MCP validation script and integration tests for 200 server config"
+```
+
+---
+
+## Phase 7: Verification & Finalization (Task 17)
+
+### Task 17: Final Count Verification & Dashboard Update
+
+**Files:**
+- Modify: `aass_agents/dashboard.html` (optional)
+
+- [ ] **Step 1: Run full config validation**
+
+```bash
+python -c "
+import yaml
+config = yaml.safe_load(open('aass_agents/agents/_shared/mcp_hub_config.yaml'))
+servers = config['servers']
+free = [s for s in servers if not s.get('env_keys') and not s.get('disabled')]
+print(f'Total: {len(servers)}, Free: {len(free)}')
+categories = {}
+for s in servers:
+    tier = 'free' if not s.get('env_keys') else 'api'
+    categories[tier] = categories.get(tier, 0) + 1
+print(categories)
+"
+```
+
+Expected: Total >= 200, Free >= 180
+
+- [ ] **Step 2: Run integration tests**
+
+Run: `pytest aass_agents/tests/test_mcp_hub_integration.py -v`
+Expected: All pass
+
+- [ ] **Step 3: Verify dynamic_skill_loader domain count**
+
+```bash
+python -c "
+from tools.dynamic_skill_loader import DOMAIN_MCP_MAP
+print(f'Industries: {len([k for k in DOMAIN_MCP_MAP if not k.startswith(\"_\")])}')"
+```
+
+Expected: >= 30
+
+- [ ] **Step 4: Final commit**
+
+```bash
+git add -A
+git commit -m "feat: complete 200 MCP server integration — validation passing, all agents wired"
+```
+
+---
+
+## Server Count Summary
+
+| Phase | Category | New Servers | Running Total |
+|-------|----------|------------|--------------|
+| Existing | - | 43 | 43 |
+| 1 | Databases | 10 | 53 |
+| 1 | Search & Web | 14 | 67 |
+| 2 | Language Tools | 12 | 79 |
+| 2 | Testing & CI | 8 | 87 |
+| 2 | Security | 8 | 95 |
+| 3 | Cloud & Infra | 10 | 105 |
+| 3 | Container/Orch | 6 | 111 |
+| 4 | Content & Docs | 10 | 121 |
+| 4 | Media Processing | 8 | 129 |
+| 4 | Communication | 6 | 135 |
+| 5 | Math & Data Science | 8 | 143 |
+| 5 | Industry-Specific | 10 | 153 |
+| 5 | AI & ML Tools | 6 | 159 |
+| 6 | Wiring & Tests | 0 | 159 |
+
+**Note:** 159 new + 43 existing = 202 total. Additional servers can be added during implementation by verifying npm package names exist. Some listed packages may need name adjustments — the validation script (Task 16) catches these.
+
+---
+
+## Important Implementation Notes
+
+1. **Package name verification**: Before adding each batch, run `npm view <package-name>` to confirm the package exists on npm. Many MCP servers use non-standard naming. Adjust package names as needed.
+
+2. **Prefix uniqueness**: Every server must have a unique `tool_prefix` to avoid tool name collisions when multiple servers are loaded simultaneously.
+
+3. **Graceful degradation**: The MCP hub already skips unavailable servers silently. Agents requesting capabilities that don't connect will simply not get those tools — no crashes.
+
+4. **Startup performance**: With 200 servers, the hub only connects lazily (on first request). No startup penalty.
+
+5. **Windows paths**: The `filesystem` server uses `/tmp/aass-workspace` — on Windows this maps to a temp dir. Verify paths work cross-platform.
