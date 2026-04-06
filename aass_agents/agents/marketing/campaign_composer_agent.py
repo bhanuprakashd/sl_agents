@@ -100,7 +100,7 @@ Before delivering, verify all assets:
 If any check fails: fix the gap before delivering.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "image_gen", "svg", "email_tpl", "colors", "charts"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "image_gen", "svg", "colors", "charts"])
 
 campaign_composer_agent = Agent(
     model=get_model(),

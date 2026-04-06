@@ -9,6 +9,7 @@ from tools.engineering_tools import create_pipeline_spec
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
+from tools.graph_tools import build_knowledge_graph, query_knowledge_graph, find_graph_path, export_knowledge_graph
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -48,7 +49,20 @@ not implementation detail.
 | Known risks flagged | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "diagrams", "drawio", "openapi", "aws_docs", "cve", "sec_audit", "dep_audit", "arxiv", "wikipedia"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "diagrams",
+    "drawio",
+    "openapi",
+    "aws_docs",
+    "cve",
+    "sec_audit",
+    "arxiv",
+    "wikipedia",
+    "knowledge_graph",
+])
 
 solutions_architect_agent = Agent(
     model=get_model(),
@@ -59,5 +73,6 @@ solutions_architect_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[generate_code, deep_research, search_company_web, create_pipeline_spec, read_document, read_document_pages, list_documents, search_document,
+        build_knowledge_graph, query_knowledge_graph, find_graph_path, export_knowledge_graph,
         *_mcp_tools,],
 )

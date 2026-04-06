@@ -75,9 +75,14 @@ Do NOT retry yourself.
 
 # MCP tools: browser, fetch, js_sandbox, cve, github (test patterns), duckduckgo
 _mcp_tools = mcp_hub.get_toolsets([
-    "browser", "fetch", "js_sandbox", "cve", "github", "duckduckgo",
-    # New: auditing, security, visual QA
-    "lighthouse", "a11y", "link_check", "ssl", "cors", "screenshot",
+    "browser",
+    "fetch",
+    "cve",
+    "github",
+    "duckduckgo",
+    "lighthouse",
+    "a11y",
+    "screenshot",
 ])
 
 qa_agent = Agent(

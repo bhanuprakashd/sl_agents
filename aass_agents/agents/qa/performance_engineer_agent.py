@@ -42,7 +42,7 @@ and identify bottlenecks before they reach production.
 | Optimisation recommendations prioritised by impact | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "charts", "stats", "plot", "lighthouse", "nettools", "logs"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "charts", "plot", "lighthouse"])
 
 performance_engineer_agent = Agent(
     model=get_model(),

@@ -48,7 +48,15 @@ and bug triage. You are the last line of defence before features reach users.
 | Severity ratings applied to all findings | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "browser", "screenshot", "a11y", "lighthouse", "link_check"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "browser",
+    "screenshot",
+    "a11y",
+    "lighthouse",
+])
 
 qa_engineer_agent = Agent(
     model=get_model(),

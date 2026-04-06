@@ -9,7 +9,8 @@ from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 
 from agents._shared.model import get_model
-from agents._shared.mcp_hub import mcp_hub, STD
+from agents._shared.mcp_hub import mcp_hub
+from agents._shared.model import STD
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:

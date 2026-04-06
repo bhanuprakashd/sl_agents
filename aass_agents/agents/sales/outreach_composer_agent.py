@@ -96,7 +96,7 @@ If ANY required check fails:
 Do not deliver copy with banned phrases or multiple CTAs under any circumstances.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "email_tpl"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search"])
 
 outreach_composer_agent = Agent(
     model=get_model(),

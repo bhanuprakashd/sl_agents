@@ -301,3 +301,53 @@ tools:
     departments: [product]
     tier: fast
     description: "Get build phase progress for a product"
+
+  # ── Knowledge Graph ────────────────────────────────────────────────────────
+  build_knowledge_graph:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, analysis, code]
+    departments: [research, engineering, product]
+    tier: std
+    description: "Build a knowledge graph from code, docs, papers, or images"
+
+  update_knowledge_graph:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, analysis, code]
+    departments: [research, engineering, product]
+    tier: std
+    description: "Incrementally update an existing knowledge graph"
+
+  query_knowledge_graph:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, analysis, query]
+    departments: [all]
+    tier: fast
+    description: "Query the knowledge graph with natural language"
+
+  find_graph_path:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, analysis, query]
+    departments: [all]
+    tier: fast
+    description: "Find relationship path between two entities"
+
+  explain_entity:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, analysis, query]
+    departments: [all]
+    tier: fast
+    description: "Get detailed explanation of an entity and its relationships"
+
+  add_to_knowledge_graph:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, research, web]
+    departments: [research, engineering]
+    tier: std
+    description: "Add content from a URL (papers, tweets, web pages) to the graph"
+
+  export_knowledge_graph:
+    module: tools.graph_tools
+    capabilities: [knowledge_graph, export]
+    departments: [all]
+    tier: fast
+    description: "Export knowledge graph as JSON, GraphML, SVG, or Neo4j Cypher"

@@ -104,7 +104,15 @@ If ANY required check fails:
 A proposal with vague ROI or multiple CTAs must not be delivered.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "charts", "pdf", "slides", "image_gen", "svg"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "duckduckgo",
+    "web_search",
+    "charts",
+    "pdf",
+    "image_gen",
+    "svg",
+])
 
 proposal_generator_agent = Agent(
     model=get_model(),

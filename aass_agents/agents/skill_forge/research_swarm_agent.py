@@ -104,12 +104,12 @@ Prioritise techniques with empirical evidence of performance improvement.
 """
 
 # MCP tools for researchers — free + github (if token present)
-# Domain: web search + docs + fetch + github for deep domain knowledge
-_domain_tools = mcp_hub.get_toolsets(["duckduckgo", "docs", "fetch", "github"])
+# Domain: web search + docs + fetch + github + knowledge graph for deep domain knowledge
+_domain_tools = mcp_hub.get_toolsets(["duckduckgo", "docs", "fetch", "github", "knowledge_graph"])
 # Benchmark: web search + fetch + github for gold standards and rubrics
 _benchmark_tools = mcp_hub.get_toolsets(["duckduckgo", "fetch", "npm_search", "github"])
-# Technique: docs + code analysis + thinking + github for prompting techniques and patterns
-_technique_tools = mcp_hub.get_toolsets(["docs", "code_analysis", "thinking", "fetch", "github"])
+# Technique: docs + code analysis + thinking + github + knowledge graph for prompting techniques and patterns
+_technique_tools = mcp_hub.get_toolsets(["docs", "code_analysis", "thinking", "fetch", "github", "knowledge_graph"])
 
 _domain_researcher = Agent(
     model=get_model(),

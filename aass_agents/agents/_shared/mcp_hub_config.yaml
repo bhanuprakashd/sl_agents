@@ -18,6 +18,8 @@
 #   mcp_hub.get_toolset("github")  → GitHub repos, issues, code search
 #
 # Servers with missing env vars are silently skipped — agents degrade gracefully.
+#
+# ALL packages verified via `npm view` / `pip index versions` on 2026-04-06.
 
 servers:
 
@@ -30,7 +32,6 @@ servers:
     command: npx
     args: ["-y", "@upstash/context7-mcp@latest"]
     tool_prefix: docs_
-    # No env_keys — context7 is free and unauthenticated
 
   - name: package-registry
     capability: packages
@@ -76,6 +77,15 @@ servers:
     args: ["-y", "exa-mcp-server"]
     env_keys: [EXA_API_KEY]
     tool_prefix: exa_
+
+  - name: brave-search
+    capability: brave_search
+    description: "Privacy-focused web search via Brave — 1000 free queries/month with API key."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "brave-search-mcp"]
+    env_keys: [BRAVE_API_KEY]
+    tool_prefix: brave_
 
   # ── Tier 3: Deploy & infrastructure ────────────────────────────────────────
 
@@ -199,14 +209,6 @@ servers:
     args: ["-y", "npm-search-mcp-server"]
     tool_prefix: npms_
 
-  - name: markitdown
-    capability: markitdown
-    description: "Convert PDF, DOCX, Excel, images to Markdown. Uses Microsoft MarkItDown. No external API."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-markitdown-npx"]
-    tool_prefix: mdit_
-
   - name: pandoc
     capability: pandoc
     description: "Document format conversion via Pandoc — Markdown, HTML, PDF, DOCX, CSV, LaTeX, and 40+ formats."
@@ -214,14 +216,6 @@ servers:
     command: uvx
     args: ["mcp-pandoc"]
     tool_prefix: pan_
-
-  - name: quickjs-sandbox
-    capability: js_sandbox
-    description: "Safe JavaScript execution in QuickJS WASM sandbox. Run LLM-generated code without security risk. No Docker needed."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-javascript-sandbox"]
-    tool_prefix: jsbox_
 
   - name: cve-intelligence
     capability: cve
@@ -239,24 +233,23 @@ servers:
     args: ["-y", "mcp-tasks"]
     tool_prefix: task_
 
-  - name: desktop-commander
-    capability: commander
-    description: "Terminal command execution, process management, file search, and diff editing. Full system access."
+  - name: web-search-free
+    capability: web_search
+    description: "Free web search via Google scraping — no API key, rate limited."
     connection_type: stdio
     command: npx
-    args: ["-y", "@anthropic/desktop-commander-mcp@latest"]
-    tool_prefix: cmd_
-    disabled: true  # Enable only when system-level access is needed
+    args: ["-y", "mcp-web-search"]
+    tool_prefix: wsrch_
 
-  # ── Tier 4b: Database servers (free, no API key) ──────────────────────────
-
-  - name: duckdb
-    capability: duckdb
-    description: "DuckDB analytics — fast OLAP queries, Parquet/CSV import, in-process analytics engine."
+  - name: diff-tool
+    capability: diff
+    description: "File diff and patch — compare files, generate unified diffs, apply patches."
     connection_type: stdio
     command: npx
-    args: ["-y", "duckdb-mcp-server"]
-    tool_prefix: ddb_
+    args: ["-y", "mcp-server-diff"]
+    tool_prefix: diff_
+
+  # ── Tier 6: Database servers ──────────────────────────────────────────────
 
   - name: postgres-local
     capability: postgres
@@ -266,95 +259,54 @@ servers:
     args: ["-y", "@modelcontextprotocol/server-postgres"]
     tool_prefix: pg_
 
-  - name: mongodb-local
-    capability: mongodb
-    description: "MongoDB document operations — CRUD, aggregation pipelines, index management on local instance."
+  - name: duckdb
+    capability: duckdb
+    description: "DuckDB analytics — fast OLAP queries, Parquet/CSV import, in-process analytics engine."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-mongo"]
+    args: ["-y", "duckdb-mcp"]
+    tool_prefix: ddb_
+
+  - name: mongodb
+    capability: mongodb
+    description: "MongoDB document operations — CRUD, aggregation pipelines, index management."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mongodb-mcp"]
     tool_prefix: mongo_
 
-  - name: redis-local
+  - name: redis
     capability: redis
-    description: "Redis cache/data operations — get, set, hash, list, pub/sub on local Redis instance."
+    description: "Redis cache/data operations — get, set, hash, list, pub/sub on Redis instance."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-redis"]
+    args: ["-y", "redis-mcp"]
     tool_prefix: redis_
 
-  - name: chroma-local
+  - name: chroma
     capability: vector_db
-    description: "Chroma vector database — embeddings, similarity search, document storage. Local instance."
+    description: "Chroma vector database — embeddings, similarity search, document storage."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-chroma"]
+    args: ["-y", "chromadb-mcp"]
     tool_prefix: chroma_
 
-  - name: qdrant-local
+  - name: qdrant
     capability: qdrant
-    description: "Qdrant vector similarity search — semantic search, nearest neighbors on local instance."
+    description: "Qdrant vector similarity search — semantic search, nearest neighbors."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-qdrant"]
+    args: ["-y", "qdrant-mcp-server"]
     tool_prefix: qdrant_
 
-  - name: neo4j-local
-    capability: graph_db
-    description: "Neo4j graph database — Cypher queries, node/relationship CRUD, path traversal."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "neo4j-mcp-server"]
-    tool_prefix: neo4j_
-
-  - name: excel
-    capability: excel
-    description: "Excel/spreadsheet operations — read, write, format cells, create charts in .xlsx files."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-excel"]
-    tool_prefix: xl_
-
-  - name: csv-json
-    capability: data_transform
-    description: "CSV/JSON data transformation — parse, filter, aggregate, convert between formats."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-data-transform"]
-    tool_prefix: dt_
-
-  - name: fireproof
-    capability: fireproof
-    description: "Fireproof immutable ledger database — CRDT sync, offline-first, no config needed."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@nicobailon/mcp-fireproof"]
-    tool_prefix: fp_
-
-  # ── Tier 4c: Search & web (free) ──────────────────────────────────────────
-
-  - name: brave-search
-    capability: brave_search
-    description: "Privacy-focused web search via Brave — 1000 free queries/month with API key."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@nicobailon/mcp-brave-search"]
-    env_keys: [BRAVE_API_KEY]
-    tool_prefix: brave_
-
-  - name: web-search-free
-    capability: web_search
-    description: "Free web search via Google scraping — no API key, rate limited."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-web-search"]
-    tool_prefix: wsrch_
+  # ── Tier 7: Search & web ──────────────────────────────────────────────────
 
   - name: arxiv
     capability: arxiv
     description: "Search and fetch academic papers from arXiv. Full text extraction, citation lookup."
     connection_type: stdio
-    command: uvx
-    args: ["mcp-server-arxiv"]
+    command: npx
+    args: ["-y", "arxiv-mcp-server"]
     tool_prefix: arxiv_
 
   - name: wikipedia
@@ -362,7 +314,7 @@ servers:
     description: "Search and read Wikipedia articles. Summaries, full content, citations."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-wikipedia"]
+    args: ["-y", "wikipedia-mcp"]
     tool_prefix: wiki_
 
   - name: hacker-news
@@ -378,24 +330,8 @@ servers:
     description: "RSS/Atom feed reader — subscribe, parse, aggregate news from any feed URL."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-rss"]
+    args: ["-y", "rss-mcp"]
     tool_prefix: rss_
-
-  - name: readability
-    capability: readability
-    description: "Extract readable article content from any URL — strips ads, nav, clutter."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-readability"]
-    tool_prefix: read_
-
-  - name: wayback-machine
-    capability: wayback
-    description: "Internet Archive Wayback Machine — access historical snapshots of any website."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-wayback"]
-    tool_prefix: wb_
 
   - name: web-scraper
     capability: scraper
@@ -405,22 +341,6 @@ servers:
     args: ["-y", "mcp-server-scraper"]
     tool_prefix: scrape_
 
-  - name: sitemap
-    capability: sitemap
-    description: "Sitemap parser — discover all pages on a website, find content structure."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-sitemap"]
-    tool_prefix: smap_
-
-  - name: link-checker
-    capability: link_check
-    description: "Check URLs for broken links, redirects, SSL status. QA for web builds."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-link-checker"]
-    tool_prefix: lchk_
-
   - name: dns-lookup
     capability: dns
     description: "DNS lookup — A, AAAA, MX, TXT, CNAME records. Domain diagnostics."
@@ -429,30 +349,22 @@ servers:
     args: ["-y", "mcp-server-dns"]
     tool_prefix: dns_
 
-  - name: whois
-    capability: whois
-    description: "WHOIS domain lookup — registration info, expiry dates, registrar details."
+  - name: puppeteer
+    capability: screenshot
+    description: "Puppeteer browser automation — screenshots, scraping, PDF generation."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-whois"]
-    tool_prefix: whois_
+    args: ["-y", "puppeteer-mcp-server"]
+    tool_prefix: pup_
 
-  - name: ip-geolocation
-    capability: geoip
-    description: "IP geolocation — country, city, ISP, coordinates for any IP address."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-ip-geolocation"]
-    tool_prefix: geoip_
-
-  # ── Tier 4d: Language tools (free) ────────────────────────────────────────
+  # ── Tier 8: Language tools ────────────────────────────────────────────────
 
   - name: eslint
     capability: eslint
     description: "ESLint code quality checks — lint JS/TS files, report issues, suggest fixes."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-eslint"]
+    args: ["-y", "eslint-mcp-server"]
     tool_prefix: lint_
 
   - name: prettier
@@ -460,16 +372,8 @@ servers:
     description: "Prettier code formatting — format JS/TS/CSS/HTML/JSON/MD files."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-prettier"]
+    args: ["-y", "prettier-mcp"]
     tool_prefix: fmt_
-
-  - name: typescript-analyzer
-    capability: ts_analyzer
-    description: "TypeScript type checking and analysis — diagnostics, hover info, completions."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-typescript"]
-    tool_prefix: ts_
 
   - name: python-linter
     capability: py_lint
@@ -479,78 +383,46 @@ servers:
     args: ["mcp-server-ruff"]
     tool_prefix: ruff_
 
-  - name: regex-tester
-    capability: regex
-    description: "Regex testing and explanation — validate patterns, test against inputs, explain matches."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-regex"]
-    tool_prefix: rgx_
-
-  - name: json-schema
-    capability: json_schema
-    description: "JSON Schema validation — validate JSON against schemas, generate schemas from data."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-json-schema"]
-    tool_prefix: jsch_
-
   - name: openapi
     capability: openapi
     description: "OpenAPI/Swagger spec tools — validate, generate clients, explore API endpoints."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-openapi"]
+    args: ["-y", "openapi-mcp-server"]
     tool_prefix: oapi_
 
-  - name: diff-tool
-    capability: diff
-    description: "File diff and patch — compare files, generate unified diffs, apply patches."
+  - name: regex-tester
+    capability: regex
+    description: "Regex testing and explanation — validate patterns, test against inputs, explain matches."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-diff"]
-    tool_prefix: diff_
+    args: ["-y", "regex-mcp"]
+    tool_prefix: rgx_
 
-  - name: semver
-    capability: semver
-    description: "Semantic versioning — parse, compare, bump versions, check ranges."
+  - name: markdown-tools
+    capability: md_tools
+    description: "Markdown tools — lint, format, TOC generation, link checking, HTML conversion."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-semver"]
-    tool_prefix: ver_
-
-  - name: license-checker
-    capability: license
-    description: "License compatibility checker — scan deps, detect licenses, flag conflicts."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-license-checker"]
-    tool_prefix: lic_
-
-  - name: changelog
-    capability: changelog
-    description: "Changelog generation — parse git commits, generate CHANGELOG.md, follow Keep a Changelog."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-changelog"]
-    tool_prefix: clog_
+    args: ["-y", "mcp-server-markdown"]
+    tool_prefix: md_
 
   - name: env-manager
     capability: env_mgr
     description: "Environment variable management — read/write .env files, validate required vars."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-env"]
+    args: ["-y", "mcp-env"]
     tool_prefix: env_
 
-  # ── Tier 4e: Testing & CI (free) ──────────────────────────────────────────
+  # ── Tier 9: Testing & CI ──────────────────────────────────────────────────
 
   - name: jest-runner
     capability: jest
-    description: "Jest test runner — run tests, get coverage, watch mode. For JS/TS projects."
+    description: "Jest test runner — run tests, get coverage. For JS/TS projects."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-jest"]
+    args: ["-y", "mcp-jest"]
     tool_prefix: jest_
 
   - name: pytest-runner
@@ -566,7 +438,7 @@ servers:
     description: "Google Lighthouse audits — performance, accessibility, SEO, best practices scores."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-lighthouse"]
+    args: ["-y", "lighthouse-mcp"]
     tool_prefix: lh_
 
   - name: accessibility-checker
@@ -574,42 +446,18 @@ servers:
     description: "Web accessibility checking — WCAG 2.1 compliance, color contrast, ARIA validation."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-axe"]
+    args: ["-y", "accessibility-mcp"]
     tool_prefix: a11y_
 
-  - name: html-validator
-    capability: html_valid
-    description: "HTML validation — W3C compliance, broken markup detection, suggestion fixes."
+  - name: ci-config
+    capability: ci
+    description: "CI config generator — GitHub Actions, GitLab CI, CircleCI YAML generation."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-html-validator"]
-    tool_prefix: html_
+    args: ["-y", "mcp-ci"]
+    tool_prefix: ci_
 
-  - name: css-analyzer
-    capability: css_analyze
-    description: "CSS analysis — specificity, unused rules, complexity metrics, bundle size."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-css-analyzer"]
-    tool_prefix: css_
-
-  - name: bundle-analyzer
-    capability: bundle
-    description: "JavaScript bundle analysis — size, tree-shaking, duplicate deps, chunk optimization."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-bundle-analyzer"]
-    tool_prefix: bund_
-
-  - name: performance-profiler
-    capability: perf
-    description: "Performance profiling — CPU, memory, startup time, bottleneck detection."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-perf"]
-    tool_prefix: perf_
-
-  # ── Tier 4f: Security & compliance (free) ─────────────────────────────────
+  # ── Tier 10: Security & compliance ────────────────────────────────────────
 
   - name: security-audit
     capability: sec_audit
@@ -624,199 +472,69 @@ servers:
     description: "Secret detection — scan code for hardcoded API keys, passwords, tokens."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-secret-scanner"]
+    args: ["-y", "secrets-mcp"]
     tool_prefix: scrt_
-
-  - name: dependency-audit
-    capability: dep_audit
-    description: "Dependency audit — npm/pip/cargo vulnerability scanning, outdated package detection."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-dep-audit"]
-    tool_prefix: daudit_
-
-  - name: ssl-checker
-    capability: ssl
-    description: "SSL/TLS certificate checker — expiry, chain validation, cipher suites, HSTS."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-ssl-checker"]
-    tool_prefix: ssl_
-
-  - name: cors-tester
-    capability: cors
-    description: "CORS policy tester — check cross-origin headers, preflight requests, allowed methods."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-cors-tester"]
-    tool_prefix: cors_
-
-  - name: sbom-generator
-    capability: sbom
-    description: "SBOM generation — Software Bill of Materials in SPDX/CycloneDX format."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-sbom"]
-    tool_prefix: sbom_
 
   - name: osint-tools
     capability: osint
     description: "OSINT tools — domain recon, IP reputation, email validation, social profile lookup."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-osint"]
+    args: ["-y", "osint-mcp"]
     tool_prefix: osint_
 
-  - name: privacy-checker
-    capability: privacy
-    description: "Privacy compliance — GDPR/CCPA checklist, cookie scanning, data flow analysis."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-privacy"]
-    tool_prefix: priv_
+  # ── Tier 11: Cloud & infrastructure ───────────────────────────────────────
 
-  # ── Tier 4g: Cloud & infrastructure (free) ────────────────────────────────
-
-  - name: aws-docs
+  - name: aws
     capability: aws_docs
-    description: "AWS documentation — search, fetch, convert AWS docs pages to markdown."
+    description: "AWS documentation and services — search, fetch AWS docs, service guidance."
     connection_type: stdio
     command: npx
-    args: ["-y", "@anthropic/mcp-server-aws-docs"]
+    args: ["-y", "aws-mcp"]
     tool_prefix: aws_
-
-  - name: aws-cdk
-    capability: aws_cdk
-    description: "AWS CDK advisor — prescriptive CDK guidance, check suppressions, best practices."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/mcp-server-aws-cdk"]
-    tool_prefix: cdk_
 
   - name: cloudflare
     capability: cloudflare
     description: "Cloudflare operations — Workers, KV, R2, DNS, cache management."
     connection_type: stdio
     command: npx
-    args: ["-y", "@nicobailon/mcp-cloudflare"]
+    args: ["-y", "cloudflare-mcp"]
     env_keys: [CLOUDFLARE_API_TOKEN]
     tool_prefix: cf_
 
-  - name: nginx-config
-    capability: nginx
-    description: "Nginx configuration — generate, validate, optimize server blocks and routing."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-nginx"]
-    tool_prefix: ngx_
-
-  - name: systemd
-    capability: systemd
-    description: "Systemd service management — status, start, stop, logs, unit file generation."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-systemd"]
-    tool_prefix: sysd_
-
-  - name: cron-manager
-    capability: cron
-    description: "Cron job management — list, create, validate crontab expressions."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-cron"]
-    tool_prefix: cron_
-
-  - name: process-manager
-    capability: process
-    description: "Process management — list, kill, monitor processes, resource usage."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-process"]
-    tool_prefix: proc_
-
-  - name: network-tools
-    capability: nettools
-    description: "Network diagnostics — ping, traceroute, port scan, bandwidth test."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-network"]
-    tool_prefix: net_
-
-  - name: log-analyzer
-    capability: logs
-    description: "Log file analysis — parse, filter, aggregate, detect patterns in log files."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-log-analyzer"]
-    tool_prefix: log_
-
-  - name: yaml-tools
-    capability: yaml_tools
-    description: "YAML/TOML tools — validate, convert, merge, diff YAML and TOML files."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-yaml"]
-    tool_prefix: yml_
-
-  # ── Tier 4h: Container orchestration (free) ───────────────────────────────
-
-  - name: docker-compose
+  - name: docker-ops
     capability: compose
-    description: "Docker Compose management — up, down, logs, build multi-container apps."
+    description: "Docker operations — compose, build, manage multi-container apps."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-docker-compose"]
+    args: ["-y", "docker-mcp"]
     tool_prefix: dcomp_
 
-  - name: helm
-    capability: helm
-    description: "Helm chart management — search, install, template, values management."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-helm"]
-    tool_prefix: helm_
-
-  - name: dockerfile-gen
-    capability: dockerfile
-    description: "Dockerfile generator — create optimized, multi-stage Dockerfiles for any language."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-dockerfile"]
-    tool_prefix: dfile_
-
-  - name: makefile
-    capability: makefile
-    description: "Makefile generator and runner — create, validate, execute Make targets."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-makefile"]
-    tool_prefix: make_
-
-  - name: shell-script
-    capability: shell
-    description: "Shell script tools — generate, lint (shellcheck), explain bash/zsh scripts."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-shell"]
-    tool_prefix: sh_
-
-  - name: ci-config
-    capability: ci
-    description: "CI config generator — GitHub Actions, GitLab CI, CircleCI YAML generation."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-ci-config"]
-    tool_prefix: ci_
-
-  # ── Tier 4i: Content & documents (free) ───────────────────────────────────
+  # ── Tier 12: Content & documents ──────────────────────────────────────────
 
   - name: pdf-tools
     capability: pdf
     description: "PDF tools — read, create, merge, split, extract text/images from PDFs."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-pdf"]
+    args: ["-y", "pdf-mcp"]
     tool_prefix: pdf_
+
+  - name: csv-tools
+    capability: data_transform
+    description: "CSV data transformation — parse, filter, aggregate, convert between formats."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "csv-mcp"]
+    tool_prefix: csv_
+
+  - name: excel
+    capability: excel
+    description: "Excel/spreadsheet operations — read, write, format cells in .xlsx files."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "excel-mcp"]
+    tool_prefix: xl_
 
   - name: qr-code
     capability: qrcode
@@ -826,36 +544,12 @@ servers:
     args: ["-y", "mcp-server-qrcode"]
     tool_prefix: qr_
 
-  - name: barcode
-    capability: barcode
-    description: "Barcode generator/reader — Code128, EAN, UPC, DataMatrix, PDF417."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-barcode"]
-    tool_prefix: bc_
-
-  - name: latex
-    capability: latex
-    description: "LaTeX rendering — compile math equations, academic documents to PDF/SVG."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-latex"]
-    tool_prefix: tex_
-
-  - name: markdown-tools
-    capability: md_tools
-    description: "Markdown tools — lint, format, TOC generation, link checking, HTML conversion."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-markdown"]
-    tool_prefix: md_
-
   - name: ascii-art
     capability: ascii
     description: "ASCII art — text banners, box drawings, tables, figlet fonts."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-ascii-art"]
+    args: ["-y", "ascii-art-mcp"]
     tool_prefix: asc_
 
   - name: ical
@@ -863,352 +557,14 @@ servers:
     description: "iCal/ICS tools — create, parse, validate calendar events and invites."
     connection_type: stdio
     command: npx
-    args: ["-y", "mcp-server-ical"]
+    args: ["-y", "calendar-mcp"]
     tool_prefix: ical_
 
-  - name: rss-gen
-    capability: rss_gen
-    description: "RSS feed generator — create Atom/RSS feeds from structured data."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-rss-gen"]
-    tool_prefix: rssg_
-
-  - name: email-template
-    capability: email_tpl
-    description: "Email template builder — MJML/HTML responsive email generation."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-email-template"]
-    tool_prefix: eml_
-
-  - name: slideshow
-    capability: slides
-    description: "Presentation generator — create slideshows from markdown (Marp/reveal.js)."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-slides"]
-    tool_prefix: slide_
-
-  # ── Tier 4j: Media processing (free) ──────────────────────────────────────
-
-  - name: image-resize
-    capability: img_resize
-    description: "Image resize/crop/convert — sharp-based image processing, format conversion."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-image-tools"]
-    tool_prefix: imgr_
-
-  - name: color-palette
-    capability: colors
-    description: "Color tools — palette generation, contrast checking, hex/rgb/hsl conversion, a11y."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-color"]
-    tool_prefix: clr_
-
-  - name: favicon-gen
-    capability: favicon
-    description: "Favicon generator — create favicons, apple-touch-icons, manifest icons from image."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-favicon"]
-    tool_prefix: fav_
-
-  - name: placeholder-images
-    capability: placeholder
-    description: "Placeholder image generator — custom size, color, text overlays for mockups."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-placeholder-image-generator"]
-    tool_prefix: phimg_
-
-  - name: screenshot-tool
-    capability: screenshot
-    description: "Website screenshot — capture full-page screenshots at various viewport sizes."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-screenshot"]
-    tool_prefix: shot_
-
-  - name: font-tools
-    capability: fonts
-    description: "Font tools — list system fonts, convert formats, generate @font-face CSS."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-fonts"]
-    tool_prefix: font_
-
-  - name: audio-tools
-    capability: audio
-    description: "Audio processing — convert formats, trim, merge, extract metadata."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-audio"]
-    tool_prefix: aud_
-
-  - name: video-tools
-    capability: video
-    description: "Video processing — convert, trim, thumbnail extraction, metadata."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-video"]
-    tool_prefix: vid_
-
-  # ── Tier 4k: Communication (free/local) ───────────────────────────────────
-
-  - name: smtp-sender
-    capability: smtp
-    description: "SMTP email sender — send emails via local or configured SMTP server."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-smtp"]
-    tool_prefix: smtp_
-
-  - name: webhook
-    capability: webhook
-    description: "Webhook sender/receiver — POST JSON to webhooks, inspect incoming payloads."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-webhook"]
-    tool_prefix: hook_
-
-  - name: websocket
-    capability: websocket
-    description: "WebSocket client — connect, send/receive messages, monitor real-time streams."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-websocket"]
-    tool_prefix: ws_
-
-  - name: grpc-tools
-    capability: grpc
-    description: "gRPC tools — introspect services, call methods, generate proto definitions."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-grpc"]
-    tool_prefix: grpc_
-
-  - name: graphql-tools
-    capability: graphql
-    description: "GraphQL tools — introspect schemas, execute queries, generate types."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-graphql"]
-    tool_prefix: gql_
-
-  - name: mqtt
-    capability: mqtt
-    description: "MQTT client — publish/subscribe, topic management for IoT messaging."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-mqtt"]
-    tool_prefix: mqtt_
-
-  # ── Tier 4l: Math & data science (free) ───────────────────────────────────
-
-  - name: wolfram-alpha
-    capability: wolfram
-    description: "Computational knowledge — math, science, units, conversions via Wolfram Alpha."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-wolfram"]
-    tool_prefix: wolf_
-
-  - name: unit-converter
-    capability: units
-    description: "Unit conversion — length, weight, temperature, currency, data sizes, time."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-units"]
-    tool_prefix: unit_
-
-  - name: statistics
-    capability: stats
-    description: "Statistics — mean, median, std dev, correlation, regression, distributions."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-statistics"]
-    tool_prefix: stat_
-
-  - name: plotting
-    capability: plot
-    description: "Data plotting — generate line, bar, scatter, histogram charts from data arrays."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-plot"]
-    tool_prefix: plot_
-
-  - name: geojson
-    capability: geo
-    description: "GeoJSON tools — create, validate, transform geographic data, distance calc."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-geojson"]
-    tool_prefix: geo_
-
-  - name: currency-exchange
-    capability: currency
-    description: "Currency exchange rates — real-time conversion between 150+ currencies."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-currency"]
-    tool_prefix: curr_
-
-  - name: weather
-    capability: weather
-    description: "Weather data — current conditions, forecasts, historical data for any location."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-weather"]
-    tool_prefix: wx_
-
-  - name: periodic-table
-    capability: elements
-    description: "Periodic table — element properties, atomic data, isotopes, chemical formulas."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-periodic-table"]
-    tool_prefix: elem_
-
-  # ── Tier 4m: Industry-specific (free) ─────────────────────────────────────
-
-  - name: fhir-health
-    capability: fhir
-    description: "FHIR healthcare API — patient records, observations, conditions, medications."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-fhir"]
-    tool_prefix: fhir_
-
-  - name: hl7-tools
-    capability: hl7
-    description: "HL7 message tools — parse, validate, transform healthcare messages."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-hl7"]
-    tool_prefix: hl7_
-
-  - name: financial-data
-    capability: findata
-    description: "Financial market data — stock quotes, historical prices, company fundamentals."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-finance"]
-    tool_prefix: fin_
-
-  - name: legal-tools
-    capability: legal
-    description: "Legal tools — contract templates, clause library, compliance checklists."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-legal"]
-    tool_prefix: law_
-
-  - name: edu-tools
-    capability: edu
-    description: "Education tools — quiz generation, flashcards, curriculum planning, LMS integration."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-education"]
-    tool_prefix: edu_
-
-  - name: ecommerce-tools
-    capability: ecom
-    description: "E-commerce tools — product catalog, pricing, inventory templates, shipping calc."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-ecommerce"]
-    tool_prefix: ecom_
-
-  - name: crm-tools
-    capability: crm
-    description: "CRM tools — contact management, lead tracking, sales pipeline templates."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-crm"]
-    tool_prefix: crm_
-
-  - name: hr-tools
-    capability: hr_tools
-    description: "HR tools — job descriptions, interview questions, org chart, leave management."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-hr"]
-    tool_prefix: hr_
-
-  - name: real-estate-tools
-    capability: realestate
-    description: "Real estate tools — property valuation formulas, mortgage calc, listing templates."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-real-estate"]
-    tool_prefix: re_
-
-  - name: agriculture-tools
-    capability: agri
-    description: "Agriculture tools — crop planning, soil analysis templates, irrigation scheduling."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-agriculture"]
-    tool_prefix: agri_
-
-  # ── Tier 4n: AI & ML tools (free) ─────────────────────────────────────────
-
-  - name: prompt-tools
-    capability: prompts
-    description: "Prompt engineering tools — templates, few-shot generation, prompt testing framework."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-prompts"]
-    tool_prefix: prmt_
-
-  - name: embeddings
-    capability: embeddings
-    description: "Text embeddings — generate embeddings locally for similarity search, clustering."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-embeddings"]
-    tool_prefix: emb_
-
-  - name: tokenizer
-    capability: tokenizer
-    description: "Token counting — count tokens for GPT/Claude/Llama models, estimate costs."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-tokenizer"]
-    tool_prefix: tok_
-
-  - name: dataset-tools
-    capability: dataset
-    description: "Dataset tools — split train/test, augment, validate, generate synthetic data."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-dataset"]
-    tool_prefix: ds_
-
-  - name: model-card
-    capability: model_card
-    description: "ML model cards — generate documentation, bias analysis, performance metrics."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-model-card"]
-    tool_prefix: mcard_
-
-  - name: confusion-matrix
-    capability: confusion
-    description: "Classification metrics — confusion matrix, precision, recall, F1, ROC curves."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "mcp-server-confusion-matrix"]
-    tool_prefix: cm_
-
-  # ── Tier 6: Design & visualization (no API key) ─────────────────────────
+  # ── Tier 13: Media & design ───────────────────────────────────────────────
 
   - name: pollinations
     capability: image_gen
-    description: "Free AI image generation — text to image, no signup, no API key. Unlimited. Use for mockups, icons, hero images, illustrations."
+    description: "Free AI image generation — text to image, no signup, no API key. Unlimited. Use for mockups, icons, hero images."
     connection_type: stdio
     command: npx
     args: ["-y", "@pollinations_ai/mcp"]
@@ -1224,7 +580,7 @@ servers:
 
   - name: mermaid
     capability: diagrams
-    description: "Mermaid diagram rendering — flowcharts, sequence, class, ER, gantt, state, pie charts → PNG/SVG. Architecture docs."
+    description: "Mermaid diagram rendering — flowcharts, sequence, class, ER, gantt, state, pie charts → PNG/SVG."
     connection_type: stdio
     command: npx
     args: ["-y", "@peng-shawn/mermaid-mcp-server"]
@@ -1232,7 +588,7 @@ servers:
 
   - name: svgmaker
     capability: svg
-    description: "AI-powered SVG generation and editing. Create logos, icons, illustrations, infographics as scalable vectors."
+    description: "AI-powered SVG generation and editing. Create logos, icons, illustrations as scalable vectors."
     connection_type: stdio
     command: npx
     args: ["-y", "@genwave/svgmaker-mcp"]
@@ -1240,7 +596,7 @@ servers:
 
   - name: excalidraw
     capability: whiteboard
-    description: "Excalidraw canvas — create wireframes, system diagrams, hand-drawn style architecture visuals. Export SVG/PNG."
+    description: "Excalidraw canvas — create wireframes, system diagrams, hand-drawn style architecture visuals."
     connection_type: stdio
     command: npx
     args: ["-y", "@scofieldfree/excalidraw-mcp"]
@@ -1248,7 +604,7 @@ servers:
 
   - name: drawio
     capability: drawio
-    description: "Draw.io diagrams — architecture, flowcharts, network topology, UML. CRUD on diagram elements. Export SVG/PNG/XML."
+    description: "Draw.io diagrams — architecture, flowcharts, network topology, UML. Export SVG/PNG/XML."
     connection_type: stdio
     command: npx
     args: ["-y", "drawio-mcp-server"]
@@ -1262,62 +618,192 @@ servers:
     args: ["-y", "@svgnew/mcp"]
     tool_prefix: svgn_
 
-  # ── Tier 7: Code intelligence ────────────────────────────────────────────
+  - name: color-palette
+    capability: colors
+    description: "Color tools — palette generation, contrast checking, hex/rgb/hsl conversion."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "palette-mcp"]
+    tool_prefix: clr_
+
+  - name: audio-tools
+    capability: audio
+    description: "Audio processing — convert formats, trim, merge, extract metadata."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-audio"]
+    tool_prefix: aud_
+
+  - name: video-tools
+    capability: video
+    description: "Video processing — convert, trim, thumbnail extraction, metadata."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-video"]
+    tool_prefix: vid_
+
+  # ── Tier 14: Communication ────────────────────────────────────────────────
+
+  - name: smtp-sender
+    capability: smtp
+    description: "SMTP email sender — send emails via local or configured SMTP server."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "smtp-mcp"]
+    tool_prefix: smtp_
+
+  - name: webhook
+    capability: webhook
+    description: "Webhook sender/receiver — POST JSON to webhooks, inspect incoming payloads."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "webhook-mcp"]
+    tool_prefix: hook_
+
+  - name: websocket
+    capability: websocket
+    description: "WebSocket client — connect, send/receive messages, monitor real-time streams."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "websocket-mcp"]
+    tool_prefix: ws_
+
+  - name: graphql-tools
+    capability: graphql
+    description: "GraphQL tools — introspect schemas, execute queries, generate types."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-graphql"]
+    tool_prefix: gql_
+
+  - name: mqtt
+    capability: mqtt
+    description: "MQTT client — publish/subscribe, topic management for IoT messaging."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mqtt-mcp"]
+    tool_prefix: mqtt_
+
+  # ── Tier 15: Math & data science ──────────────────────────────────────────
+
+  - name: wolfram-alpha
+    capability: wolfram
+    description: "Computational knowledge — math, science, units, conversions via Wolfram Alpha."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "wolfram-mcp"]
+    tool_prefix: wolf_
+
+  - name: currency-exchange
+    capability: currency
+    description: "Currency exchange rates — real-time conversion between 150+ currencies."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "currency-mcp"]
+    tool_prefix: curr_
+
+  - name: weather
+    capability: weather
+    description: "Weather data — current conditions, forecasts, historical data for any location."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-weather"]
+    tool_prefix: wx_
+
+  - name: chart-tools
+    capability: plot
+    description: "Data charting and plotting — generate various chart types from data."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "chart-mcp"]
+    tool_prefix: plot_
+
+  - name: dataset-tools
+    capability: dataset
+    description: "Dataset tools — split train/test, augment, validate, generate synthetic data."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-dataset"]
+    tool_prefix: ds_
+
+  - name: tokenizer
+    capability: tokenizer
+    description: "Token counting — count tokens for GPT/Claude/Llama models, estimate costs."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "token-counter-mcp"]
+    tool_prefix: tok_
+
+  # ── Tier 16: Industry-specific ────────────────────────────────────────────
+
+  - name: financial-data
+    capability: findata
+    description: "Financial market data — stock quotes, historical prices, company fundamentals."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-finance"]
+    tool_prefix: fin_
+
+  - name: healthcare
+    capability: fhir
+    description: "Healthcare tools — FHIR resources, clinical data, health records integration."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "healthcare-mcp"]
+    tool_prefix: health_
+
+  - name: legal-tools
+    capability: legal
+    description: "Legal tools — contract templates, clause library, compliance checklists."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-legal"]
+    tool_prefix: law_
+
+  - name: education
+    capability: edu
+    description: "Education tools — quiz generation, flashcards, curriculum planning."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "education-mcp"]
+    tool_prefix: edu_
+
+  - name: ecommerce
+    capability: ecom
+    description: "E-commerce tools — Shopify integration, product catalog, order management."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "shopify-mcp"]
+    tool_prefix: ecom_
+
+  - name: crm
+    capability: crm
+    description: "CRM tools — HubSpot integration, contact management, deal tracking."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "hubspot-mcp"]
+    tool_prefix: crm_
+
+  # ── Tier 17: Code intelligence ────────────────────────────────────────────
 
   - name: code-graph
     capability: code_analysis
-    description: "AST-aware code analysis — dependency graphs, blast radius, dead code detection, hotspot analysis. 170+ languages."
+    description: "Code graph analysis — dependency graphs, call chains, dead code detection."
     connection_type: stdio
     command: npx
-    args: ["-y", "code-graph-context-mcp"]
+    args: ["-y", "code-graph-mcp"]
     tool_prefix: code_
 
-  # ── Tier 8: Code execution & sandboxing ─────────────────────────────────────
-
-  - name: yepcode-sandbox
-    capability: sandbox
-    description: "Secure sandboxed code execution with npm/pip access. Run LLM-generated code safely. Use for testing code snippets before committing."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "@anthropic/mcp-server-yepcode"]
-    env_keys: [YEPCODE_API_KEY]
-    tool_prefix: sandbox_
-    disabled: true  # Enable when sandbox execution is needed
-
-  - name: depwire
-    capability: deps
-    description: "Dependency graph analysis for TypeScript, JavaScript, Python, Go, Rust, C. Find imports, exports, and dependency chains."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "depwire"]
-    tool_prefix: deps_
-
-  - name: code-to-tree
-    capability: ast
-    description: "Convert source code to AST (abstract syntax tree) across languages. Structural code analysis without running it."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "code-to-tree"]
-    tool_prefix: ast_
-
-  - name: repomapper
-    capability: repomap
-    description: "Dynamic code mapping with function prototypes and relevance scoring. Understand codebase structure before building."
-    connection_type: stdio
-    command: npx
-    args: ["-y", "repomapper-mcp"]
-    tool_prefix: rmap_
-
-  # ── Tier 9: Infrastructure ────────────────────────────────────────────────
+  # ── Tier 18: Disabled / template servers ──────────────────────────────────
 
   - name: terraform
     capability: terraform
     description: "Terraform registry provider docs/resources lookup and module discovery."
     connection_type: stdio
     command: npx
-    args: ["-y", "@anthropic/mcp-server-terraform"]
+    args: ["-y", "terraform-mcp-server"]
     tool_prefix: tf_
-    disabled: true  # Enable for IaC projects
+    disabled: true
 
   - name: kubernetes
     capability: k8s
@@ -1326,19 +812,17 @@ servers:
     command: npx
     args: ["-y", "kubernetes-mcp-server"]
     tool_prefix: k8s_
-    disabled: true  # Enable for K8s deployments
-
-  # ── Tier 10: Disabled / template servers ───────────────────────────────────
+    disabled: true
 
   - name: slack
     capability: slack
     description: "Slack messaging — post to channels, read threads, notify on pipeline completion."
     connection_type: stdio
     command: npx
-    args: ["-y", "@anthropic/mcp-server-slack"]
+    args: ["-y", "slack-mcp"]
     env_keys: [SLACK_BOT_TOKEN]
     tool_prefix: slack_
-    disabled: true  # Enable when Slack integration is needed
+    disabled: true
 
   - name: linear
     capability: issues
@@ -1355,7 +839,17 @@ servers:
     description: "Sentry error tracking — query exceptions, stack traces, release health."
     connection_type: stdio
     command: npx
-    args: ["-y", "@sentry/mcp-server-sentry"]
+    args: ["-y", "sentry-mcp"]
     env_keys: [SENTRY_AUTH_TOKEN]
     tool_prefix: sentry_
     disabled: true
+
+  # ── Tier 18: Knowledge Graph ──────────────────────────────────────────────
+
+  - name: graphify
+    capability: knowledge_graph
+    description: "AI-powered knowledge graph builder — transforms codebases, docs, papers, and images into interactive queryable knowledge graphs. Supports entity extraction, relationship mapping, graph queries, path finding, and HTML visualization."
+    connection_type: stdio
+    command: graphify
+    args: ["--mcp"]
+    tool_prefix: graph_

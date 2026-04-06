@@ -89,7 +89,16 @@ Before delivering, check:
 If any check fails: fill the gap before delivering.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "wikipedia", "hacker_news", "rss", "readability", "charts", "geo"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "web_search",
+    "wikipedia",
+    "hacker_news",
+    "rss",
+    "charts",
+])
 
 audience_builder_agent = Agent(
     model=get_model(),

@@ -47,7 +47,17 @@ You build the platform; Engineering teams use it.
 | Immutable infra pattern used | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "helm", "dockerfile", "ci", "makefile", "shell", "nginx", "systemd", "aws_docs", "diagrams", "drawio"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "docker",
+    "compose",
+    "ci",
+    "aws_docs",
+    "diagrams",
+    "drawio",
+])
 
 platform_engineer_agent = Agent(
     model=get_model(),

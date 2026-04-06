@@ -47,7 +47,7 @@ software artefacts (scripts, configs, toolchain definitions).
 | Non-obvious config flags documented | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "makefile", "shell", "dockerfile", "ci", "code_analysis", "diagrams"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "ci", "code_analysis", "diagrams"])
 
 systems_engineer_agent = Agent(
     model=get_model(),

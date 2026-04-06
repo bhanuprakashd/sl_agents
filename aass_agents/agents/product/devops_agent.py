@@ -46,7 +46,7 @@ You are a DevOps agent. You set up the infrastructure for the product pipeline.
 - Vercel deploy is triggered by frontend_builder_agent, not here
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "dockerfile", "ci", "nginx", "systemd", "shell", "makefile", "yaml_tools", "aws_docs"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "ci", "aws_docs"])
 
 devops_agent = Agent(
     model=get_model(),

@@ -44,7 +44,16 @@ idea is technically feasible to build into a product.
 | Clear recommendation: build / research more / don't build | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "stats", "code_analysis", "charts"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "arxiv",
+    "wikipedia",
+    "web_search",
+    "code_analysis",
+    "charts",
+])
 
 applied_scientist_agent = Agent(
     model=get_model(),

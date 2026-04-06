@@ -42,7 +42,16 @@ methodologies: OWASP Top 10 coverage, fuzz testing, auth bypass attempts, and de
 | Remediation guidance provided | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "cve", "sec_audit", "secrets", "dep_audit", "ssl", "cors", "osint", "dns", "privacy"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "cve",
+    "sec_audit",
+    "secrets",
+    "osint",
+    "dns",
+])
 
 security_tester_agent = Agent(
     model=get_model(),

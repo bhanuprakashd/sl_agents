@@ -12,6 +12,7 @@ from tools.system_env_tools import get_environment_summary
 from agents._shared.model import get_model, DEEP
 from agents._shared.mcp_hub import mcp_hub
 from tools.dynamic_skill_loader import load_domain_expertise, detect_industry, list_supported_industries
+from tools.graph_tools import build_knowledge_graph, query_knowledge_graph
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -93,6 +94,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "npm_search", "cve", "github", "duckduckgo",
     "diagrams", "drawio",
     "sec_audit", "openapi", "aws_docs", "arxiv", "wikipedia",
+    "knowledge_graph",
 ])
 
 architect_agent = Agent(
@@ -103,5 +105,6 @@ architect_agent = Agent(
     output_key="architecture_output",  # Auto-save response to state["architecture_output"]
     tools=[read_state, get_environment_summary, search_github_repos, search_github_code, read_webpage,
            load_domain_expertise, detect_industry, list_supported_industries,
+           build_knowledge_graph, query_knowledge_graph,
            *_mcp_tools],
 )

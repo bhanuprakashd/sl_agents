@@ -105,7 +105,7 @@ If ANY required check fails:
 Never deliver at-risk flags without specific, actionable recommendations.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "charts", "stats", "calc", "excel"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "charts", "calc", "excel"])
 
 deal_analyst_agent = Agent(
     model=get_model(),

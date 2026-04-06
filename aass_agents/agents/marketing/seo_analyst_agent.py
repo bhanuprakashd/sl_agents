@@ -105,7 +105,7 @@ Month 3 — Competitive
 If any check fails: fill the gap before delivering.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "readability", "sitemap", "link_check", "lighthouse", "charts"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "lighthouse", "charts"])
 
 seo_analyst_agent = Agent(
     model=get_model(),

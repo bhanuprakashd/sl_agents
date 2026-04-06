@@ -102,7 +102,7 @@ Reason:       [brief explanation]
 - If update_version_status raises InvalidStateTransition: call log_to_dlq and skip.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "stats"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking"])
 
 rollback_watchdog_agent = Agent(
     model=get_model(),

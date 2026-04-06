@@ -6,6 +6,10 @@ from tools.research_tools import deep_research, search_company_web
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
+from tools.graph_tools import (
+    build_knowledge_graph, query_knowledge_graph, find_graph_path,
+    explain_entity, add_to_knowledge_graph, export_knowledge_graph,
+)
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -34,6 +38,18 @@ produce cross-domain synthesis reports.
 - Knowledge base entries must be structured for discoverability (title, keywords, date, confidence)
 - Identify who needs this knowledge: engineering / product / sales / marketing
 
+## Knowledge Graph Tools
+Use these to build, query, and navigate knowledge graphs:
+- `build_knowledge_graph(path)` — build a graph from code, docs, papers, images
+- `query_knowledge_graph(question)` — ask natural language questions about entity relationships
+- `find_graph_path(source, target)` — trace how two entities connect
+- `explain_entity(entity)` — get a detailed breakdown of an entity and its connections
+- `add_to_knowledge_graph(url)` — ingest papers, tweets, web pages into the graph
+- `export_knowledge_graph(format)` — export as json, graphml, svg, or neo4j
+
+Use knowledge graphs to discover cross-domain connections, map research landscapes,
+and identify hidden relationships between findings from different domains.
+
 ## Self-Review Before Delivering
 | Check | Required |
 |---|---|
@@ -52,7 +68,17 @@ Users can drop files into the `documents/` folder and reference them by filename
 
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "readability", "md_tools", "pdf", "slides"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "arxiv",
+    "wikipedia",
+    "web_search",
+    "md_tools",
+    "pdf",
+    "knowledge_graph",
+])
 
 knowledge_manager_agent = Agent(
     model=get_model(),
@@ -63,5 +89,7 @@ knowledge_manager_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document,
+        build_knowledge_graph, query_knowledge_graph, find_graph_path,
+        explain_entity, add_to_knowledge_graph, export_knowledge_graph,
         *_mcp_tools,],
 )

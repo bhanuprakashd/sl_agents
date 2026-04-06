@@ -7,6 +7,7 @@ from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
 
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
+from tools.graph_tools import build_knowledge_graph, query_knowledge_graph, export_knowledge_graph
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -44,7 +45,19 @@ pipelines, feature engineering, and feature store schemas.
 | No hardcoded credentials or environment values | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "sqlite", "duckdb", "postgres", "data_transform", "excel", "charts", "stats", "py_lint"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "sqlite",
+    "duckdb",
+    "postgres",
+    "data_transform",
+    "excel",
+    "charts",
+    "py_lint",
+    "knowledge_graph",
+])
 
 data_engineer_agent = Agent(
     model=get_model(),
@@ -55,5 +68,6 @@ data_engineer_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[generate_code, create_pipeline_spec, get_pipeline_status,
+        build_knowledge_graph, query_knowledge_graph, export_knowledge_graph,
         *_mcp_tools,],
 )

@@ -70,7 +70,7 @@ Total: 1-10. Below 6 = flagged.
 - Be factual and precise in the summary — no speculation.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "charts", "stats"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "charts"])
 
 evaluator_agent = Agent(
     model=get_model(),

@@ -88,7 +88,16 @@ If ANY required check fails:
 Do not deliver a profile with failing required checks.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "readability", "hacker_news", "rss", "whois", "dns", "screenshot"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "web_search",
+    "hacker_news",
+    "rss",
+    "dns",
+    "screenshot",
+])
 
 lead_researcher_agent = Agent(
     model=get_model(),

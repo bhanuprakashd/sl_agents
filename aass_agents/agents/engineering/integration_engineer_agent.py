@@ -47,7 +47,17 @@ contracts before connecting systems (Stripe API Review culture: the interface is
 | Breaking-change policy stated | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "openapi", "graphql", "grpc", "webhook", "websocket", "json_schema", "diagrams", "sec_audit"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "openapi",
+    "graphql",
+    "webhook",
+    "websocket",
+    "diagrams",
+    "sec_audit",
+])
 
 integration_engineer_agent = Agent(
     model=get_model(),

@@ -43,7 +43,18 @@ and produce experiment reports.
 | Recommendation is actionable | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "stats", "plot", "calc", "duckdb", "sqlite", "excel", "data_transform", "charts"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "plot",
+    "calc",
+    "duckdb",
+    "sqlite",
+    "excel",
+    "data_transform",
+    "charts",
+])
 
 data_scientist_agent = Agent(
     model=get_model(),

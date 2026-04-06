@@ -119,7 +119,7 @@ POSITIONING GUARDRAILS:
 Do not rewrite the entire piece — flag and fix specific issues only.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "readability"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search"])
 
 brand_voice_agent = Agent(
     model=get_model(),

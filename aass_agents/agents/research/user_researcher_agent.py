@@ -43,7 +43,15 @@ methods: user interviews, usability testing, persona development, and customer i
 | Recommendations are actionable and prioritised | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "readability", "charts", "screenshot", "image_gen"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "web_search",
+    "charts",
+    "screenshot",
+    "image_gen",
+])
 
 user_researcher_agent = Agent(
     model=get_model(),

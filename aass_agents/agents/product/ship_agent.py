@@ -9,7 +9,8 @@ from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 
 from agents._shared.model import get_model
-from agents._shared.mcp_hub import mcp_hub, FAST
+from agents._shared.mcp_hub import mcp_hub
+from agents._shared.model import FAST
 from tools.product_memory_tools import save_product_state, log_step
 from tools.skill_memory import save_learned_skill, update_skill_quality_from_feedback
 from tools.claude_code_tools import open_in_browser
@@ -69,7 +70,7 @@ You finalize the product pipeline. Do these steps IN ORDER:
 }
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "charts", "slides", "pdf"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "charts", "pdf"])
 
 ship_agent = Agent(
     model=get_model(FAST),

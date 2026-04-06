@@ -44,7 +44,7 @@ destruction.
 | Resilience report has specific hardening recommendations | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "nettools", "logs", "process", "diagrams", "shell"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "diagrams"])
 
 chaos_engineer_agent = Agent(
     model=get_model(),

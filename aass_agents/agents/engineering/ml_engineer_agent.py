@@ -45,7 +45,16 @@ feature engineering, training, evaluation, and model serving infrastructure.
 | Reproducibility (seeds, pinned deps) addressed | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "stats", "plot", "dataset", "embeddings", "tokenizer", "model_card", "confusion", "py_lint"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "arxiv",
+    "plot",
+    "dataset",
+    "tokenizer",
+    "py_lint",
+])
 
 ml_engineer_agent = Agent(
     model=get_model(),

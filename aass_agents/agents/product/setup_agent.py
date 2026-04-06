@@ -11,7 +11,8 @@ from tools.product_memory_tools import generate_product_id, save_product_state, 
 from tools.system_env_tools import detect_system_environment
 
 from agents._shared.model import get_model
-from agents._shared.mcp_hub import mcp_hub, FAST
+from agents._shared.mcp_hub import mcp_hub
+from agents._shared.model import FAST
 
 
 def _save_to_state(key: str, value: str, tool_context: ToolContext) -> str:

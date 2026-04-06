@@ -109,7 +109,17 @@ Format:  [Text only / Image / Carousel / Poll]
 If any check fails: fill the gap before delivering.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "rss", "readability", "hacker_news", "image_gen", "svg", "slides", "md_tools"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "web_search",
+    "rss",
+    "hacker_news",
+    "image_gen",
+    "svg",
+    "md_tools",
+])
 
 content_strategist_agent = Agent(
     model=get_model(),

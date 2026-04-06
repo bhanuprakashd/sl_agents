@@ -107,7 +107,15 @@ Top Action This Week:[Specific recommendation]
 If any check fails: fill the gap before delivering.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "charts", "stats", "plot", "excel", "data_transform", "calc"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "duckduckgo",
+    "charts",
+    "plot",
+    "excel",
+    "data_transform",
+    "calc",
+])
 
 campaign_analyst_agent = Agent(
     model=get_model(),

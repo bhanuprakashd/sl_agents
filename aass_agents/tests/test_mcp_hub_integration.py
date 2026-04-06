@@ -24,8 +24,8 @@ class TestMcpHubConfig:
         assert "servers" in config
 
     def test_minimum_server_count(self, servers):
-        """We should have at least 150 servers."""
-        assert len(servers) >= 150, f"Only {len(servers)} servers found"
+        """We should have at least 90 servers (all verified on npm/PyPI)."""
+        assert len(servers) >= 90, f"Only {len(servers)} servers found"
 
     def test_no_duplicate_capabilities(self, servers):
         """Each capability tag must be unique."""

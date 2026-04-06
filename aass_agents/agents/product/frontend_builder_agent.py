@@ -64,9 +64,20 @@ You are a Frontend Builder agent. You generate a React (Vite) UI and deploy it t
 # MCP tools: docs, npm_search, js_sandbox, github, duckduckgo,
 # image_gen (AI mockups/icons), charts (data viz), svg (vector graphics), diagrams (mermaid)
 _mcp_tools = mcp_hub.get_toolsets([
-    "docs", "npm_search", "js_sandbox", "github", "duckduckgo",
-    "image_gen", "charts", "svg", "diagrams",
-    "colors", "a11y", "lighthouse", "screenshot", "eslint", "prettier",
+    "docs",
+    "npm_search",
+    "github",
+    "duckduckgo",
+    "image_gen",
+    "charts",
+    "svg",
+    "diagrams",
+    "colors",
+    "a11y",
+    "lighthouse",
+    "screenshot",
+    "eslint",
+    "prettier",
 ])
 
 frontend_builder_agent = Agent(

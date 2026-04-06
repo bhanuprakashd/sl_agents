@@ -101,7 +101,7 @@ If ANY required check fails:
 Do not deliver a brief missing discovery questions or a next step.
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "readability", "charts"])
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "charts"])
 
 sales_call_prep_agent = Agent(
     model=get_model(),

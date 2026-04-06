@@ -43,7 +43,17 @@ propose novel architectures, and design training experiments.
 | Academic vs production-viable distinction made | Yes |
 """
 
-_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "stats", "plot", "dataset", "embeddings", "tokenizer", "model_card", "confusion"])
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs",
+    "github",
+    "duckduckgo",
+    "arxiv",
+    "wikipedia",
+    "web_search",
+    "plot",
+    "dataset",
+    "tokenizer",
+])
 
 ml_researcher_agent = Agent(
     model=get_model(),
