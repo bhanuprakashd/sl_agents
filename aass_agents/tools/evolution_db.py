@@ -7,13 +7,16 @@ Tables:
   - hypotheses          : root cause + proposed instruction records
   - evaluator_queue     : durable priority queue for evaluator→hypothesis handoff
   - rewrite_locks       : per-agent mutex preventing concurrent rewrites
+  - candidate_pool      : population-based evolution with UCB1 sampling (ASI-Evolve)
 
 All writes use asyncio.to_thread to avoid blocking the event loop.
 SQLite opened in WAL mode for safe concurrent access.
 """
+import math
 import sqlite3
 import asyncio
 import json
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -72,6 +75,22 @@ CREATE TABLE IF NOT EXISTS rewrite_locks (
     expires_at  TEXT NOT NULL,
     version     INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS candidate_pool (
+    id              TEXT PRIMARY KEY,
+    agent_name      TEXT NOT NULL,
+    instruction     TEXT NOT NULL,
+    fitness_score   REAL DEFAULT 0.0,
+    visit_count     INTEGER DEFAULT 0,
+    total_reward    REAL DEFAULT 0.0,
+    parent_id       TEXT,
+    generation      INTEGER DEFAULT 0,
+    status          TEXT DEFAULT 'active',
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidate_pool_agent
+    ON candidate_pool(agent_name, status);
 """
 
 VALID_TRANSITIONS = {
@@ -553,6 +572,225 @@ def release_stale_locks_sync() -> int:
 
 async def release_stale_locks() -> int:
     return await asyncio.to_thread(release_stale_locks_sync)
+
+
+# ── candidate_pool (ASI-Evolve population-based evolution) ───────────────────
+
+MAX_POPULATION = 10  # per agent
+UCB1_C = 1.41  # exploration constant (sqrt(2) default)
+
+
+def add_candidate_sync(
+    agent_name: str,
+    instruction: str,
+    fitness_score: float = 0.0,
+    parent_id: Optional[str] = None,
+    generation: int = 0,
+) -> str:
+    """Insert a new candidate into the pool. Returns the generated id."""
+    candidate_id = uuid.uuid4().hex
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO candidate_pool
+              (id, agent_name, instruction, fitness_score, visit_count,
+               total_reward, parent_id, generation, status, created_at)
+            VALUES (?, ?, ?, ?, 0, 0.0, ?, ?, 'active', ?)
+            """,
+            (candidate_id, agent_name, instruction, fitness_score,
+             parent_id, generation, _now_iso()),
+        )
+    return candidate_id
+
+
+async def add_candidate(
+    agent_name: str,
+    instruction: str,
+    fitness_score: float = 0.0,
+    parent_id: Optional[str] = None,
+    generation: int = 0,
+) -> str:
+    return await asyncio.to_thread(
+        add_candidate_sync, agent_name, instruction,
+        fitness_score, parent_id, generation,
+    )
+
+
+def get_active_candidates_sync(agent_name: str) -> list[dict]:
+    """Return all active candidates for an agent, ordered by fitness descending."""
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM candidate_pool
+            WHERE agent_name=? AND status='active'
+            ORDER BY fitness_score DESC
+            """,
+            (agent_name,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+async def get_active_candidates(agent_name: str) -> list[dict]:
+    return await asyncio.to_thread(get_active_candidates_sync, agent_name)
+
+
+def sample_parent_ucb1_sync(agent_name: str, c: float = UCB1_C) -> Optional[dict]:
+    """Select a parent candidate using UCB1 (exploration-exploitation balance).
+
+    UCB1 score = avg_reward + c * sqrt(ln(total_visits) / visit_count)
+    Returns the candidate with highest UCB1 score, or None if pool is empty.
+    """
+    candidates = get_active_candidates_sync(agent_name)
+    if not candidates:
+        return None
+
+    total_visits = sum(cand["visit_count"] for cand in candidates)
+    if total_visits == 0:
+        # No visits yet — return the one with highest fitness
+        return max(candidates, key=lambda x: x["fitness_score"])
+
+    best = None
+    best_score = -float("inf")
+    for cand in candidates:
+        if cand["visit_count"] == 0:
+            # Unvisited candidates get infinite UCB1 — prioritize exploration
+            return cand
+        avg_reward = cand["total_reward"] / cand["visit_count"]
+        exploration = c * math.sqrt(math.log(total_visits) / cand["visit_count"])
+        ucb1_score = avg_reward + exploration
+        if ucb1_score > best_score:
+            best_score = ucb1_score
+            best = cand
+    return best
+
+
+async def sample_parent_ucb1(agent_name: str, c: float = UCB1_C) -> Optional[dict]:
+    return await asyncio.to_thread(sample_parent_ucb1_sync, agent_name, c)
+
+
+def record_candidate_reward_sync(candidate_id: str, reward: float) -> None:
+    """Record a reward signal for a candidate (increments visit_count and total_reward)."""
+    with _connect() as conn:
+        conn.execute(
+            """
+            UPDATE candidate_pool
+            SET visit_count = visit_count + 1,
+                total_reward = total_reward + ?,
+                fitness_score = (total_reward + ?) / (visit_count + 1)
+            WHERE id=?
+            """,
+            (reward, reward, candidate_id),
+        )
+
+
+async def record_candidate_reward(candidate_id: str, reward: float) -> None:
+    await asyncio.to_thread(record_candidate_reward_sync, candidate_id, reward)
+
+
+def maintain_population_sync(agent_name: str, max_pop: int = MAX_POPULATION) -> int:
+    """Retire lowest-performing candidates if pool exceeds max_pop.
+
+    Only retires candidates with visit_count >= 5 and fitness below 25th percentile.
+    Returns the number of candidates retired.
+    """
+    candidates = get_active_candidates_sync(agent_name)
+    if len(candidates) <= max_pop:
+        return 0
+
+    # Only retire candidates with sufficient visits
+    evaluated = [c for c in candidates if c["visit_count"] >= 5]
+    if len(evaluated) < 4:
+        return 0  # Need at least 4 evaluated to compute percentile
+
+    scores = sorted([c["fitness_score"] for c in evaluated])
+    p25 = scores[len(scores) // 4]
+
+    retired = 0
+    with _connect() as conn:
+        for cand in evaluated:
+            if cand["fitness_score"] < p25 and len(candidates) - retired > max_pop:
+                conn.execute(
+                    "UPDATE candidate_pool SET status='retired' WHERE id=?",
+                    (cand["id"],),
+                )
+                retired += 1
+                if len(candidates) - retired <= max_pop:
+                    break
+    return retired
+
+
+async def maintain_population(agent_name: str, max_pop: int = MAX_POPULATION) -> int:
+    return await asyncio.to_thread(maintain_population_sync, agent_name, max_pop)
+
+
+def get_champion_sync(agent_name: str) -> Optional[dict]:
+    """Return the highest-fitness active candidate (champion)."""
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM candidate_pool
+            WHERE agent_name=? AND status='active' AND visit_count >= 3
+            ORDER BY fitness_score DESC
+            LIMIT 1
+            """,
+            (agent_name,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+async def get_champion(agent_name: str) -> Optional[dict]:
+    return await asyncio.to_thread(get_champion_sync, agent_name)
+
+
+def promote_champion_sync(agent_name: str) -> Optional[dict]:
+    """Mark the current champion as 'champion' status and demote previous champion.
+
+    Returns the promoted candidate, or None if no eligible champion found.
+    """
+    champion = get_champion_sync(agent_name)
+    if not champion:
+        return None
+
+    with _connect() as conn:
+        # Demote previous champions back to active
+        conn.execute(
+            "UPDATE candidate_pool SET status='active' WHERE agent_name=? AND status='champion'",
+            (agent_name,),
+        )
+        # Promote new champion
+        conn.execute(
+            "UPDATE candidate_pool SET status='champion' WHERE id=?",
+            (champion["id"],),
+        )
+    champion["status"] = "champion"
+    return champion
+
+
+async def promote_champion(agent_name: str) -> Optional[dict]:
+    return await asyncio.to_thread(promote_champion_sync, agent_name)
+
+
+def get_candidate_lineage_sync(candidate_id: str, depth: int = 10) -> list[dict]:
+    """Trace the lineage of a candidate back through parent_id chain."""
+    lineage = []
+    current_id = candidate_id
+    for _ in range(depth):
+        with _connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM candidate_pool WHERE id=?",
+                (current_id,),
+            ).fetchone()
+        if not row:
+            break
+        lineage.append(dict(row))
+        current_id = row["parent_id"]
+        if not current_id:
+            break
+    return lineage
+
+
+async def get_candidate_lineage(candidate_id: str, depth: int = 10) -> list[dict]:
+    return await asyncio.to_thread(get_candidate_lineage_sync, candidate_id, depth)
 
 
 # Init on import

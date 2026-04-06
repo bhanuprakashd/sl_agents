@@ -16,6 +16,7 @@ from tools.skill_forge_db import (
     save_battle_test_sync,
     update_session_stage_sync,
 )
+from tools.cognition_base_tools import search_cognition, add_cognition
 
 init_db()
 
@@ -92,6 +93,18 @@ Return:
   "stage": "iteration_pass" | "iteration_max_reached"
 }
 
+## Cognition-Guided Reflection (ASI-Evolve pattern)
+
+Before step 1 (REFLECT), call search_cognition(query=failure_pattern, domain=skill_domain)
+to retrieve relevant domain knowledge and past successful patterns. Use these to:
+- Identify known pitfalls faster (skip trial-and-error)
+- Apply proven fixes from similar skill evolutions
+- Avoid approaches that have failed before
+
+After a successful iteration (composite improved ≥ 0.5), call
+add_cognition(title, content, domain, source="skill_forge_iteration") to save the
+successful pattern for future use by other skills.
+
 ## GEPA principle
 Reflect on WHY failure occurred — targeted reflection produces better patches
 than random mutation. Ask: "What specific wording change would prevent this
@@ -114,5 +127,7 @@ iteration_agent = Agent(
         save_skill_version_sync,
         save_battle_test_sync,
         update_session_stage_sync,
+        search_cognition,
+        add_cognition,
         *_mcp_tools,],
 )

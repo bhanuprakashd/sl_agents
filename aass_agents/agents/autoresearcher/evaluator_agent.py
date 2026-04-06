@@ -12,8 +12,13 @@ from tools.evolution_tools import (
     mark_event_processed,
     enqueue_agent,
     get_evolution_history,
+    get_active_candidates,
+    record_candidate_reward,
+    maintain_population,
+    promote_champion,
 )
 from tools.memory_tools import save_agent_output, recall_past_outputs
+from tools.cognition_base_tools import search_cognition
 
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
@@ -62,6 +67,40 @@ Per agent output:
 - Actionability: is the output usable downstream? (1-4)
 Total: 1-10. Below 6 = flagged.
 
+## Progressive Validation Gates (ASI-Evolve pattern)
+
+When evaluating whether a candidate instruction should be promoted (pending_watch → stable):
+
+### Stage 1: Quick Check (lightweight, <5s)
+- Verify instruction text is valid (not empty, has required sections)
+- Check for obvious issues: missing output format, no role definition, no rules section
+- If FAIL → reject immediately, skip stages 2-3
+
+### Stage 2: Standard Eval (medium, <30s)
+- Score 3 recent agent outputs using the reflection rubric (Accuracy + Completeness + Actionability)
+- Compute mean score
+- If mean < 5.0 → reject; if ≥ 5.0 → proceed to Stage 3
+
+### Stage 3: Deep Validation (expensive, <2min)
+- Score 10 outputs total (recent + historical mix)
+- Compare against last 3 version baselines via get_evolution_history()
+- Regression check: if score drops ≥ 1.0 point vs previous stable version → reject
+- If passes all checks → approve for promotion
+
+Use early rejection: if any stage fails, skip remaining stages.
+
+## Population Management (UCB1)
+
+- After scoring an agent's events, call record_candidate_reward(candidate_id, reward)
+  for each active candidate in the pool (use get_active_candidates).
+- Periodically call maintain_population(agent_name) to retire underperformers.
+- Call promote_champion(agent_name) when a candidate consistently outperforms others.
+
+## Cognition-Guided Evaluation
+
+- Use search_cognition(query, domain) to retrieve known pitfalls for the agent's domain.
+- Factor known pitfalls into your evaluation — weight them higher in scoring.
+
 ## Rules
 
 - Never flag an agent with fewer than 3 events — insufficient evidence.
@@ -86,6 +125,11 @@ evaluator_agent = Agent(
         mark_event_processed,
         enqueue_agent,
         get_evolution_history,
+        get_active_candidates,
+        record_candidate_reward,
+        maintain_population,
+        promote_champion,
+        search_cognition,
         save_agent_output,
         recall_past_outputs,
         *_mcp_tools,],

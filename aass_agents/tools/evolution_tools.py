@@ -244,3 +244,53 @@ async def get_consecutive_stable_count(agent_name: str) -> int:
 
 async def get_next_version(agent_name: str) -> int:
     return await evolution_db.get_next_version(agent_name)
+
+
+# ── Population-based evolution (ASI-Evolve UCB1) ────────────────────────────
+
+async def add_candidate(
+    agent_name: str,
+    instruction: str,
+    fitness_score: float = 0.0,
+    parent_id: Optional[str] = None,
+    generation: int = 0,
+) -> str:
+    """Add a new instruction candidate to the population pool."""
+    return await evolution_db.add_candidate(
+        agent_name, instruction, fitness_score, parent_id, generation,
+    )
+
+
+async def get_active_candidates(agent_name: str) -> list[dict]:
+    """Return all active candidates for an agent."""
+    return await evolution_db.get_active_candidates(agent_name)
+
+
+async def sample_parent_ucb1(agent_name: str) -> Optional[dict]:
+    """Select a parent candidate using UCB1 exploration-exploitation balance."""
+    return await evolution_db.sample_parent_ucb1(agent_name)
+
+
+async def record_candidate_reward(candidate_id: str, reward: float) -> None:
+    """Record a quality reward signal for a candidate instruction."""
+    await evolution_db.record_candidate_reward(candidate_id, reward)
+
+
+async def maintain_population(agent_name: str) -> int:
+    """Retire underperforming candidates to maintain pool size. Returns count retired."""
+    return await evolution_db.maintain_population(agent_name)
+
+
+async def get_champion(agent_name: str) -> Optional[dict]:
+    """Return the highest-fitness active candidate."""
+    return await evolution_db.get_champion(agent_name)
+
+
+async def promote_champion(agent_name: str) -> Optional[dict]:
+    """Promote the best candidate to champion status."""
+    return await evolution_db.promote_champion(agent_name)
+
+
+async def get_candidate_lineage(candidate_id: str, depth: int = 10) -> list[dict]:
+    """Trace the ancestry of a candidate through its parent chain."""
+    return await evolution_db.get_candidate_lineage(candidate_id, depth)

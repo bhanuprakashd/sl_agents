@@ -18,6 +18,8 @@ from tools.evolution_db import (
     get_next_version,
 )
 from tools.memory_tools import save_agent_output, recall_past_outputs
+from tools.cognition_base_tools import search_cognition
+from tools.evolution_tools import sample_parent_ucb1
 
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
@@ -43,10 +45,23 @@ diagnose why an agent is underperforming and produce a better INSTRUCTION for it
 4. Read the evidence field from the queue entry (list of bad output samples).
 5. Call recall_past_outputs(agent_name) for additional context (up to 5 recent outputs).
 
+### Cognition-Guided Analysis (ASI-Evolve pattern)
+Before analyzing evidence, call search_cognition(query=root_cause_hypothesis, domain=agent_department)
+to retrieve relevant domain knowledge. Incorporate these patterns into your analysis:
+- Known pitfalls for this agent type
+- Successful patterns from sibling agent evolutions (cross-transfer)
+- Domain heuristics and best practices
+
+### Population-Based Hypothesis (UCB1)
+Call sample_parent_ucb1(agent_name) to check if there's a candidate pool.
+If a parent candidate exists, base your hypothesis on that candidate's instruction
+(building on proven approaches) rather than starting from scratch.
+
 Analyse the evidence:
 - What is the root cause of poor outputs? (1-2 sentences, specific)
 - What gaps exist in the current instruction?
 - What changes would fix the pattern?
+- What cognition base patterns are relevant? (cite them)
 
 Produce a full replacement INSTRUCTION string (not a diff — the complete new text).
 
@@ -119,5 +134,7 @@ hypothesis_agent = Agent(
         mark_queue_entry_aborted,
         save_agent_output,
         recall_past_outputs,
+        search_cognition,
+        sample_parent_ucb1,
         *_mcp_tools,],
 )

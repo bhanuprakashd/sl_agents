@@ -394,3 +394,119 @@ tools:
     departments: [all]
     tier: fast
     description: "Delete a vault note (moves to .trash for safety)"
+
+  # ── Website Cloner ─────────────────────────────────────────────────────────
+  clone_website_recon:
+    module: tools.website_cloner_tools
+    capabilities: [clone, browser, design, analysis]
+    departments: [product, engineering]
+    tier: std
+    description: "Phase 1: Screenshot, extract design tokens and section map from a URL"
+
+  clone_website_extract_spec:
+    module: tools.website_cloner_tools
+    capabilities: [clone, browser, design, analysis]
+    departments: [product, engineering]
+    tier: std
+    description: "Phase 2: Extract detailed component spec for a single page section"
+
+  clone_website_extract_all_specs:
+    module: tools.website_cloner_tools
+    capabilities: [clone, browser, design, analysis]
+    departments: [product, engineering]
+    tier: std
+    description: "Phase 2 batch: Extract component specs for all page sections"
+
+  clone_website_generate:
+    module: tools.website_cloner_tools
+    capabilities: [clone, code, build, design]
+    departments: [product, engineering]
+    tier: deep
+    description: "Phase 3: Full pipeline — recon, spec, and generate cloned frontend code"
+
+  # ── Cognition Base (ASI-Evolve) ──────────────────────────────────────────
+  search_cognition:
+    module: tools.cognition_base_tools
+    capabilities: [knowledge, search, evolution, cognition]
+    departments: [all]
+    tier: fast
+    description: "Semantic search over the cognition base — retrieves domain knowledge, heuristics, and proven patterns"
+
+  add_cognition:
+    module: tools.cognition_base_tools
+    capabilities: [knowledge, write, evolution, cognition]
+    departments: [all]
+    tier: fast
+    description: "Add a new knowledge entry to the cognition base with auto-embedding"
+
+  seed_cognition_from_skills:
+    module: tools.cognition_base_tools
+    capabilities: [knowledge, seed, evolution, cognition]
+    departments: [all]
+    tier: std
+    description: "Seed the cognition base from existing SKILL.md files across all departments"
+
+  get_cognition_stats:
+    module: tools.cognition_base_tools
+    capabilities: [knowledge, stats, evolution, cognition]
+    departments: [all]
+    tier: fast
+    description: "Return cognition base statistics — total entries and per-domain breakdown"
+
+  # ── Cross-Agent Learning (ASI-Evolve) ────────────────────────────────────
+  extract_transfer_patterns:
+    module: tools.cross_agent_learning
+    capabilities: [evolution, transfer, learning, cognition]
+    departments: [all]
+    tier: std
+    description: "Extract transferable patterns from a successful agent evolution and queue for sibling agents"
+
+  get_transfer_suggestions:
+    module: tools.cross_agent_learning
+    capabilities: [evolution, transfer, learning, cognition]
+    departments: [all]
+    tier: fast
+    description: "Get cognition-based improvement suggestions for an agent from its department peers"
+
+  # ── Population Evolution (ASI-Evolve UCB1) ───────────────────────────────
+  sample_parent_ucb1:
+    module: tools.evolution_tools
+    capabilities: [evolution, sampling, population]
+    departments: [all]
+    tier: fast
+    description: "Select a parent instruction candidate using UCB1 exploration-exploitation balance"
+
+  add_candidate:
+    module: tools.evolution_tools
+    capabilities: [evolution, population, write]
+    departments: [all]
+    tier: fast
+    description: "Add a new instruction candidate to the population pool for an agent"
+
+  record_candidate_reward:
+    module: tools.evolution_tools
+    capabilities: [evolution, population, scoring]
+    departments: [all]
+    tier: fast
+    description: "Record a quality reward signal for a candidate instruction"
+
+  maintain_population:
+    module: tools.evolution_tools
+    capabilities: [evolution, population, cleanup]
+    departments: [all]
+    tier: fast
+    description: "Retire underperforming candidates to maintain pool size (10 per agent)"
+
+  promote_champion:
+    module: tools.evolution_tools
+    capabilities: [evolution, population, promotion]
+    departments: [all]
+    tier: fast
+    description: "Promote the best-performing candidate to champion status"
+
+  get_candidate_lineage:
+    module: tools.evolution_tools
+    capabilities: [evolution, population, history]
+    departments: [all]
+    tier: fast
+    description: "Trace the ancestry of a candidate through its parent chain"
