@@ -71,10 +71,11 @@ You build the application from the PRD and architecture. Execute autonomously. N
 """
 
 # MCP tools: docs, repomap, js_sandbox, code_analysis, npm_search, sqlite,
-# github (search code patterns), duckduckgo (free web search)
+# github, duckduckgo, image_gen (mockups), charts (data viz), svg (icons/graphics)
 _mcp_tools = mcp_hub.get_toolsets([
     "docs", "repomap", "js_sandbox", "code_analysis", "npm_search", "sqlite",
     "github", "duckduckgo",
+    "image_gen", "charts", "svg",
 ])
 
 builder_agent = Agent(

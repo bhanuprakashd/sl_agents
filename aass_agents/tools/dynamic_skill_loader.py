@@ -35,30 +35,33 @@ DOMAIN_MCP_MAP: dict[str, list[str]] = {
     # Core (always available)
     "_core": ["docs", "fetch", "duckduckgo", "thinking", "memory"],
 
+    # Design (available to all visual-heavy domains)
+    "_design": ["image_gen", "charts", "diagrams", "svg", "drawio"],
+
     # Industries
-    "agriculture": ["docs", "fetch", "duckduckgo", "sqlite", "calc", "time"],
-    "ecommerce": ["docs", "fetch", "npm_search", "js_sandbox", "packages", "cve"],
-    "finance": ["docs", "fetch", "calc", "cve", "sqlite", "time"],
-    "healthcare": ["docs", "fetch", "cve", "sqlite", "time", "markitdown"],
-    "education": ["docs", "fetch", "npm_search", "js_sandbox", "markitdown"],
-    "social": ["docs", "fetch", "npm_search", "js_sandbox", "browser"],
-    "project_management": ["docs", "fetch", "npm_search", "tasks", "sqlite", "time"],
-    "content": ["docs", "fetch", "markitdown", "pandoc", "npm_search"],
-    "analytics": ["docs", "fetch", "sqlite", "calc", "npm_search", "js_sandbox"],
-    "real_estate": ["docs", "fetch", "sqlite", "calc", "duckduckgo"],
-    "logistics": ["docs", "fetch", "sqlite", "calc", "time", "duckduckgo"],
-    "manufacturing": ["docs", "fetch", "sqlite", "calc", "time"],
+    "agriculture": ["docs", "fetch", "duckduckgo", "sqlite", "calc", "time", "charts"],
+    "ecommerce": ["docs", "fetch", "npm_search", "js_sandbox", "packages", "cve", "image_gen", "charts", "svg"],
+    "finance": ["docs", "fetch", "calc", "cve", "sqlite", "time", "charts", "diagrams"],
+    "healthcare": ["docs", "fetch", "cve", "sqlite", "time", "markitdown", "charts", "diagrams"],
+    "education": ["docs", "fetch", "npm_search", "js_sandbox", "markitdown", "image_gen", "charts", "svg"],
+    "social": ["docs", "fetch", "npm_search", "js_sandbox", "browser", "image_gen", "svg"],
+    "project_management": ["docs", "fetch", "npm_search", "tasks", "sqlite", "time", "charts", "diagrams", "drawio"],
+    "content": ["docs", "fetch", "markitdown", "pandoc", "npm_search", "image_gen", "svg", "charts"],
+    "analytics": ["docs", "fetch", "sqlite", "calc", "npm_search", "js_sandbox", "charts", "diagrams"],
+    "real_estate": ["docs", "fetch", "sqlite", "calc", "duckduckgo", "image_gen", "charts"],
+    "logistics": ["docs", "fetch", "sqlite", "calc", "time", "duckduckgo", "charts", "diagrams"],
+    "manufacturing": ["docs", "fetch", "sqlite", "calc", "time", "charts", "diagrams"],
     "legal": ["docs", "fetch", "markitdown", "pandoc", "duckduckgo", "cve"],
-    "hr": ["docs", "fetch", "sqlite", "time", "markitdown"],
-    "marketing": ["docs", "fetch", "duckduckgo", "npm_search", "browser"],
-    "security": ["docs", "fetch", "cve", "code_analysis", "duckduckgo"],
-    "devops": ["docs", "fetch", "docker", "git", "code_analysis", "cve"],
-    "iot": ["docs", "fetch", "sqlite", "calc", "time", "npm_search"],
-    "gaming": ["docs", "fetch", "npm_search", "js_sandbox", "code_analysis"],
-    "ai_ml": ["docs", "fetch", "npm_search", "calc", "duckduckgo", "code_analysis"],
+    "hr": ["docs", "fetch", "sqlite", "time", "markitdown", "charts"],
+    "marketing": ["docs", "fetch", "duckduckgo", "npm_search", "browser", "image_gen", "charts", "svg"],
+    "security": ["docs", "fetch", "cve", "code_analysis", "duckduckgo", "diagrams"],
+    "devops": ["docs", "fetch", "docker", "git", "code_analysis", "cve", "diagrams", "drawio"],
+    "iot": ["docs", "fetch", "sqlite", "calc", "time", "npm_search", "diagrams", "charts"],
+    "gaming": ["docs", "fetch", "npm_search", "js_sandbox", "code_analysis", "image_gen", "svg"],
+    "ai_ml": ["docs", "fetch", "npm_search", "calc", "duckduckgo", "code_analysis", "charts", "diagrams"],
 
     # Fallback
-    "general": ["docs", "fetch", "duckduckgo", "npm_search", "sqlite"],
+    "general": ["docs", "fetch", "duckduckgo", "npm_search", "sqlite", "charts", "image_gen"],
 }
 
 

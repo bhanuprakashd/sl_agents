@@ -248,7 +248,65 @@ servers:
     tool_prefix: cmd_
     disabled: true  # Enable only when system-level access is needed
 
-  # ── Tier 6: Code intelligence ────────────────────────────────────────────
+  # ── Tier 6: Design & visualization (no API key) ─────────────────────────
+
+  - name: pollinations
+    capability: image_gen
+    description: "Free AI image generation — text to image, no signup, no API key. Unlimited. Use for mockups, icons, hero images, illustrations."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@pollinations_ai/mcp"]
+    tool_prefix: img_
+
+  - name: antv-chart
+    capability: charts
+    description: "25+ chart types — bar, line, pie, area, radar, sankey, treemap, mindmap, org chart, flow diagram. Data → PNG/SVG."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@antv/mcp-server-chart"]
+    tool_prefix: chart_
+
+  - name: mermaid
+    capability: diagrams
+    description: "Mermaid diagram rendering — flowcharts, sequence, class, ER, gantt, state, pie charts → PNG/SVG. Architecture docs."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@peng-shawn/mermaid-mcp-server"]
+    tool_prefix: mmd_
+
+  - name: svgmaker
+    capability: svg
+    description: "AI-powered SVG generation and editing. Create logos, icons, illustrations, infographics as scalable vectors."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@genwave/svgmaker-mcp"]
+    tool_prefix: svg_
+
+  - name: excalidraw
+    capability: whiteboard
+    description: "Excalidraw canvas — create wireframes, system diagrams, hand-drawn style architecture visuals. Export SVG/PNG."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@scofieldfree/excalidraw-mcp"]
+    tool_prefix: draw_
+
+  - name: drawio
+    capability: drawio
+    description: "Draw.io diagrams — architecture, flowcharts, network topology, UML. CRUD on diagram elements. Export SVG/PNG/XML."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "drawio-mcp-server"]
+    tool_prefix: dio_
+
+  - name: svg-new
+    capability: svg_create
+    description: "SVG creation tool — generate and manipulate SVG graphics programmatically."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@svgnew/mcp"]
+    tool_prefix: svgn_
+
+  # ── Tier 7: Code intelligence ────────────────────────────────────────────
 
   - name: code-graph
     capability: code_analysis
@@ -258,7 +316,7 @@ servers:
     args: ["-y", "code-graph-context-mcp"]
     tool_prefix: code_
 
-  # ── Tier 7: Code execution & sandboxing ─────────────────────────────────────
+  # ── Tier 8: Code execution & sandboxing ─────────────────────────────────────
 
   - name: yepcode-sandbox
     capability: sandbox
@@ -294,7 +352,7 @@ servers:
     args: ["-y", "repomapper-mcp"]
     tool_prefix: rmap_
 
-  # ── Tier 8: Infrastructure ────────────────────────────────────────────────
+  # ── Tier 9: Infrastructure ────────────────────────────────────────────────
 
   - name: terraform
     capability: terraform
@@ -314,7 +372,7 @@ servers:
     tool_prefix: k8s_
     disabled: true  # Enable for K8s deployments
 
-  # ── Tier 9: Disabled / template servers ────────────────────────────────────
+  # ── Tier 10: Disabled / template servers ───────────────────────────────────
 
   - name: slack
     capability: slack
