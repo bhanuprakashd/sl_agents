@@ -72,9 +72,7 @@ _research_mcp = McpToolset(
 # github (repo/code search for market research)
 _mcp_tools = mcp_hub.get_toolsets([
     "search", "crawl", "duckduckgo", "npm_search", "docs", "fetch", "github",
-    # New: research, market intelligence
-    "arxiv", "wikipedia", "hacker_news", "weather", "currency",
-    "web_search", "readability", "rss",
+    "arxiv", "wikipedia", "hacker_news", "web_search", "readability",
 ])
 
 pm_agent = Agent(

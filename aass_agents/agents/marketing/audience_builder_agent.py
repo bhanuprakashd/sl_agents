@@ -6,6 +6,7 @@ from tools.research_tools import search_company_web, search_news, find_contacts
 from tools.marketing_tools import search_audience_communities, fetch_rss_feed
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -88,6 +89,8 @@ Before delivering, check:
 If any check fails: fill the gap before delivering.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "wikipedia", "hacker_news", "rss", "readability", "charts", "geo"])
+
 audience_builder_agent = Agent(
     model=get_model(),
     name="audience_builder",
@@ -97,5 +100,6 @@ audience_builder_agent = Agent(
         "ready for sales team handoff."
     ),
     instruction=INSTRUCTION,
-    tools=[search_company_web, search_news, find_contacts, search_audience_communities, fetch_rss_feed],
+    tools=[search_company_web, search_news, find_contacts, search_audience_communities, fetch_rss_feed,
+        *_mcp_tools,],
 )

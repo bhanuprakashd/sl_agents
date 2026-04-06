@@ -20,6 +20,7 @@ from tools.memory_tools import save_agent_output
 from tools.supervisor_tools import log_to_dlq
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -101,6 +102,8 @@ Reason:       [brief explanation]
 - If update_version_status raises InvalidStateTransition: call log_to_dlq and skip.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "stats"])
+
 rollback_watchdog_agent = Agent(
     model=get_model(),
     name="rollback_watchdog_agent",
@@ -119,5 +122,5 @@ rollback_watchdog_agent = Agent(
         log_evolution_event,
         log_to_dlq,
         save_agent_output,
-    ],
+        *_mcp_tools,],
 )

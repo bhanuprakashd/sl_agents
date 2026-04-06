@@ -7,6 +7,7 @@ Implements the GEPA reflective evolution loop:
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     get_best_skill_version_sync,
@@ -97,6 +98,8 @@ than random mutation. Ask: "What specific wording change would prevent this
 failure pattern?" before patching.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "code_analysis"])
+
 iteration_agent = Agent(
     model=get_model(),
     name="iteration_agent",
@@ -111,5 +114,5 @@ iteration_agent = Agent(
         save_skill_version_sync,
         save_battle_test_sync,
         update_session_stage_sync,
-    ],
+        *_mcp_tools,],
 )

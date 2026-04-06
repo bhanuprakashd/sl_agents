@@ -6,6 +6,7 @@ from tools.research_tools import search_company_web, enrich_company, find_contac
 from tools.browser_tools import navigate_and_read, browser_screenshot, browser_extract_links, browser_crawl
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -87,6 +88,8 @@ If ANY required check fails:
 Do not deliver a profile with failing required checks.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "readability", "hacker_news", "rss", "whois", "dns", "screenshot"])
+
 lead_researcher_agent = Agent(
     model=get_model(),
     name="lead_researcher",
@@ -97,5 +100,6 @@ lead_researcher_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[deep_research, search_company_web, enrich_company, find_contacts, search_news,
-           navigate_and_read, browser_screenshot, browser_extract_links, browser_crawl],
+           navigate_and_read, browser_screenshot, browser_extract_links, browser_crawl,
+        *_mcp_tools,],
 )

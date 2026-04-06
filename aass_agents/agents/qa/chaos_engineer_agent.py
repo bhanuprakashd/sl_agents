@@ -5,6 +5,7 @@ from tools.code_gen_tools import generate_code
 
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -43,6 +44,8 @@ destruction.
 | Resilience report has specific hardening recommendations | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "nettools", "logs", "process", "diagrams", "shell"])
+
 chaos_engineer_agent = Agent(
     model=get_model(),
     name="chaos_engineer_agent",
@@ -51,5 +54,6 @@ chaos_engineer_agent = Agent(
         "Use for resilience testing, failure mode validation, and production hardening."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code],
+    tools=[generate_code,
+        *_mcp_tools,],
 )

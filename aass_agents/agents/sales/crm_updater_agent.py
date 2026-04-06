@@ -9,6 +9,7 @@ from tools.crm_tools import (
 )
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -121,6 +122,8 @@ If ANY required check fails:
 Never write a next step without a due date and owner.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo"])
+
 crm_updater_agent = Agent(
     model=get_model(),
     name="crm_updater",
@@ -133,5 +136,5 @@ crm_updater_agent = Agent(
         sf_find_opportunity, sf_update_opportunity,
         sf_log_call, sf_create_task,
         hs_find_deal, hs_log_note, hs_update_deal, hs_create_task,
-    ],
+        *_mcp_tools,],
 )

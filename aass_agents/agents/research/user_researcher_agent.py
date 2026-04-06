@@ -5,6 +5,7 @@ from tools.research_tools import deep_research, search_company_web
 from tools.browser_tools import navigate_and_read, browser_screenshot, browser_crawl
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -42,6 +43,8 @@ methods: user interviews, usability testing, persona development, and customer i
 | Recommendations are actionable and prioritised | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "readability", "charts", "screenshot", "image_gen"])
+
 user_researcher_agent = Agent(
     model=get_model(),
     name="user_researcher_agent",
@@ -50,5 +53,6 @@ user_researcher_agent = Agent(
         "Use for understanding user behaviour, needs, and product usability."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, navigate_and_read, browser_screenshot, browser_crawl],
+    tools=[deep_research, search_company_web, navigate_and_read, browser_screenshot, browser_crawl,
+        *_mcp_tools,],
 )

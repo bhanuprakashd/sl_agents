@@ -7,6 +7,7 @@ Generates 100 adversarial test cases (40 common / 30 edge / 20 adversarial /
 import math
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     get_best_skill_version_sync,
@@ -95,6 +96,8 @@ You receive: {"session_id": <int>, "failure_scenarios": <list from critic panel>
 - Be honest in evaluation — optimistic pass rates undermine the framework
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "code_analysis", "cve"])
+
 red_team_agent = Agent(
     model=get_model(),
     name="red_team_agent",
@@ -108,5 +111,5 @@ red_team_agent = Agent(
         get_best_skill_version_sync,
         save_battle_test_sync,
         update_session_stage_sync,
-    ],
+        *_mcp_tools,],
 )

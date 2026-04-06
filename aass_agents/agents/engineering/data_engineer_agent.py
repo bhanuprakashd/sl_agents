@@ -6,6 +6,7 @@ from tools.code_gen_tools import generate_code
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -43,6 +44,8 @@ pipelines, feature engineering, and feature store schemas.
 | No hardcoded credentials or environment values | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "sqlite", "duckdb", "postgres", "data_transform", "excel", "charts", "stats", "py_lint"])
+
 data_engineer_agent = Agent(
     model=get_model(),
     name="data_engineer_agent",
@@ -51,5 +54,6 @@ data_engineer_agent = Agent(
         "data quality rules. Use for data ingestion, transformation, and feature engineering."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, create_pipeline_spec, get_pipeline_status],
+    tools=[generate_code, create_pipeline_spec, get_pipeline_status,
+        *_mcp_tools,],
 )

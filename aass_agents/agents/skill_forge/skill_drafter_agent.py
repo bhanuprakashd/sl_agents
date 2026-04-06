@@ -6,6 +6,7 @@ Saves it to skill_versions as v1 (or next version if redrafting after critique).
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     save_skill_version_sync,
@@ -88,6 +89,8 @@ One paragraph describing what this skill does and when to use it.
               "composite_score": <float>, "stage": "draft"}
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "arxiv", "wikipedia", "code_analysis"])
+
 skill_drafter_agent = Agent(
     model=get_model(),
     name="skill_drafter_agent",
@@ -96,5 +99,6 @@ skill_drafter_agent = Agent(
         "using DSPy/GEPA drafting patterns. Stage 4 of SKILL FORGE."
     ),
     instruction=INSTRUCTION,
-    tools=[save_skill_version_sync, get_skill_versions_sync, update_session_stage_sync],
+    tools=[save_skill_version_sync, get_skill_versions_sync, update_session_stage_sync,
+        *_mcp_tools,],
 )

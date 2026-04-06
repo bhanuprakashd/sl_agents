@@ -5,6 +5,7 @@ from tools.research_tools import deep_research, search_company_web, search_news
 from tools.browser_tools import navigate_and_read, browser_screenshot, browser_crawl, browser_extract_links, browser_run_script
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
@@ -45,6 +46,8 @@ Sales and Marketing consume your outputs — they do not conduct their own compe
 | Timestamps on all time-sensitive data | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "web_search", "readability", "hacker_news", "rss", "charts", "screenshot", "sitemap"])
+
 competitive_analyst_agent = Agent(
     model=get_model(),
     name="competitive_analyst_agent",
@@ -54,5 +57,6 @@ competitive_analyst_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[deep_research, search_company_web, search_news, read_document, read_document_pages, list_documents, search_document,
-           navigate_and_read, browser_screenshot, browser_crawl, browser_extract_links, browser_run_script],
+           navigate_and_read, browser_screenshot, browser_crawl, browser_extract_links, browser_run_script,
+        *_mcp_tools,],
 )

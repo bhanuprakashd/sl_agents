@@ -4,6 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
@@ -51,6 +52,8 @@ Users can drop files into the `documents/` folder and reference them by filename
 
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "readability", "md_tools", "pdf", "slides"])
+
 knowledge_manager_agent = Agent(
     model=get_model(),
     name="knowledge_manager_agent",
@@ -59,5 +62,6 @@ knowledge_manager_agent = Agent(
         "Use to consolidate findings from R&D, competitive intel, and user research into actionable briefs."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document],
+    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document,
+        *_mcp_tools,],
 )

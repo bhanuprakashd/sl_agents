@@ -4,6 +4,7 @@ from google.adk.agents import Agent
 from tools.research_tools import deep_research, search_company_web
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Your response must begin DIRECTLY with the deliverable (report, document, analysis).
@@ -64,6 +65,8 @@ Users can drop files into the `documents/` folder and reference them by filename
 
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "readability", "latex", "stats", "plot", "pdf"])
+
 research_scientist_agent = Agent(
     model=get_model(),
     name="research_scientist_agent",
@@ -72,5 +75,6 @@ research_scientist_agent = Agent(
         "Use for academic R&D, scientific literature synthesis, and research methodology."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document],
+    tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document,
+        *_mcp_tools,],
 )

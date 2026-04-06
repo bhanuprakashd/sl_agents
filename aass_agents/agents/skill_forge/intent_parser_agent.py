@@ -5,6 +5,7 @@ Converts a raw NLP request into a structured TaskSpec and creates a forge sessio
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import init_db, create_session_sync, get_session_sync
 
 init_db()
@@ -54,6 +55,8 @@ create a forge session in the database.
 Always return a JSON object with session_id, task_spec, and stage.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking"])
+
 intent_parser_agent = Agent(
     model=get_model(),
     name="intent_parser_agent",
@@ -62,5 +65,6 @@ intent_parser_agent = Agent(
         "forge session. Stage 1 of the SKILL FORGE pipeline."
     ),
     instruction=INSTRUCTION,
-    tools=[create_session_sync, get_session_sync],
+    tools=[create_session_sync, get_session_sync,
+        *_mcp_tools,],
 )

@@ -7,6 +7,7 @@ from tools.code_gen_tools import generate_code
 from tools.engineering_tools import get_pipeline_status
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -46,6 +47,8 @@ those belong to the QA department's Automation Test Engineer.
 | Severity rating on all data quality flags | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "jest", "pytest", "lighthouse", "code_analysis", "py_lint"])
+
 sdet_agent = Agent(
     model=get_model(),
     name="sdet_agent",
@@ -55,5 +58,6 @@ sdet_agent = Agent(
         "Scope: pipeline/infra testing only — not application-level QA."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, get_pipeline_status],
+    tools=[generate_code, get_pipeline_status,
+        *_mcp_tools,],
 )

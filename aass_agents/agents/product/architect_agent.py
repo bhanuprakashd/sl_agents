@@ -89,13 +89,10 @@ beats a broken app that assumes PostgreSQL.
 # MCP tools: docs, packages, deps, fetch, thinking, npm_search, cve, calc, time,
 # github, duckduckgo, diagrams (architecture diagrams), drawio (system design visuals)
 _mcp_tools = mcp_hub.get_toolsets([
-    "docs", "packages", "deps", "fetch", "thinking",
-    "npm_search", "cve", "calc", "time",
-    "github", "duckduckgo",
+    "docs", "packages", "fetch", "thinking",
+    "npm_search", "cve", "github", "duckduckgo",
     "diagrams", "drawio",
-    # New: security, API spec, cloud docs, research
-    "sec_audit", "dep_audit", "openapi", "aws_docs",
-    "arxiv", "wikipedia", "hacker_news",
+    "sec_audit", "openapi", "aws_docs", "arxiv", "wikipedia",
 ])
 
 architect_agent = Agent(

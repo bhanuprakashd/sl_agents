@@ -5,6 +5,7 @@ from tools.research_tools import deep_research, search_company_web, search_news
 from tools.code_gen_tools import generate_code
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -42,6 +43,8 @@ propose novel architectures, and design training experiments.
 | Academic vs production-viable distinction made | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "wikipedia", "web_search", "stats", "plot", "dataset", "embeddings", "tokenizer", "model_card", "confusion"])
+
 ml_researcher_agent = Agent(
     model=get_model(),
     name="ml_researcher_agent",
@@ -50,5 +53,6 @@ ml_researcher_agent = Agent(
         "Use for AI/ML literature review, benchmark analysis, and research-to-engineering handoffs."
     ),
     instruction=INSTRUCTION,
-    tools=[deep_research, search_company_web, search_news, generate_code],
+    tools=[deep_research, search_company_web, search_news, generate_code,
+        *_mcp_tools,],
 )

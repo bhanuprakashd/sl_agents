@@ -8,7 +8,8 @@ Sets escalate=True when the architecture meets quality standards.
 from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 
-from agents._shared.model import get_model, STD
+from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub, STD
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -62,11 +63,14 @@ The architect_agent will read your critique from state and revise.
 Do NOT call approve_architecture unless ALL must-pass criteria are satisfied.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "diagrams", "drawio", "cve", "sec_audit"])
+
 architect_critic_agent = Agent(
     model=get_model(STD),
     name="architect_critic_agent",
     description="Reviews architecture JSON against PRD requirements. Approves or requests changes.",
     instruction=INSTRUCTION,
     output_key="architecture_critique",
-    tools=[read_state, approve_architecture],
+    tools=[read_state, approve_architecture,
+        *_mcp_tools,],
 )

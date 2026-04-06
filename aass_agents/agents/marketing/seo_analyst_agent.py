@@ -6,6 +6,7 @@ from tools.marketing_tools import get_trending_topics, search_competitor_content
 from tools.research_tools import search_company_web
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -104,6 +105,8 @@ Month 3 — Competitive
 If any check fails: fill the gap before delivering.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "readability", "sitemap", "link_check", "lighthouse", "charts"])
+
 seo_analyst_agent = Agent(
     model=get_model(),
     name="seo_analyst",
@@ -113,5 +116,6 @@ seo_analyst_agent = Agent(
         "that drive pipeline, not just traffic."
     ),
     instruction=INSTRUCTION,
-    tools=[get_trending_topics, search_competitor_content, search_company_web],
+    tools=[get_trending_topics, search_competitor_content, search_company_web,
+        *_mcp_tools,],
 )

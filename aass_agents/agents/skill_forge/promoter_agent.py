@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     get_best_skill_version_sync,
@@ -218,6 +219,8 @@ Needs review:   {true/false}
 ```
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "thinking", "memory"])
+
 promoter_agent = Agent(
     model=get_model(),
     name="promoter_agent",
@@ -233,5 +236,5 @@ promoter_agent = Agent(
         get_battle_test_sync,
         stage_skill_sync,
         list_staged_skills_sync,
-    ],
+        *_mcp_tools,],
 )

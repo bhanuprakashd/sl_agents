@@ -5,6 +5,7 @@ from google.adk.agents import Agent
 from tools.crm_tools import sf_find_opportunity, hs_find_deal
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -100,6 +101,8 @@ If ANY required check fails:
 Do not deliver a brief missing discovery questions or a next step.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "readability", "charts"])
+
 sales_call_prep_agent = Agent(
     model=get_model(),
     name="sales_call_prep",
@@ -109,5 +112,6 @@ sales_call_prep_agent = Agent(
         "and suggested next steps."
     ),
     instruction=INSTRUCTION,
-    tools=[sf_find_opportunity, hs_find_deal],
+    tools=[sf_find_opportunity, hs_find_deal,
+        *_mcp_tools,],
 )

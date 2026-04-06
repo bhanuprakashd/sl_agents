@@ -10,7 +10,8 @@ from google.adk.tools import ToolContext
 from tools.product_memory_tools import generate_product_id, save_product_state, log_step
 from tools.system_env_tools import detect_system_environment
 
-from agents._shared.model import get_model, FAST
+from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub, FAST
 
 
 def _save_to_state(key: str, value: str, tool_context: ToolContext) -> str:
@@ -32,11 +33,14 @@ You initialize the product pipeline. Do these steps IN ORDER:
 8. Output ONLY the product_id UUID as plain text. Nothing else.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search"])
+
 setup_agent = Agent(
     model=get_model(FAST),
     name="setup_agent",
     description="Initializes product pipeline: generates product_id, saves initial state, logs start.",
     instruction=INSTRUCTION,
     output_key="setup_output",
-    tools=[generate_product_id, save_product_state, log_step, _save_to_state, detect_system_environment],
+    tools=[generate_product_id, save_product_state, log_step, _save_to_state, detect_system_environment,
+        *_mcp_tools,],
 )

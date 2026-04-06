@@ -7,6 +7,7 @@ from tools.code_gen_tools import generate_code
 from tools.engineering_tools import get_pipeline_status, log_integration
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -46,6 +47,8 @@ You build the platform; Engineering teams use it.
 | Immutable infra pattern used | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "helm", "dockerfile", "ci", "makefile", "shell", "nginx", "systemd", "aws_docs", "diagrams", "drawio"])
+
 platform_engineer_agent = Agent(
     model=get_model(),
     name="platform_engineer_agent",
@@ -55,5 +58,6 @@ platform_engineer_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[generate_code,
-           get_pipeline_status, log_integration],
+           get_pipeline_status, log_integration,
+        *_mcp_tools,],
 )

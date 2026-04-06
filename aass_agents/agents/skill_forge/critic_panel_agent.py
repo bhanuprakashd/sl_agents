@@ -6,6 +6,7 @@ Computes composite score and routes back to drafter if < 7.5 (max 3 cycles).
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     get_best_skill_version_sync,
@@ -96,7 +97,7 @@ _domain_expert_critic = Agent(
     name="domain_expert_critic",
     description="Evaluates SKILL.md for factual accuracy and domain completeness.",
     instruction=_DOMAIN_EXPERT_CRITIC_INSTRUCTION,
-    tools=[],
+    tools=[*_mcp_tools,],
 )
 
 _instruction_quality_critic = Agent(
@@ -165,6 +166,8 @@ You receive: {"session_id": <int>, "draft_cycle": <int, 1-3>}
 - Do not skip the debate round if scores diverge by >2 points
 - Composite threshold is strict: 7.4 fails, 7.5 passes
 """
+
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "code_analysis", "arxiv"])
 
 critic_panel_agent = Agent(
     model=get_model(),

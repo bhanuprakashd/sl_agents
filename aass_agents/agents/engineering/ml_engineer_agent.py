@@ -7,6 +7,7 @@ from tools.code_gen_tools import generate_code
 from tools.engineering_tools import create_pipeline_spec, get_pipeline_status
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -44,6 +45,8 @@ feature engineering, training, evaluation, and model serving infrastructure.
 | Reproducibility (seeds, pinned deps) addressed | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "arxiv", "stats", "plot", "dataset", "embeddings", "tokenizer", "model_card", "confusion", "py_lint"])
+
 ml_engineer_agent = Agent(
     model=get_model(),
     name="ml_engineer_agent",
@@ -53,5 +56,6 @@ ml_engineer_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[generate_code,
-           create_pipeline_spec, get_pipeline_status],
+           create_pipeline_spec, get_pipeline_status,
+        *_mcp_tools,],
 )

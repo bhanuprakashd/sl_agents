@@ -13,6 +13,7 @@ from tools.vercel_tools import vercel_create_project, vercel_add_env_var, connec
 from tools.railway_tools import railway_create_project, railway_add_env_var, deploy_from_github
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -45,6 +46,8 @@ You are a DevOps agent. You set up the infrastructure for the product pipeline.
 - Vercel deploy is triggered by frontend_builder_agent, not here
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "docker", "compose", "dockerfile", "ci", "nginx", "systemd", "shell", "makefile", "yaml_tools", "aws_docs"])
+
 devops_agent = Agent(
     model=get_model(),
     name="devops_agent",
@@ -54,5 +57,5 @@ devops_agent = Agent(
         save_product_state, recall_product_state, log_step,
         create_repo, vercel_create_project, vercel_add_env_var, connect_github,
         railway_create_project, railway_add_env_var,
-    ],
+        *_mcp_tools,],
 )

@@ -5,6 +5,7 @@ from tools.code_gen_tools import generate_code
 from tools.browser_tools import navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_solve_captcha
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -47,6 +48,8 @@ and bug triage. You are the last line of defence before features reach users.
 | Severity ratings applied to all findings | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "browser", "screenshot", "a11y", "lighthouse", "link_check"])
+
 qa_engineer_agent = Agent(
     model=get_model(),
     name="qa_engineer_agent",
@@ -55,5 +58,6 @@ qa_engineer_agent = Agent(
         "Use for acceptance testing, exploratory testing, and UAT gate approval."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_solve_captcha],
+    tools=[generate_code, navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_solve_captcha,
+        *_mcp_tools,],
 )

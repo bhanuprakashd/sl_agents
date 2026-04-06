@@ -5,6 +5,7 @@ from google.adk.agents import Agent
 from tools.crm_tools import sf_find_opportunity, hs_find_deal
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -103,6 +104,8 @@ If ANY required check fails:
 A proposal with vague ROI or multiple CTAs must not be delivered.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "web_search", "charts", "pdf", "slides", "image_gen", "svg"])
+
 proposal_generator_agent = Agent(
     model=get_model(),
     name="proposal_generator",
@@ -112,5 +115,6 @@ proposal_generator_agent = Agent(
         "Selects format based on deal size (SMB/mid-market/enterprise)."
     ),
     instruction=INSTRUCTION,
-    tools=[sf_find_opportunity, hs_find_deal],
+    tools=[sf_find_opportunity, hs_find_deal,
+        *_mcp_tools,],
 )

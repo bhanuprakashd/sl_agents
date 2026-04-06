@@ -7,6 +7,7 @@ from tools.code_gen_tools import generate_code
 from tools.engineering_tools import create_pipeline_spec
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -46,6 +47,8 @@ software artefacts (scripts, configs, toolchain definitions).
 | Non-obvious config flags documented | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "makefile", "shell", "dockerfile", "ci", "code_analysis", "diagrams"])
+
 systems_engineer_agent = Agent(
     model=get_model(),
     name="systems_engineer_agent",
@@ -54,5 +57,6 @@ systems_engineer_agent = Agent(
         "Use for toolchain setup, build system design, and low-level software infrastructure."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, create_pipeline_spec],
+    tools=[generate_code, create_pipeline_spec,
+        *_mcp_tools,],
 )

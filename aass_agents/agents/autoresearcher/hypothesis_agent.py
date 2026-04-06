@@ -20,6 +20,7 @@ from tools.evolution_db import (
 from tools.memory_tools import save_agent_output, recall_past_outputs
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -97,6 +98,8 @@ REASON: [why this confidence level]
 - If the agent is performing correctly on some tasks, note that in the analysis.
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "duckduckgo", "thinking", "arxiv", "web_search", "code_analysis"])
+
 hypothesis_agent = Agent(
     model=get_model(),
     name="hypothesis_agent",
@@ -116,5 +119,5 @@ hypothesis_agent = Agent(
         mark_queue_entry_aborted,
         save_agent_output,
         recall_past_outputs,
-    ],
+        *_mcp_tools,],
 )

@@ -66,9 +66,7 @@ You are a Frontend Builder agent. You generate a React (Vite) UI and deploy it t
 _mcp_tools = mcp_hub.get_toolsets([
     "docs", "npm_search", "js_sandbox", "github", "duckduckgo",
     "image_gen", "charts", "svg", "diagrams",
-    # New: design, a11y, code quality, visual QA
-    "colors", "a11y", "html_valid", "css_analyze", "bundle",
-    "placeholder", "fonts", "screenshot", "eslint", "prettier",
+    "colors", "a11y", "lighthouse", "screenshot", "eslint", "prettier",
 ])
 
 frontend_builder_agent = Agent(

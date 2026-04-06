@@ -5,6 +5,7 @@ from tools.code_gen_tools import generate_code
 from tools.research_tools import deep_research
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -41,6 +42,8 @@ methodologies: OWASP Top 10 coverage, fuzz testing, auth bypass attempts, and de
 | Remediation guidance provided | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "cve", "sec_audit", "secrets", "dep_audit", "ssl", "cors", "osint", "dns", "privacy"])
+
 security_tester_agent = Agent(
     model=get_model(),
     name="security_tester_agent",
@@ -49,5 +52,6 @@ security_tester_agent = Agent(
         "Use for security vulnerability assessment, auth testing, and security regression gates."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, deep_research],
+    tools=[generate_code, deep_research,
+        *_mcp_tools,],
 )

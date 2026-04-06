@@ -6,6 +6,7 @@ from tools.browser_tools import navigate_and_read, browser_screenshot, browser_c
 
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -44,6 +45,8 @@ Pipeline and infrastructure testing belongs to the Engineering department's SDET
 | Test names are descriptive | Yes |
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "jest", "pytest", "browser", "screenshot", "a11y", "lighthouse", "ci"])
+
 test_automation_engineer_agent = Agent(
     model=get_model(),
     name="test_automation_engineer_agent",
@@ -52,5 +55,6 @@ test_automation_engineer_agent = Agent(
         "Use for automating product feature tests. Scope: application QA only (not pipeline testing)."
     ),
     instruction=INSTRUCTION,
-    tools=[generate_code, navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_run_script, browser_crawl],
+    tools=[generate_code, navigate_and_read, browser_screenshot, browser_click, browser_fill_form, browser_run_script, browser_crawl,
+        *_mcp_tools,],
 )

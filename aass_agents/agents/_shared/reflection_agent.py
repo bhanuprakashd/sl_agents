@@ -11,6 +11,7 @@ from google.adk.agents import Agent
 from tools.evolution_tools import log_evolution_event
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -244,7 +245,8 @@ def make_reflection_agent() -> Agent:
             "revision instructions. Call after any sub-agent output that needs verification."
         ),
         instruction=INSTRUCTION,
-        tools=[log_evolution_event],
+        tools=[log_evolution_event,
+        *_mcp_tools,],
     )
 
 

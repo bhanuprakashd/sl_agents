@@ -8,7 +8,8 @@ saves learned skills for future builds, and returns the final JSON summary.
 from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 
-from agents._shared.model import get_model, FAST
+from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub, FAST
 from tools.product_memory_tools import save_product_state, log_step
 from tools.skill_memory import save_learned_skill, update_skill_quality_from_feedback
 from tools.claude_code_tools import open_in_browser
@@ -68,6 +69,8 @@ You finalize the product pipeline. Do these steps IN ORDER:
 }
 """
 
+_mcp_tools = mcp_hub.get_toolsets(["docs", "github", "duckduckgo", "charts", "slides", "pdf"])
+
 ship_agent = Agent(
     model=get_model(FAST),
     name="ship_agent",
@@ -79,5 +82,5 @@ ship_agent = Agent(
         save_product_state, log_step,
         save_learned_skill, update_skill_quality_from_feedback,
         open_in_browser,
-    ],
+        *_mcp_tools,],
 )
