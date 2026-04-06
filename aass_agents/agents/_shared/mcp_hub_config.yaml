@@ -248,6 +248,88 @@ servers:
     tool_prefix: cmd_
     disabled: true  # Enable only when system-level access is needed
 
+  # ── Tier 4b: Database servers (free, no API key) ──────────────────────────
+
+  - name: duckdb
+    capability: duckdb
+    description: "DuckDB analytics — fast OLAP queries, Parquet/CSV import, in-process analytics engine."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "duckdb-mcp-server"]
+    tool_prefix: ddb_
+
+  - name: postgres-local
+    capability: postgres
+    description: "PostgreSQL operations — query, schema inspection, migrations. Connects to local Postgres."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-postgres"]
+    tool_prefix: pg_
+
+  - name: mongodb-local
+    capability: mongodb
+    description: "MongoDB document operations — CRUD, aggregation pipelines, index management on local instance."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@nicobailon/mcp-mongo"]
+    tool_prefix: mongo_
+
+  - name: redis-local
+    capability: redis
+    description: "Redis cache/data operations — get, set, hash, list, pub/sub on local Redis instance."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@nicobailon/mcp-redis"]
+    tool_prefix: redis_
+
+  - name: chroma-local
+    capability: vector_db
+    description: "Chroma vector database — embeddings, similarity search, document storage. Local instance."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@nicobailon/mcp-chroma"]
+    tool_prefix: chroma_
+
+  - name: qdrant-local
+    capability: qdrant
+    description: "Qdrant vector similarity search — semantic search, nearest neighbors on local instance."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@nicobailon/mcp-qdrant"]
+    tool_prefix: qdrant_
+
+  - name: neo4j-local
+    capability: graph_db
+    description: "Neo4j graph database — Cypher queries, node/relationship CRUD, path traversal."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "neo4j-mcp-server"]
+    tool_prefix: neo4j_
+
+  - name: excel
+    capability: excel
+    description: "Excel/spreadsheet operations — read, write, format cells, create charts in .xlsx files."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-excel"]
+    tool_prefix: xl_
+
+  - name: csv-json
+    capability: data_transform
+    description: "CSV/JSON data transformation — parse, filter, aggregate, convert between formats."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-data-transform"]
+    tool_prefix: dt_
+
+  - name: fireproof
+    capability: fireproof
+    description: "Fireproof immutable ledger database — CRDT sync, offline-first, no config needed."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@nicobailon/mcp-fireproof"]
+    tool_prefix: fp_
+
   # ── Tier 6: Design & visualization (no API key) ─────────────────────────
 
   - name: pollinations
