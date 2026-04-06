@@ -420,7 +420,7 @@ def run_parallel_pipeline(
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor() as pool:
             future = pool.submit(asyncio.run, _execute_pipeline(pipeline, context))
-            results = future.result(timeout=600)
+            results = future.result(timeout=5400)
     except RuntimeError:
         # No running loop — we can use asyncio.run directly
         results = asyncio.run(_execute_pipeline(pipeline, context))

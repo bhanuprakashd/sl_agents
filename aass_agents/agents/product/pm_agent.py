@@ -14,6 +14,7 @@ from tools.agent_reach_tools import (
 )
 
 from agents._shared.model import get_model, FAST
+from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
 
 INSTRUCTION = """
@@ -67,6 +68,9 @@ _research_mcp = McpToolset(
     )
 )
 
+# MCP tools: search (semantic web search), crawl (deep web scraping)
+_mcp_tools = mcp_hub.get_toolsets(["search", "crawl"])
+
 pm_agent = Agent(
     model=get_model(FAST),
     name="pm_agent",
@@ -75,5 +79,6 @@ pm_agent = Agent(
     output_key="prd_output",  # Auto-save response to state["prd_output"]
     tools=[_research_mcp, read_document, read_document_pages, list_documents, search_document,
            read_webpage, search_reddit, read_rss_feed, search_youtube,
-           search_github_repos, search_github_code],
+           search_github_repos, search_github_code,
+           *_mcp_tools],
 )

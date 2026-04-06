@@ -16,6 +16,7 @@ Requirements:
   - ANTHROPIC_API_KEY env var available to the subprocess
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -25,25 +26,49 @@ from pathlib import Path
 CLAUDE_WORKS_ROOT = Path(__file__).parent.parent / "claude_works"
 MAX_FIX_ITERATIONS = 2  # 2 QA fix rounds max
 
-# Per-phase timeouts — total pipeline target: 1 hour
-# Research agents ~10 min + build ~48 min + QA/ship ~2 min = ~60 min
+# Per-phase timeouts — total pipeline target: 1.5 hours
+# Research agents ~15 min + build ~65 min + QA/ship ~10 min = ~90 min
 PHASE_TIMEOUTS = {
-    "scaffold": 480,      # 8 min — project setup, DB schema, auth skeleton
-    "features": 1200,     # 20 min — core features, endpoints, pages (longest)
-    "polish": 480,        # 8 min — UI refinement, error states, responsive
-    "server_start": 120,  # 2 min — install deps + start
-    "fix": 300,           # 5 min per QA fix — needs time to read code, fix bugs, restart
+    "scaffold": 900,      # 15 min — project setup, DB schema, auth skeleton
+    "features": 2400,     # 40 min — core features, endpoints, pages (longest)
+    "polish": 900,        # 15 min — UI refinement, error states, responsive
+    "server_start": 180,  # 3 min — install deps + start
+    "fix": 600,           # 10 min per QA fix — needs time to read code, fix bugs, restart
 }
 CLAUDE_TIMEOUT = PHASE_TIMEOUTS["features"]  # default fallback
 
 _URL_PATTERN = re.compile(r'https?://localhost:\d+\S*')
 
+# Known error signatures that indicate failure even with exit code 0.
+_OUTPUT_ERROR_PATTERNS = (
+    "No endpoints found",
+    "model not found",
+    "invalid_api_key",
+    "rate_limit_exceeded",
+    "context_length_exceeded",
+)
+
+import logging as _logging
+_log = _logging.getLogger(__name__)
+
+
+def _check_output_for_errors(output: str) -> str | None:
+    """Return error message if output contains known error patterns, else None."""
+    clean = re.sub(r'\x1b\[[0-9;]*m', '', output)
+    for pattern in _OUTPUT_ERROR_PATTERNS:
+        if pattern.lower() in clean.lower():
+            for line in clean.splitlines():
+                if pattern.lower() in line.lower():
+                    return line.strip()
+            return pattern
+    return None
+
 
 def _run_claude(project_dir: str, task: str, timeout: int = CLAUDE_TIMEOUT) -> dict:
-    """Run Claude CLI and return structured result."""
+    """Run Claude CLI on a project directory with a task prompt."""
     claude_bin = shutil.which("claude")
     if not claude_bin:
-        return {"ok": False, "error": "claude CLI not found", "output": ""}
+        return {"ok": False, "error": "claude CLI not found on PATH", "output": ""}
 
     cmd = [
         claude_bin,
@@ -53,14 +78,10 @@ def _run_claude(project_dir: str, task: str, timeout: int = CLAUDE_TIMEOUT) -> d
         "--output-format", "text",
         task,
     ]
-
     try:
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(project_dir),
+            cmd, capture_output=True, text=True,
+            timeout=timeout, cwd=str(project_dir),
         )
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": f"timed out after {timeout}s", "output": ""}
@@ -68,6 +89,7 @@ def _run_claude(project_dir: str, task: str, timeout: int = CLAUDE_TIMEOUT) -> d
         return {"ok": False, "error": str(exc), "output": ""}
 
     combined = result.stdout + result.stderr
+
     if result.returncode != 0:
         stderr = result.stderr.strip()
         return {
@@ -76,6 +98,10 @@ def _run_claude(project_dir: str, task: str, timeout: int = CLAUDE_TIMEOUT) -> d
             "output": combined,
         }
 
+    output_err = _check_output_for_errors(combined)
+    if output_err:
+        return {"ok": False, "error": f"claude output error: {output_err}", "output": combined}
+
     return {"ok": True, "error": None, "output": combined}
 
 
@@ -83,6 +109,126 @@ def _detect_url(output: str) -> str:
     """Extract localhost URL from output."""
     match = _URL_PATTERN.search(output)
     return match.group(0) if match else ""
+
+
+def _start_dev_server(project_dir: str) -> str:
+    """Detect the stack and start the dev server as a background process.
+
+    Returns the localhost URL if the server starts successfully, else empty string.
+    """
+    import time
+    import socket
+    project = Path(project_dir)
+
+    # Pick a free port
+    def _free_port() -> int:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("", 0))
+            return s.getsockname()[1]
+
+    port = _free_port()
+
+    # Detect stack and build the start command
+    if (project / "manage.py").exists():
+        # Django
+        subprocess.run(["pip", "install", "-r", str(project / "requirements.txt")],
+                       cwd=project_dir, capture_output=True, timeout=300)
+        subprocess.run(["python", "manage.py", "migrate"],
+                       cwd=project_dir, capture_output=True, timeout=120)
+        cmd = ["python", "manage.py", "runserver", f"0.0.0.0:{port}"]
+    elif (project / "requirements.txt").exists():
+        # Flask / FastAPI
+        subprocess.run(["pip", "install", "-r", str(project / "requirements.txt")],
+                       cwd=project_dir, capture_output=True, timeout=300)
+        # Detect FastAPI vs Flask
+        main_candidates = ["main.py", "app.py", "server.py", "run.py"]
+        app_file = None
+        app_module = None
+        for candidate in main_candidates:
+            fpath = project / candidate
+            if fpath.exists():
+                content = fpath.read_text(errors="ignore")
+                app_file = candidate
+                if "FastAPI" in content or "fastapi" in content:
+                    module = candidate.replace(".py", "")
+                    # Detect the app variable name
+                    app_var = "app"
+                    for line in content.splitlines():
+                        if "FastAPI(" in line and "=" in line:
+                            app_var = line.split("=")[0].strip()
+                            break
+                    cmd = ["python", "-m", "uvicorn", f"{module}:{app_var}",
+                           "--host", "0.0.0.0", "--port", str(port)]
+                    app_module = f"{module}:{app_var}"
+                    break
+                elif "Flask" in content or "flask" in content:
+                    cmd = ["python", candidate]
+                    # Set Flask port via env
+                    break
+        else:
+            return ""
+
+        if not app_file:
+            return ""
+
+        # For Flask, inject port via env
+        if "Flask" in (project / app_file).read_text(errors="ignore"):
+            env = {**__import__("os").environ, "FLASK_RUN_PORT": str(port), "PORT": str(port)}
+            # Check if app.run() uses a hardcoded port — if so, use flask run instead
+            content = (project / app_file).read_text(errors="ignore")
+            if "app.run(" in content and "port" not in content.split("app.run(")[-1].split(")")[0]:
+                cmd = ["python", "-m", "flask", "run", "--host", "0.0.0.0", "--port", str(port)]
+                env["FLASK_APP"] = app_file
+            elif "app.run(" in content:
+                # Has hardcoded port — just run it and detect port from output
+                cmd = ["python", app_file]
+                port = 5000  # Flask default
+            else:
+                cmd = ["python", "-m", "flask", "run", "--host", "0.0.0.0", "--port", str(port)]
+                env["FLASK_APP"] = app_file
+        else:
+            env = None
+    elif (project / "package.json").exists():
+        # Node.js
+        subprocess.run(["npm", "install"], cwd=project_dir, capture_output=True, timeout=300)
+        cmd = ["npm", "run", "dev"]
+        env = {**__import__("os").environ, "PORT": str(port)}
+    else:
+        # Static HTML — check for index.html or any .html file
+        html_files = list(project.glob("*.html"))
+        if not html_files:
+            html_files = list(project.glob("**/*.html"))
+        if html_files:
+            cmd = ["python", "-m", "http.server", str(port)]
+            env = None
+        else:
+            return ""
+
+    # Start server as background process
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=project_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=env if env else None,
+        )
+    except Exception:
+        return ""
+
+    # Wait for the port to be ready (up to 15 seconds)
+    url = f"http://localhost:{port}"
+    for _ in range(30):
+        time.sleep(0.5)
+        if proc.poll() is not None:
+            # Process exited — server failed to start
+            return ""
+        try:
+            with socket.create_connection(("localhost", port), timeout=1):
+                return url
+        except OSError:
+            continue
+
+    # Timeout — kill and report failure
+    proc.terminate()
+    return ""
 
 
 def _run_curl_tests(base_url: str) -> str:
@@ -203,12 +349,23 @@ def build_review_improve(
             except Exception:
                 pass  # Progress tracking is best-effort, never blocks build
 
+    def _save_checkpoint(rpt: dict):
+        """Persist current build state to SQLite for resume-from-checkpoint."""
+        if not product_id:
+            return
+        try:
+            from tools.product_memory_tools import save_product_state
+            save_product_state(product_id, build_checkpoint=json.dumps(rpt))
+        except Exception:
+            pass  # Checkpoint is best-effort
+
     phases = [
         ("scaffold", scaffold_task),
         ("features", feature_task),
         ("polish", polish_task),
     ]
 
+    # ── Resume from checkpoint ────────────────────────────────────
     report = {
         "status": "building",
         "url": None,
@@ -218,84 +375,113 @@ def build_review_improve(
         "qa_results": [],
         "fix_iterations": 0,
     }
+    _resumed = False
+    if product_id:
+        try:
+            from tools.product_memory_tools import recall_build_checkpoint
+            checkpoint = recall_build_checkpoint(product_id)
+            if checkpoint and checkpoint.get("phases_completed"):
+                report["phases_completed"] = checkpoint["phases_completed"]
+                report["phases_failed"] = checkpoint.get("phases_failed", [])
+                report["phase_summaries"] = checkpoint.get("phase_summaries", {})
+                report["url"] = checkpoint.get("url")
+                report["qa_results"] = checkpoint.get("qa_results", [])
+                report["fix_iterations"] = checkpoint.get("fix_iterations", 0)
+                _resumed = True
+                _log_progress("resume", "completed",
+                              f"Resumed from checkpoint — phases done: {report['phases_completed']}")
+        except Exception:
+            pass  # If checkpoint load fails, start fresh
 
-    # --- Phase 1-3: Build incrementally with forward context ---
-    for phase_name, phase_prompt in phases:
-        _log_progress(phase_name, "starting", f"Beginning {phase_name} phase")
+    def _make_context_prefix() -> str:
+        """Build forward-context prefix from completed phases."""
+        parts = [
+            "IMPORTANT: This is an EXISTING project in the current directory. "
+            "Read the existing files first to understand the current state. "
+            "Do NOT recreate files that already exist — only add or modify.",
+        ]
+        for prev_name, summary in report["phase_summaries"].items():
+            parts.append(f"\n[{prev_name.upper()} PHASE COMPLETED]: {summary}")
+        for failure in report["phases_failed"]:
+            parts.append(
+                f"\n[WARNING: {failure['phase'].upper()} PHASE FAILED]: "
+                f"{failure['error'][:200]}. You may need to handle what "
+                f"this phase was supposed to do."
+            )
+        return "\n".join(parts)
 
-        # Feed forward: inject prior phase outcomes into current prompt
+    def _run_phase(phase_name: str, phase_prompt: str):
+        """Run a single build phase via Claude CLI."""
         if phase_name != "scaffold":
-            context_parts = [
-                "IMPORTANT: This is an EXISTING project in the current directory. "
-                "Read the existing files first to understand the current state. "
-                "Do NOT recreate files that already exist — only add or modify.",
-            ]
+            phase_prompt = _make_context_prefix() + "\n\n" + phase_prompt
+        timeout = PHASE_TIMEOUTS.get(phase_name, CLAUDE_TIMEOUT)
+        _log_progress(phase_name, "running",
+                      f"Building {phase_name} (timeout: {timeout}s)...")
+        return _run_claude(str(project_dir), phase_prompt, timeout=timeout)
 
-            # Inject prior phase summaries so each phase builds on what came before
-            for prev_name, summary in report["phase_summaries"].items():
-                context_parts.append(
-                    f"\n[{prev_name.upper()} PHASE COMPLETED]: {summary}"
-                )
-
-            # If previous phases failed, warn about what needs attention
-            for failure in report["phases_failed"]:
-                context_parts.append(
-                    f"\n[WARNING: {failure['phase'].upper()} PHASE FAILED]: "
-                    f"{failure['error'][:200]}. You may need to handle what "
-                    f"this phase was supposed to do."
-                )
-
-            phase_prompt = "\n".join(context_parts) + "\n\n" + phase_prompt
-
-        phase_timeout = PHASE_TIMEOUTS.get(phase_name, CLAUDE_TIMEOUT)
-        _log_progress(phase_name, "running", f"Claude Code building {phase_name} (timeout: {phase_timeout}s)...")
-        result = _run_claude(str(project_dir), phase_prompt, timeout=phase_timeout)
-
+    def _process_result(phase_name: str, result: dict):
+        """Record phase outcome in the report."""
         if result["ok"]:
             report["phases_completed"].append(phase_name)
             url = _detect_url(result["output"])
             if url:
                 report["url"] = url
-
-            # Extract a phase summary for forward context (last 300 chars often have the summary)
             output = result["output"]
             summary = output[-300:].strip() if len(output) > 300 else output.strip()
-            # Clean: take last meaningful paragraph
-            paragraphs = [p.strip() for p in summary.split("\n") if p.strip()]
-            report["phase_summaries"][phase_name] = " | ".join(paragraphs[-3:])[:200]
-
-            _log_progress(phase_name, "completed", f"{phase_name} phase done", output)
+            for line in reversed(summary.split("\n")):
+                if len(line.strip()) > 20:
+                    summary = line.strip()
+                    break
+            report["phase_summaries"][phase_name] = summary[:500]
+            _log_progress(phase_name, "completed", summary[:200])
         else:
-            report["phases_failed"].append({
-                "phase": phase_name,
-                "error": result["error"],
-            })
+            report["phases_failed"].append({"phase": phase_name, "error": result["error"]})
             _log_progress(phase_name, "failed", f"{phase_name} failed: {result['error']}")
-            # Don't abort — try remaining phases even if one fails
+
+    # --- Phase 1: Scaffold (always sequential — sets up project structure) ---
+    if "scaffold" in report["phases_completed"]:
+        _log_progress("scaffold", "skipped", "Already completed (resumed from checkpoint)")
+    else:
+        _log_progress("scaffold", "starting", "Beginning scaffold phase")
+        result = _run_phase("scaffold", scaffold_task)
+        _process_result("scaffold", result)
+        _save_checkpoint(report)
+
+    # --- Start dev server early for live preview during build ---
+    if not report["url"] and "scaffold" in report["phases_completed"]:
+        _log_progress("server_start", "starting", "Starting dev server for live preview...")
+        url = _start_dev_server(str(project_dir))
+        if url:
+            report["url"] = url
+            _log_progress("server_start", "completed", f"Live preview at {url}")
+
+    # --- Phase 2: Features ---
+    if "features" in report["phases_completed"]:
+        _log_progress("features", "skipped", "Already completed (resumed from checkpoint)")
+    else:
+        _log_progress("features", "starting", "Beginning features phase")
+        result = _run_phase("features", feature_task)
+        _process_result("features", result)
+        _save_checkpoint(report)
+
+    # --- Phase 3: Polish ---
+    if "polish" in report["phases_completed"]:
+        _log_progress("polish", "skipped", "Already completed (resumed from checkpoint)")
+    else:
+        _log_progress("polish", "starting", "Beginning polish phase")
+        result = _run_phase("polish", polish_task)
+        _process_result("polish", result)
+        _save_checkpoint(report)
 
     # --- Start dev server if not already running ---
     if not report["url"]:
         _log_progress("server_start", "starting", "Starting dev server...")
-        start_result = _run_claude(
-            str(project_dir),
-            "Read the existing project files to understand the stack. "
-            "For Python/Django/FastAPI/Flask projects: install deps with pip install -r requirements.txt, "
-            "run migrations if needed (python manage.py migrate), then start the server "
-            "(python manage.py runserver OR uvicorn main:app). "
-            "For Node/React projects: run npm install, then npm run dev. "
-            "For full-stack (backend + frontend): start the backend server only. "
-            "The project is already built — just get it running.",
-            timeout=PHASE_TIMEOUTS["server_start"],
-        )
-        if start_result["ok"]:
-            url = _detect_url(start_result["output"])
-            if url:
-                report["url"] = url
-                _log_progress("server_start", "completed", f"Server running at {url}")
-            else:
-                _log_progress("server_start", "failed", "No server URL detected")
+        url = _start_dev_server(str(project_dir))
+        if url:
+            report["url"] = url
+            _log_progress("server_start", "completed", f"Server running at {url}")
         else:
-            _log_progress("server_start", "failed", start_result["error"])
+            _log_progress("server_start", "failed", "Could not start dev server")
 
     # --- QA test loop with structured result parsing ---
     if report["url"]:
@@ -361,6 +547,7 @@ def build_review_improve(
                 _log_progress(fix_label, "completed", f"Fixes applied for {len(failed_tests)} failures")
             else:
                 _log_progress(fix_label, "failed", fix_result["error"])
+            _save_checkpoint(report)
         else:
             if report["url"]:
                 report["status"] = "shipped_with_issues"
@@ -369,6 +556,8 @@ def build_review_improve(
     else:
         report["status"] = "built_no_server"
 
+    # Final checkpoint — clear it on success (no need to resume a completed build)
+    _save_checkpoint(report)
     return json.dumps(report, indent=2)
 
 

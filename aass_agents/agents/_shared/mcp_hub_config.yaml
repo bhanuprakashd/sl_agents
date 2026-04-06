@@ -1,0 +1,272 @@
+# MCP Hub Configuration — registry of external MCP servers available to all agents
+#
+# Each server declares:
+#   capability   — unique tag agents use to request tools (e.g. "docs", "github")
+#   name         — human-readable name
+#   description  — what this server provides (shown in list_available)
+#   connection_type — "stdio" (local process) or "sse"/"http" (remote)
+#   command/args — for stdio connections
+#   url          — for sse/http connections
+#   env_keys     — required env vars (server skipped if any are missing)
+#   tool_filter  — optional list of tool names to expose (all if omitted)
+#   tool_prefix  — optional prefix added to tool names to avoid collisions
+#   headers_env  — map of HTTP header → env var name (for authenticated sse/http)
+#   disabled     — set to true to skip without removing
+#
+# Agents request tools by capability:
+#   mcp_hub.get_toolset("docs")    → context7 docs lookup
+#   mcp_hub.get_toolset("github")  → GitHub repos, issues, code search
+#
+# Servers with missing env vars are silently skipped — agents degrade gracefully.
+
+servers:
+
+  # ── Tier 1: Core development capabilities ─────────────────────────────────
+
+  - name: context7
+    capability: docs
+    description: "Live documentation lookup for any library, framework, or API. Returns current docs with code examples."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@upstash/context7-mcp@latest"]
+    tool_prefix: docs_
+    # No env_keys — context7 is free and unauthenticated
+
+  - name: package-registry
+    capability: packages
+    description: "Search npm, PyPI, crates.io, NuGet for packages. Get download counts, versions, deprecation status."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "package-registry-mcp"]
+    tool_prefix: pkg_
+
+  - name: playwright-browser
+    capability: browser
+    description: "Full browser automation — navigate, click, fill forms, take screenshots, read console. For QA and visual testing."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@playwright/mcp", "--browser", "chrome"]
+    tool_prefix: browser_
+
+  - name: github
+    capability: github
+    description: "GitHub operations — search repos/code/issues, read files, create PRs, manage issues. Deep repo analysis."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env_keys: [GITHUB_PERSONAL_ACCESS_TOKEN]
+    tool_prefix: gh_
+
+  # ── Tier 2: Research & analysis ────────────────────────────────────────────
+
+  - name: firecrawl
+    capability: crawl
+    description: "Deep web crawling and scraping with JavaScript rendering. Structured data extraction from any website."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "firecrawl-mcp"]
+    env_keys: [FIRECRAWL_API_KEY]
+    tool_prefix: crawl_
+
+  - name: exa-search
+    capability: search
+    description: "Semantic web search — find similar companies, products, patterns. Better than keyword search for research."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "exa-mcp-server"]
+    env_keys: [EXA_API_KEY]
+    tool_prefix: exa_
+
+  # ── Tier 3: Deploy & infrastructure ────────────────────────────────────────
+
+  - name: vercel
+    capability: vercel
+    description: "Vercel deployments — create projects, deploy, check status, manage domains."
+    connection_type: http
+    url: "https://mcp.vercel.com"
+    env_keys: [VERCEL_TOKEN]
+    headers_env:
+      Authorization: VERCEL_TOKEN
+    tool_prefix: vercel_
+
+  - name: railway
+    capability: railway
+    description: "Railway deployments — deploy services, view logs, manage environment variables."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@railway/mcp-server"]
+    env_keys: [RAILWAY_TOKEN]
+    tool_prefix: rail_
+
+  - name: supabase
+    capability: database
+    description: "Supabase database operations — SQL queries, schema management, auth, storage."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@supabase/mcp-server-supabase@latest"]
+    env_keys: [SUPABASE_ACCESS_TOKEN]
+    tool_prefix: supa_
+
+  # ── Tier 4: Free productivity (no API key needed) ───────────────────────────
+
+  - name: filesystem
+    capability: filesystem
+    description: "Local file read/write/search/directory listing. Sandboxed to allowed directories."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/aass-workspace"]
+    tool_prefix: fs_
+
+  - name: git
+    capability: git
+    description: "Local git operations — log, diff, blame, branch, status, show. No remote push."
+    connection_type: stdio
+    command: uvx
+    args: ["mcp-server-git"]
+    tool_prefix: git_
+
+  - name: fetch
+    capability: fetch
+    description: "Fetch any URL and return content as clean markdown. Works with web pages, APIs, docs."
+    connection_type: stdio
+    command: uvx
+    args: ["mcp-server-fetch"]
+    tool_prefix: fetch_
+
+  - name: memory
+    capability: memory
+    description: "Persistent knowledge graph — store and recall entities, relations, observations across sessions."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+    tool_prefix: mem_
+
+  - name: sequential-thinking
+    capability: thinking
+    description: "Structured chain-of-thought reasoning — break complex problems into steps, revise, branch."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    tool_prefix: think_
+
+  - name: sqlite
+    capability: sqlite
+    description: "SQLite database operations — query, schema inspection, data analysis on local .db files."
+    connection_type: stdio
+    command: uvx
+    args: ["mcp-server-sqlite", "--db-path", "/tmp/aass-workspace/data.db"]
+    tool_prefix: sql_
+
+  - name: docker
+    capability: docker
+    description: "Docker container management — list, start, stop, logs, exec. Manage dev environments."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@thelord/mcp-server-docker-npx"]
+    tool_prefix: docker_
+
+  - name: duckduckgo
+    capability: duckduckgo
+    description: "Free web search via DuckDuckGo — no API key needed. Fallback when Exa is unavailable."
+    connection_type: stdio
+    command: uvx
+    args: ["duckduckgo-mcp-server"]
+    tool_prefix: ddg_
+
+  # ── Tier 5: Code intelligence ──────────────────────────────────────────────
+
+  - name: code-graph
+    capability: code_analysis
+    description: "AST-aware code analysis — dependency graphs, blast radius, dead code detection, hotspot analysis. 170+ languages."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "code-graph-context-mcp"]
+    tool_prefix: code_
+
+  # ── Tier 6: Code execution & sandboxing ─────────────────────────────────────
+
+  - name: yepcode-sandbox
+    capability: sandbox
+    description: "Secure sandboxed code execution with npm/pip access. Run LLM-generated code safely. Use for testing code snippets before committing."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@anthropic/mcp-server-yepcode"]
+    env_keys: [YEPCODE_API_KEY]
+    tool_prefix: sandbox_
+    disabled: true  # Enable when sandbox execution is needed
+
+  - name: depwire
+    capability: deps
+    description: "Dependency graph analysis for TypeScript, JavaScript, Python, Go, Rust, C. Find imports, exports, and dependency chains."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "depwire"]
+    tool_prefix: deps_
+
+  - name: code-to-tree
+    capability: ast
+    description: "Convert source code to AST (abstract syntax tree) across languages. Structural code analysis without running it."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "code-to-tree"]
+    tool_prefix: ast_
+
+  - name: repomapper
+    capability: repomap
+    description: "Dynamic code mapping with function prototypes and relevance scoring. Understand codebase structure before building."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "repomapper-mcp"]
+    tool_prefix: rmap_
+
+  # ── Tier 7: Infrastructure ────────────────────────────────────────────────
+
+  - name: terraform
+    capability: terraform
+    description: "Terraform registry provider docs/resources lookup and module discovery."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@anthropic/mcp-server-terraform"]
+    tool_prefix: tf_
+    disabled: true  # Enable for IaC projects
+
+  - name: kubernetes
+    capability: k8s
+    description: "Kubernetes CRUD operations, pod management, log retrieval. Multi-cluster support."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "kubernetes-mcp-server"]
+    tool_prefix: k8s_
+    disabled: true  # Enable for K8s deployments
+
+  # ── Tier 8: Disabled / template servers ────────────────────────────────────
+
+  - name: slack
+    capability: slack
+    description: "Slack messaging — post to channels, read threads, notify on pipeline completion."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@anthropic/mcp-server-slack"]
+    env_keys: [SLACK_BOT_TOKEN]
+    tool_prefix: slack_
+    disabled: true  # Enable when Slack integration is needed
+
+  - name: linear
+    capability: issues
+    description: "Linear issue tracking — create/update issues, manage projects, track sprints."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-linear"]
+    env_keys: [LINEAR_API_KEY]
+    tool_prefix: linear_
+    disabled: true
+
+  - name: sentry
+    capability: errors
+    description: "Sentry error tracking — query exceptions, stack traces, release health."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@sentry/mcp-server-sentry"]
+    env_keys: [SENTRY_AUTH_TOKEN]
+    tool_prefix: sentry_
+    disabled: true

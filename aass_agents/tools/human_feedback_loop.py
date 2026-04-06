@@ -838,7 +838,7 @@ Output ONLY issue lines. If the app genuinely meets all PRD requirements with no
 APPROVED|none|none|high|No significant issues found
 """
 
-    result = _run_claude(project_dir, critique_prompt, timeout=300)
+    result = _run_claude(project_dir, critique_prompt, timeout=600)
 
     if not result.get("ok"):
         return self_critique_against_prd(prd, build_url, "")

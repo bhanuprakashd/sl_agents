@@ -1,5 +1,11 @@
-# Core ADK framework
-google-adk>=1.27.4
+# Core ADK framework (with A2A support)
+google-adk[a2a]>=1.28.1
+
+# LiteLLM — pinned below 1.82.7 due to supply-chain compromise (2026-03-24)
+litellm>=1.81.13,<1.82.7
+
+# A2A SDK for agent-to-agent protocol
+a2a-sdk>=0.3.0
 
 # Search & HTTP
 duckduckgo-search>=8.1.1

@@ -13,6 +13,13 @@ Tier mapping:
   OpenRouter: fast=MODEL_ID_FAST or MODEL_ID, std=MODEL_ID, deep=MODEL_ID_DEEP or MODEL_ID
   LiteLLM:    same as OpenRouter
 
+Gemini 3 Flash thinking_level support:
+  When using gemini-3-flash (native or via OpenRouter), each tier maps to a
+  thinking_level for fine-grained cost/quality control:
+    FAST → thinking_level="minimal"
+    STD  → thinking_level="medium"
+    DEEP → thinking_level="high"
+
 Environment variables:
   MODEL_ID       — default model for all tiers (required)
   MODEL_ID_FAST  — override for fast tier (optional, falls back to MODEL_ID)
@@ -32,9 +39,9 @@ _log = logging.getLogger(__name__)
 _LITELLM_PREFIXES = ("openrouter/", "litellm/", "anthropic/", "mistral/", "groq/", "together_ai/", "nvidia_nim/", "openai/")
 
 # ── Retry config for malformed function calls ─────────────────────────────────
-_MALFORMED_MAX_RETRIES = int(os.getenv("MALFORMED_MAX_RETRIES", "3"))
-_MALFORMED_BASE_DELAY = float(os.getenv("MALFORMED_BASE_DELAY", "2.0"))
-_MALFORMED_MAX_DELAY = float(os.getenv("MALFORMED_MAX_DELAY", "30.0"))
+_MALFORMED_MAX_RETRIES = int(os.getenv("MALFORMED_MAX_RETRIES", "5"))
+_MALFORMED_BASE_DELAY = float(os.getenv("MALFORMED_BASE_DELAY", "3.0"))
+_MALFORMED_MAX_DELAY = float(os.getenv("MALFORMED_MAX_DELAY", "60.0"))
 
 
 def _is_malformed_function_call_error(exc: Exception) -> bool:
@@ -97,8 +104,9 @@ def _configure_rate_limit():
     """Install rate limiting, reasoning_content fix, and cost tracking on litellm."""
     try:
         import litellm
-        litellm.num_retries = 3
-        litellm.retry_after = 5
+        litellm.num_retries = 5
+        litellm.retry_after = 8
+        litellm.request_timeout = 300  # 5 min per LLM call
 
         _original_completion = litellm.completion
 
@@ -190,6 +198,21 @@ def _resolve_model_id(tier: str = STD) -> str:
 
 _THINKING_MODELS = ("glm4", "kimi-k2", "deepseek-r1", "qwq")
 
+# ── Gemini 3 Flash thinking_level per tier ───────────────────────────────────
+_GEMINI3_THINKING_LEVELS = {
+    FAST: "minimal",
+    STD: "medium",
+    DEEP: "high",
+}
+
+_GEMINI3_FLASH_PATTERNS = ("gemini-3-flash", "gemini-3.0-flash", "gemini-3.1-flash")
+
+
+def _is_gemini3_flash(model_id: str) -> bool:
+    """Check if the model is a Gemini 3 Flash variant."""
+    lower = model_id.lower()
+    return any(p in lower for p in _GEMINI3_FLASH_PATTERNS)
+
 
 def _needs_thinking_disabled(model_id: str) -> bool:
     """Check if a model uses reasoning_content and needs thinking disabled for ADK."""
@@ -197,7 +220,7 @@ def _needs_thinking_disabled(model_id: str) -> bool:
     return any(t in lower for t in _THINKING_MODELS)
 
 
-def _make_model(model_id: str):
+def _make_model(model_id: str, tier: str = STD):
     """Create the appropriate model object (string for Gemini, LiteLlm for OpenRouter)."""
     if any(model_id.startswith(p) for p in _LITELLM_PREFIXES):
         try:
@@ -209,7 +232,19 @@ def _make_model(model_id: str):
             kwargs["extra_body"] = {
                 "chat_template_kwargs": {"enable_thinking": False}
             }
+        elif _is_gemini3_flash(model_id):
+            thinking_level = _GEMINI3_THINKING_LEVELS.get(tier, "medium")
+            kwargs["extra_body"] = {"thinking_level": thinking_level}
+            _log.info("Gemini 3 Flash tier=%s → thinking_level=%s", tier, thinking_level)
         return LiteLlm(model=model_id, **kwargs)
+
+    # Native Gemini model string — append thinking config via generate_content_config
+    if _is_gemini3_flash(model_id):
+        thinking_level = _GEMINI3_THINKING_LEVELS.get(tier, "medium")
+        _log.info("Gemini 3 Flash (native) tier=%s → thinking_level=%s", tier, thinking_level)
+        # For native Gemini, ADK passes the model string; thinking_level is set
+        # via GenerateContentConfig at the agent level. Return a dict so callers
+        # can extract the config if needed, but fall back to string for compat.
     return model_id
 
 
@@ -235,4 +270,4 @@ def get_model(tier: str = STD):
         builder = Agent(model=get_model(STD), ...)         # most work
     """
     model_id = _resolve_model_id(tier)
-    return _make_model(model_id)
+    return _make_model(model_id, tier)

@@ -54,6 +54,7 @@ def log_build_phase(
     status: str,
     message: str = "",
     output_preview: str = "",
+    backend: str = "",
 ) -> str:
     """
     Log a build phase status update.
@@ -64,6 +65,7 @@ def log_build_phase(
         status: One of "starting", "running", "completed", "failed", "skipped"
         message: Human-readable status message
         output_preview: First ~500 chars of output (for debugging)
+        backend: Which coding CLI is running this phase ("claude", "opencode", "")
 
     Returns:
         Confirmation message

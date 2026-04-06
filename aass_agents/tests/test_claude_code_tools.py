@@ -41,7 +41,7 @@ def test_build_and_run_timeout(tmp_path, monkeypatch):
          patch("tools.claude_code_tools.subprocess.run",
                side_effect=subprocess.TimeoutExpired("claude", 600)):
         result = build_and_run("test-proj", "build something")
-    assert result == "Error: timed out after 1200s"
+    assert "timed out after 2400s" in result
 
 
 def test_build_and_run_creates_project_dir(tmp_path, monkeypatch):
@@ -62,7 +62,7 @@ def test_claude_cli_not_found(tmp_path, monkeypatch):
     monkeypatch.setattr("tools.claude_code_tools.CLAUDE_WORKS_ROOT", tmp_path)
     with patch("tools.claude_code_tools.shutil.which", return_value=None):
         result = build_and_run("test-proj", "build something")
-    assert result.startswith("Error: claude CLI not found")
+    assert "No coding CLI found" in result
 
 
 def test_build_and_run_nonzero_exit(tmp_path, monkeypatch):

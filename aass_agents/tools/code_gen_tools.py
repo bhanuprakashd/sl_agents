@@ -50,15 +50,16 @@ Requirements:
 - DATABASE_URL from environment
 - CORS enabled for frontend URL
 - Health check at GET /health
-- Requirements: fastapi, uvicorn, sqlalchemy, psycopg2-binary, pydantic
+- Use SQLite with SQLAlchemy + aiosqlite (DATABASE_URL defaults to "sqlite+aiosqlite:///./app.db")
+- Requirements: fastapi, uvicorn, sqlalchemy, aiosqlite, pydantic
 
 Return a single Python file (main.py content only)."""
     return generate_code(prompt)
 
 
-def generate_nextjs_frontend(prd: dict, backend_url: str) -> str:
-    """Generate a Next.js frontend from a PRD."""
-    prompt = f"""Generate a Next.js 14 App Router frontend application.
+def generate_react_frontend(prd: dict, backend_url: str) -> str:
+    """Generate a React (Vite) frontend from a PRD."""
+    prompt = f"""Generate a React (Vite) frontend application.
 
 PRD:
 {prd}
@@ -66,27 +67,27 @@ PRD:
 Backend API URL: {backend_url}
 
 Requirements:
-- TypeScript
+- React with Vite
+- JSX (not TypeScript)
 - Tailwind CSS
-- shadcn/ui components
-- app/page.tsx as main entry
-- NEXT_PUBLIC_API_URL from environment
+- src/App.jsx as main component
+- VITE_API_URL from environment (import.meta.env.VITE_API_URL)
 - All features from PRD
 
-Return only the content of app/page.tsx."""
+Return only the content of src/App.jsx."""
     return generate_code(prompt, model="claude-sonnet-4-6")
 
 
 def generate_db_schema(prd: dict) -> str:
     """Generate SQL schema from PRD."""
-    prompt = f"""Generate a PostgreSQL schema for this product.
+    prompt = f"""Generate a SQLite schema for this product.
 
 PRD:
 {prd}
 
 Requirements:
-- CREATE TABLE statements only
-- Include id (UUID), created_at, updated_at on all tables
+- CREATE TABLE statements only (SQLite compatible)
+- Include id (INTEGER PRIMARY KEY AUTOINCREMENT), created_at, updated_at on all tables
 - Add appropriate indexes
 - No stored procedures
 

@@ -10,6 +10,7 @@ from google.adk.tools import ToolContext
 
 from agents._shared.model import get_model
 from agents._shared.context_rules import ERROR_PRESERVATION_RULE
+from agents._shared.mcp_hub import mcp_hub
 from tools.product_memory_tools import save_product_state, log_step
 from tools.claude_code_tools import (
     build_and_run, build_review_improve, build_with_feedback_loop, open_in_browser,
@@ -67,6 +68,9 @@ You build the application from the PRD and architecture. Execute autonomously. N
 {ERROR_PRESERVATION_RULE}
 """
 
+# MCP tools: docs (live library docs), repomap (codebase structure understanding)
+_mcp_tools = mcp_hub.get_toolsets(["docs", "repomap"])
+
 builder_agent = Agent(
     model=get_model(),
     name="builder_agent",
@@ -78,5 +82,6 @@ builder_agent = Agent(
         build_and_run, build_review_improve, build_with_feedback_loop, open_in_browser,
         find_similar_skills, save_learned_skill, get_feedback_patterns,
         save_product_state, log_step,
+        *_mcp_tools,
     ],
 )

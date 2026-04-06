@@ -10,6 +10,7 @@ from tools.product_memory_tools import save_product_state, recall_product_state,
 from tools.http_tools import smoke_test, health_check, auth_smoke_test
 
 from agents._shared.model import get_model, FAST
+from agents._shared.mcp_hub import mcp_hub
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -72,15 +73,19 @@ Return the qa_report to product_orchestrator — it will decide whether to retry
 Do NOT retry yourself.
 """
 
+# MCP tools: browser (Playwright for real browser testing)
+_mcp_tools = mcp_hub.get_toolsets(["browser"])
+
 qa_agent = Agent(
     model=get_model(FAST),  # QA is simple pass/fail checks, doesn't need deep reasoning
     name="qa_agent",
-    description="Smoke tests the live deployment: root URL, health endpoint, auth flow.",
+    description="Smoke tests the live deployment: root URL, health endpoint, auth flow, visual checks via browser.",
     instruction=INSTRUCTION,
     output_key="qa_output",  # Auto-save QA report to state["qa_output"]
     tools=[
         read_state,
         save_product_state, recall_product_state, log_step,
         smoke_test, health_check, auth_smoke_test,
+        *_mcp_tools,
     ],
 )

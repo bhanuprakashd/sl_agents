@@ -63,6 +63,7 @@ def init_product_db() -> None:
             ("tech_preferences", "TEXT"),
             ("build_iteration", "INTEGER DEFAULT 0"),
             ("design_guidelines", "TEXT"),
+            ("build_checkpoint", "TEXT"),
         ]:
             try:
                 conn.execute(f"ALTER TABLE product_pipeline_state ADD COLUMN {col} {col_type}")
@@ -84,6 +85,7 @@ def save_product_state(
     tech_preferences: str = "",
     build_iteration: str = "",
     design_guidelines: str = "",
+    build_checkpoint: str = "",
 ) -> str:
     """
     Upsert product pipeline state. Pass only the fields you want to set or update.
@@ -98,6 +100,7 @@ def save_product_state(
             "tech_preferences": tech_preferences,
             "build_iteration": build_iteration,
             "design_guidelines": design_guidelines,
+            "build_checkpoint": build_checkpoint,
         }.items() if v  # skip empty strings
     }
     init_product_db()
@@ -135,6 +138,22 @@ def save_product_state(
                     vals,
                 )
     return f"Product state saved for {product_id}: {list(fields.keys())}"
+
+
+def recall_build_checkpoint(product_id: str) -> dict | None:
+    """Load the build checkpoint for a product. Returns dict or None if no checkpoint."""
+    init_product_db()
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT build_checkpoint FROM product_pipeline_state WHERE product_id = ?",
+            (product_id,),
+        ).fetchone()
+    if row and row[0]:
+        try:
+            return json.loads(row[0])
+        except (json.JSONDecodeError, TypeError):
+            return None
+    return None
 
 
 def log_step(product_id: str, step: str, message: str) -> str:

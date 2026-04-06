@@ -1,47 +1,57 @@
-# aass_agents/agents/db_agent.py
+# aass_agents/agents/product/db_agent.py
 """
-DB Agent — generates SQL schema and provisions NeonDB or Supabase.
+DB Agent — generates SQLite schema and initializes the local database.
+
+Reads PRD + architecture from session state (pipeline mode) or SQLite (standalone).
 """
 import os
 from google.adk.agents import Agent
+from google.adk.tools import ToolContext
 from tools.product_memory_tools import save_product_state, recall_product_state, log_step
-from tools.neondb_tools import create_project as neon_create, get_connection_uri as neon_conn, run_sql as neon_sql
-from tools.supabase_tools import create_project as supa_create, get_connection_string as supa_conn, run_sql as supa_sql
+from tools.code_gen_tools import generate_db_schema
 
-from agents._shared.model import get_model
+from agents._shared.model import get_model, FAST
+
+
+def read_state(key: str, tool_context: ToolContext) -> str:
+    """Read a value from session state. Use to get prd_output, architecture_output, product_id, etc."""
+    value = tool_context.state.get(key)
+    if value is None:
+        return f"No value found in state for key '{key}'"
+    return str(value)
+
+
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
-You are a Database agent. You provision the database and run the schema migration.
+You are a Database agent. You generate the SQLite schema and migration script.
 
 ## Your Process
 
-1. Call `recall_product_state` to get PRD (data_model) and architecture (database choice)
-3. Generate SQL CREATE TABLE statements from data_model in PRD
-4. Provision the database:
-   - If architecture.stack.database == "Supabase": call `supa_create`
-   - If architecture.stack.database == "NeonDB": call `neon_create`
-   - On failure: try the other provider (fallback)
-5. Run the SQL migration
-6. Save `database_url` to product state via `save_product_state`
-   (devops_agent will read this to inject DATABASE_URL env var)
-7. Call `log_step` with step="db" and "Database provisioned: [provider] — migration complete"
+1. Read state: call read_state("product_id"), read_state("prd_output"), and read_state("architecture_output").
+   If state is empty, fall back to `recall_product_state`.
+2. Generate SQLite-compatible CREATE TABLE statements from data_model in PRD using `generate_db_schema`
+3. Save `database_url` as "sqlite+aiosqlite:///./app.db" to product state via `save_product_state`
+4. Call `log_step` with step="db" and "SQLite schema generated — migration script ready"
+5. Output the schema SQL as your final result.
 
 ## SQL Guidelines
-- Always include: id (UUID or SERIAL PRIMARY KEY), created_at TIMESTAMP DEFAULT NOW()
-- Use TEXT for strings, not VARCHAR
+- Always include: id (INTEGER PRIMARY KEY AUTOINCREMENT), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+- Use TEXT for strings
 - Add basic indexes on foreign keys
 - Keep it simple — no stored procedures, no triggers for v1
+- SQLite compatible syntax only (no UUID type, no NOW(), no SERIAL)
 """
 
 db_agent = Agent(
-    model=get_model(),
+    model=get_model(FAST),
     name="db_agent",
-    description="Generates SQL schema and provisions NeonDB or Supabase database.",
+    description="Generates SQLite schema and initializes the local database.",
     instruction=INSTRUCTION,
+    output_key="db_output",
     tools=[
+        read_state,
         save_product_state, recall_product_state, log_step,
-        neon_create, neon_conn, neon_sql,
-        supa_create, supa_conn, supa_sql,
+        generate_db_schema,
     ],
 )

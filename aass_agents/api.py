@@ -4,7 +4,7 @@ SL Agents — FastAPI backend for the dashboard UI.
 Serves the dashboard and streams ADK agent events via SSE.
 
 Run:
-    uvicorn api:app --reload --port 8080
+    uvicorn api:app --reload --port 8080 --timeout-keep-alive 5400
 
 Then open: http://localhost:8080
 """
@@ -22,14 +22,24 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 
 from main import root_agent
+from agents._shared.session_store import (
+    get_session_service,
+    list_sessions,
+    get_session_state,
+    get_checkpoint_stages,
+)
+from tools.pipeline_metrics import (
+    start_run, end_run,
+    record_stage_start, record_stage_end,
+    get_run_metrics, get_pipeline_stats, get_recent_runs,
+)
 from tools.supervisor_db import (
     init_supervisor_tables,
     _get_conn as sup_conn,
@@ -56,7 +66,7 @@ app.add_middleware(
 )
 
 APP_NAME = "sl-agents-ui"
-_session_service = InMemorySessionService()
+_session_service = get_session_service()
 
 GENERATED_SKILLS_PATH = Path(__file__).parent.parent / "generated_skills" / "_registry.json"
 
@@ -117,16 +127,68 @@ async def _stream_run(prompt: str, session_id: str) -> AsyncGenerator[str, None]
     )
 
     run_id = str(uuid.uuid4())
-    yield _sse({"type": "run_start", "run_id": run_id, "prompt": prompt})
+    metrics_run_id = start_run("product_pipeline", prompt)
+    _current_stage: dict = {"name": None}  # track current stage for metrics
+    yield _sse({"type": "run_start", "run_id": run_id, "metrics_run_id": metrics_run_id, "prompt": prompt})
 
+    consumer_task = None
     try:
-        async for event in runner.run_async(
-            user_id="ui-user",
-            session_id=session_id,
-            new_message=Content(role="user", parts=[Part(text=prompt)]),
-        ):
+        # Wrap the async iterator with a keepalive mechanism.
+        # Long-running tool calls (build_with_feedback_loop can take 40-90 min)
+        # produce no events, causing the SSE connection to drop due to inactivity.
+        # We send a keepalive comment every 10 seconds to prevent this.
+        event_queue: asyncio.Queue = asyncio.Queue()
+        _SENTINEL = object()
+        _consumer_error: list = []  # capture consumer-side errors
+
+        async def _consume_events():
+            try:
+                async for event in runner.run_async(
+                    user_id="ui-user",
+                    session_id=session_id,
+                    new_message=Content(role="user", parts=[Part(text=prompt)]),
+                ):
+                    await event_queue.put(event)
+            except asyncio.CancelledError:
+                pass  # generator closed by client disconnect — clean exit
+            except Exception as exc:
+                _consumer_error.append(exc)
+                await event_queue.put(exc)
+            finally:
+                await event_queue.put(_SENTINEL)
+
+        consumer_task = asyncio.create_task(_consume_events())
+
+        while True:
+            try:
+                item = await asyncio.wait_for(event_queue.get(), timeout=10.0)
+            except asyncio.TimeoutError:
+                # Check if consumer died silently (task done but no sentinel)
+                if consumer_task.done():
+                    # Consumer finished without sending sentinel — check for error
+                    if _consumer_error:
+                        raise _consumer_error[0]
+                    break
+                # No event for 10s — send keepalive to prevent connection drop
+                yield ": keepalive\n\n"
+                continue
+
+            if item is _SENTINEL:
+                break
+
+            if isinstance(item, Exception):
+                raise item
+
+            event = item
             author = getattr(event, "author", None) or "unknown"
             text, tool_calls, tool_results = _extract_parts(event)
+
+            # Track stage transitions for metrics
+            if author != _current_stage["name"] and author != "unknown":
+                if _current_stage["name"]:
+                    record_stage_end(metrics_run_id, _current_stage["name"], status="success")
+                _current_stage["name"] = author
+                record_stage_start(metrics_run_id, author)
 
             for tc in tool_calls:
                 yield _sse({"type": "tool_call", "agent": author,
@@ -142,14 +204,31 @@ async def _stream_run(prompt: str, session_id: str) -> AsyncGenerator[str, None]
                 else:
                     yield _sse({"type": "agent_text", "agent": author, "text": text})
 
-        yield _sse({"type": "done"})
+        # Close the last stage and end the run
+        if _current_stage["name"]:
+            record_stage_end(metrics_run_id, _current_stage["name"], status="success")
+        end_run(metrics_run_id, status="success")
+        yield _sse({"type": "done", "metrics_run_id": metrics_run_id})
 
     except Exception as exc:
         import traceback
         tb = traceback.format_exc()
         print(f"[STREAM ERROR] {exc}\n{tb}", flush=True)
+        # Record failure in metrics
+        if _current_stage["name"]:
+            record_stage_end(metrics_run_id, _current_stage["name"],
+                             status="failed", error_message=str(exc))
+        end_run(metrics_run_id, status="failed")
         yield _sse({"type": "error", "message": str(exc), "traceback": tb})
-        yield _sse({"type": "done"})
+        yield _sse({"type": "done", "metrics_run_id": metrics_run_id})
+    finally:
+        # Ensure consumer task is cleaned up even if client disconnects
+        if consumer_task and not consumer_task.done():
+            consumer_task.cancel()
+            try:
+                await consumer_task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -400,7 +479,8 @@ async def agents_status():
             "circuit_state": c.get("state", "closed"),
             "failure_count": c.get("failure_count", 0),
             "last_invoked": invoked_map.get(agent_name),
-            "ttl_days": AGENT_TTL_DAYS.get(agent_name),
+            "ttl_days": (ttl if (ttl := AGENT_TTL_DAYS.get(agent_name)) is not None and ttl != float("inf") else None),
+            "ttl_permanent": AGENT_TTL_DAYS.get(agent_name) == float("inf"),
         })
     return results
 
@@ -648,6 +728,78 @@ async def api_list_pipelines():
         }
         for name, tasks in PIPELINES.items()
     }
+
+
+# ── MCP Hub Endpoints ────────────────────────────────────────────────────────
+from agents._shared.mcp_hub import mcp_hub
+
+@app.get("/api/mcp/servers")
+async def api_mcp_servers():
+    """List all available MCP servers and their connection status."""
+    return mcp_hub.list_available()
+
+@app.get("/api/mcp/capabilities")
+async def api_mcp_capabilities():
+    """List all registered MCP capability names."""
+    return mcp_hub.list_all_capabilities()
+
+
+# ── Pipeline Metrics Endpoints ───────────────────────────────────────────────
+
+@app.get("/api/metrics/run/{run_id}")
+async def api_run_metrics(run_id: str):
+    """Get full metrics for a pipeline run including all stage timings."""
+    return get_run_metrics(run_id)
+
+
+@app.get("/api/metrics/stats")
+async def api_pipeline_stats(pipeline: Opt[str] = None, hours: int = 24):
+    """Aggregate pipeline statistics: success rate, avg duration, stage breakdown."""
+    return get_pipeline_stats(pipeline, hours)
+
+
+@app.get("/api/metrics/runs")
+async def api_recent_runs(limit: int = 20):
+    """Get most recent pipeline runs with status and timing."""
+    return get_recent_runs(limit)
+
+
+# ── Session Persistence & Resume Endpoints ──────────────────────────────────
+
+@app.get("/api/sessions")
+async def api_list_sessions(user_id: str = "ui-user"):
+    """List all persisted sessions for a user."""
+    return await list_sessions(_session_service, APP_NAME, user_id)
+
+
+@app.get("/api/sessions/{session_id}")
+async def api_get_session(session_id: str, user_id: str = "ui-user"):
+    """Get full state for a session — shows which pipeline stages completed."""
+    data = await get_session_state(_session_service, APP_NAME, user_id, session_id)
+    if "error" not in data:
+        data["checkpoint"] = get_checkpoint_stages(data.get("state", {}))
+    return data
+
+
+@app.post("/api/sessions/{session_id}/resume")
+async def api_resume_session(session_id: str, user_id: str = "ui-user"):
+    """Resume a pipeline from its last checkpoint.
+
+    Sends a 'continue' message to the existing session, which causes the
+    runner to pick up from where the SequentialAgent left off (the next
+    agent whose output_key is not yet in state).
+    """
+    return StreamingResponse(
+        _stream_run("Continue the pipeline from where it left off.", session_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    # Return 204 No Content if no favicon file exists
+    return Response(status_code=204)
 
 
 @app.get("/")
