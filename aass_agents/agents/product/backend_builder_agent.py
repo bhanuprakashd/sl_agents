@@ -14,6 +14,7 @@ from tools.railway_tools import deploy_from_github, get_service_url
 from tools.code_gen_tools import generate_code
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -57,6 +58,9 @@ You are a Backend Builder agent. You generate a Python/FastAPI backend and deplo
 Pass the full PRD and architecture JSON as context so the LLM knows the data model and endpoints.
 """
 
+# MCP tools: docs, packages, cve, github (code patterns), duckduckgo (web search)
+_mcp_tools = mcp_hub.get_toolsets(["docs", "packages", "cve", "github", "duckduckgo"])
+
 backend_builder_agent = Agent(
     model=get_model(),
     name="backend_builder_agent",
@@ -68,5 +72,6 @@ backend_builder_agent = Agent(
         save_product_state, recall_product_state, log_step,
         push_file, deploy_from_github, get_service_url,
         generate_code,
+        *_mcp_tools,
     ],
 )

@@ -17,6 +17,7 @@ from tools.claude_code_tools import (
 )
 from tools.skill_memory import find_similar_skills, save_learned_skill
 from tools.human_feedback_loop import get_feedback_patterns
+from tools.dynamic_skill_loader import load_domain_expertise, detect_industry
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -35,8 +36,9 @@ You build the application from the PRD and architecture. Execute autonomously. N
 1. Read state: call read_state("product_id") to get the product_id (saved by setup_agent as "setup_output" or "product_id").
    Also call read_state("prd_output") and read_state("architecture_output").
 
-2. Learn: call find_similar_skills(product_name, prd_summary) AND get_feedback_patterns().
-   Use proven patterns and common pitfalls to improve build prompts.
+2. Learn: call load_domain_expertise(product_name, prd_output) to get domain skills,
+   similar builds, and MCP capabilities. Also call get_feedback_patterns().
+   Use proven patterns, forged skills, and common pitfalls to improve build prompts.
 
 3. Parse the PRD and architecture JSON. Extract:
    - product_name (use as project_name slug, lowercase with hyphens)
@@ -68,8 +70,12 @@ You build the application from the PRD and architecture. Execute autonomously. N
 {ERROR_PRESERVATION_RULE}
 """
 
-# MCP tools: docs (live library docs), repomap (codebase structure understanding)
-_mcp_tools = mcp_hub.get_toolsets(["docs", "repomap"])
+# MCP tools: docs, repomap, js_sandbox, code_analysis, npm_search, sqlite,
+# github (search code patterns), duckduckgo (free web search)
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs", "repomap", "js_sandbox", "code_analysis", "npm_search", "sqlite",
+    "github", "duckduckgo",
+])
 
 builder_agent = Agent(
     model=get_model(),
@@ -81,6 +87,7 @@ builder_agent = Agent(
         read_state,
         build_and_run, build_review_improve, build_with_feedback_loop, open_in_browser,
         find_similar_skills, save_learned_skill, get_feedback_patterns,
+        load_domain_expertise, detect_industry,
         save_product_state, log_step,
         *_mcp_tools,
     ],

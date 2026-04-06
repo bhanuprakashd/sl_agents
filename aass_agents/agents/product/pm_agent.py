@@ -68,8 +68,11 @@ _research_mcp = McpToolset(
     )
 )
 
-# MCP tools: search (semantic web search), crawl (deep web scraping)
-_mcp_tools = mcp_hub.get_toolsets(["search", "crawl"])
+# MCP tools: search, crawl, duckduckgo, npm_search, docs, fetch,
+# github (repo/code search for market research)
+_mcp_tools = mcp_hub.get_toolsets([
+    "search", "crawl", "duckduckgo", "npm_search", "docs", "fetch", "github",
+])
 
 pm_agent = Agent(
     model=get_model(FAST),

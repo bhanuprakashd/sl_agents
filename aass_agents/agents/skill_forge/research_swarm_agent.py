@@ -6,6 +6,7 @@ that each produce a ResearchBundle with findings and citations.
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from tools.skill_forge_db import (
     init_db,
     save_research_bundle_sync,
@@ -102,12 +103,20 @@ Output a ResearchBundle as JSON:
 Prioritise techniques with empirical evidence of performance improvement.
 """
 
+# MCP tools for researchers — free + github (if token present)
+# Domain: web search + docs + fetch + github for deep domain knowledge
+_domain_tools = mcp_hub.get_toolsets(["duckduckgo", "docs", "fetch", "github"])
+# Benchmark: web search + fetch + github for gold standards and rubrics
+_benchmark_tools = mcp_hub.get_toolsets(["duckduckgo", "fetch", "npm_search", "github"])
+# Technique: docs + code analysis + thinking + github for prompting techniques and patterns
+_technique_tools = mcp_hub.get_toolsets(["docs", "code_analysis", "thinking", "fetch", "github"])
+
 _domain_researcher = Agent(
     model=get_model(),
     name="domain_researcher",
     description="Extracts expert domain knowledge, mental models, and best practices.",
     instruction=_DOMAIN_RESEARCHER_INSTRUCTION,
-    tools=[],
+    tools=[*_domain_tools],
 )
 
 _benchmark_researcher = Agent(
@@ -115,7 +124,7 @@ _benchmark_researcher = Agent(
     name="benchmark_researcher",
     description="Finds gold standard outputs, scoring rubrics, and benchmark data.",
     instruction=_BENCHMARK_RESEARCHER_INSTRUCTION,
-    tools=[],
+    tools=[*_benchmark_tools],
 )
 
 _technique_researcher = Agent(
@@ -123,7 +132,7 @@ _technique_researcher = Agent(
     name="technique_researcher",
     description="Identifies latest prompting techniques, tools, and reasoning schemas.",
     instruction=_TECHNIQUE_RESEARCHER_INSTRUCTION,
-    tools=[],
+    tools=[*_technique_tools],
 )
 
 INSTRUCTION = """

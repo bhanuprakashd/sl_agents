@@ -14,6 +14,7 @@ from tools.vercel_tools import trigger_deploy, get_deployment_url
 from tools.code_gen_tools import generate_code
 
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -60,6 +61,9 @@ You are a Frontend Builder agent. You generate a React (Vite) UI and deploy it t
 - Retry budget: if build fails, regenerate and push up to 3 times total
 """
 
+# MCP tools: docs, npm_search, js_sandbox, github (UI component patterns), duckduckgo
+_mcp_tools = mcp_hub.get_toolsets(["docs", "npm_search", "js_sandbox", "github", "duckduckgo"])
+
 frontend_builder_agent = Agent(
     model=get_model(),
     name="frontend_builder_agent",
@@ -71,5 +75,6 @@ frontend_builder_agent = Agent(
         save_product_state, recall_product_state, log_step,
         push_file, trigger_deploy, get_deployment_url,
         generate_code,
+        *_mcp_tools,
     ],
 )

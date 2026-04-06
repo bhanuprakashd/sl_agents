@@ -73,8 +73,8 @@ Return the qa_report to product_orchestrator — it will decide whether to retry
 Do NOT retry yourself.
 """
 
-# MCP tools: browser (Playwright for real browser testing)
-_mcp_tools = mcp_hub.get_toolsets(["browser"])
+# MCP tools: browser, fetch, js_sandbox, cve, github (test patterns), duckduckgo
+_mcp_tools = mcp_hub.get_toolsets(["browser", "fetch", "js_sandbox", "cve", "github", "duckduckgo"])
 
 qa_agent = Agent(
     model=get_model(FAST),  # QA is simple pass/fail checks, doesn't need deep reasoning

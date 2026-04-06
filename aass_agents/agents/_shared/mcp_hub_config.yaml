@@ -173,7 +173,82 @@ servers:
     args: ["duckduckgo-mcp-server"]
     tool_prefix: ddg_
 
-  # ── Tier 5: Code intelligence ──────────────────────────────────────────────
+  # ── Tier 5: Free utilities (no API key) ─────────────────────────────────────
+
+  - name: time
+    capability: time
+    description: "Time/date utilities — current time, timezone conversion, date arithmetic. Gives agents time awareness."
+    connection_type: stdio
+    command: uvx
+    args: ["mcp-server-time"]
+    tool_prefix: time_
+
+  - name: calc
+    capability: calc
+    description: "21 deterministic tools — math, hashing, encoding, date arithmetic, random numbers. All local, no network."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@coo-quack/calc-mcp@latest"]
+    tool_prefix: calc_
+
+  - name: npm-search
+    capability: npm_search
+    description: "Search npm registry for packages — names, versions, download counts. Helps agents discover libraries."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "npm-search-mcp-server"]
+    tool_prefix: npms_
+
+  - name: markitdown
+    capability: markitdown
+    description: "Convert PDF, DOCX, Excel, images to Markdown. Uses Microsoft MarkItDown. No external API."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-server-markitdown-npx"]
+    tool_prefix: mdit_
+
+  - name: pandoc
+    capability: pandoc
+    description: "Document format conversion via Pandoc — Markdown, HTML, PDF, DOCX, CSV, LaTeX, and 40+ formats."
+    connection_type: stdio
+    command: uvx
+    args: ["mcp-pandoc"]
+    tool_prefix: pan_
+
+  - name: quickjs-sandbox
+    capability: js_sandbox
+    description: "Safe JavaScript execution in QuickJS WASM sandbox. Run LLM-generated code without security risk. No Docker needed."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-javascript-sandbox"]
+    tool_prefix: jsbox_
+
+  - name: cve-intelligence
+    capability: cve
+    description: "CVE/vulnerability lookup from NVD, MITRE, GitHub Security Advisories. Free tier, no API key needed."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@proug/mcp-cve-intelligence-server-lite@latest"]
+    tool_prefix: cve_
+
+  - name: mcp-tasks
+    capability: tasks
+    description: "Task management across Markdown, JSON, YAML files. Search, create, update tasks with status tracking."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "mcp-tasks"]
+    tool_prefix: task_
+
+  - name: desktop-commander
+    capability: commander
+    description: "Terminal command execution, process management, file search, and diff editing. Full system access."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@anthropic/desktop-commander-mcp@latest"]
+    tool_prefix: cmd_
+    disabled: true  # Enable only when system-level access is needed
+
+  # ── Tier 6: Code intelligence ────────────────────────────────────────────
 
   - name: code-graph
     capability: code_analysis
@@ -183,7 +258,7 @@ servers:
     args: ["-y", "code-graph-context-mcp"]
     tool_prefix: code_
 
-  # ── Tier 6: Code execution & sandboxing ─────────────────────────────────────
+  # ── Tier 7: Code execution & sandboxing ─────────────────────────────────────
 
   - name: yepcode-sandbox
     capability: sandbox
@@ -219,7 +294,7 @@ servers:
     args: ["-y", "repomapper-mcp"]
     tool_prefix: rmap_
 
-  # ── Tier 7: Infrastructure ────────────────────────────────────────────────
+  # ── Tier 8: Infrastructure ────────────────────────────────────────────────
 
   - name: terraform
     capability: terraform
@@ -239,7 +314,7 @@ servers:
     tool_prefix: k8s_
     disabled: true  # Enable for K8s deployments
 
-  # ── Tier 8: Disabled / template servers ────────────────────────────────────
+  # ── Tier 9: Disabled / template servers ────────────────────────────────────
 
   - name: slack
     capability: slack

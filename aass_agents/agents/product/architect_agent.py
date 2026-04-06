@@ -11,6 +11,7 @@ from tools.system_env_tools import get_environment_summary
 
 from agents._shared.model import get_model, DEEP
 from agents._shared.mcp_hub import mcp_hub
+from tools.dynamic_skill_loader import load_domain_expertise, detect_industry, list_supported_industries
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -85,9 +86,13 @@ beats a broken app that assumes PostgreSQL.
 - Output ONLY the JSON object. No explanation, no markdown, no code fences.
 """
 
-# MCP tools: docs (live library docs), packages (npm/PyPI search), deps (dependency graphs),
-# fetch (read web pages as markdown), thinking (structured reasoning for complex decisions)
-_mcp_tools = mcp_hub.get_toolsets(["docs", "packages", "deps", "fetch", "thinking"])
+# MCP tools: docs, packages, deps, fetch, thinking, npm_search, cve, calc, time,
+# github (repo/code/issue search), duckduckgo (free web search fallback)
+_mcp_tools = mcp_hub.get_toolsets([
+    "docs", "packages", "deps", "fetch", "thinking",
+    "npm_search", "cve", "calc", "time",
+    "github", "duckduckgo",
+])
 
 architect_agent = Agent(
     model=get_model(DEEP),  # Architecture decisions need maximum reasoning
@@ -96,5 +101,6 @@ architect_agent = Agent(
     instruction=INSTRUCTION,
     output_key="architecture_output",  # Auto-save response to state["architecture_output"]
     tools=[read_state, get_environment_summary, search_github_repos, search_github_code, read_webpage,
+           load_domain_expertise, detect_industry, list_supported_industries,
            *_mcp_tools],
 )

@@ -11,6 +11,7 @@ from tools.product_memory_tools import save_product_state, recall_product_state,
 from tools.code_gen_tools import generate_db_schema
 
 from agents._shared.model import get_model, FAST
+from agents._shared.mcp_hub import mcp_hub
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -43,6 +44,9 @@ You are a Database agent. You generate the SQLite schema and migration script.
 - SQLite compatible syntax only (no UUID type, no NOW(), no SERIAL)
 """
 
+# MCP tools: sqlite, docs, github (schema patterns), duckduckgo
+_mcp_tools = mcp_hub.get_toolsets(["sqlite", "docs", "github", "duckduckgo"])
+
 db_agent = Agent(
     model=get_model(FAST),
     name="db_agent",
@@ -53,5 +57,6 @@ db_agent = Agent(
         read_state,
         save_product_state, recall_product_state, log_step,
         generate_db_schema,
+        *_mcp_tools,
     ],
 )

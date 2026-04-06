@@ -6,6 +6,7 @@ Routes through all 8 stages: Intent → Research → Synthesize → Draft → Cr
 """
 from google.adk.agents import Agent
 from agents._shared.model import get_model
+from agents._shared.mcp_hub import mcp_hub
 from agents.skill_forge.intent_parser_agent import intent_parser_agent
 from agents.skill_forge.research_swarm_agent import research_swarm_agent
 from agents.skill_forge.expert_synthesizer_agent import expert_synthesizer_agent
@@ -118,13 +119,18 @@ Delegate all work to the sub-agents. Your role is routing, handoff, and status t
 
 """
 
+# MCP tools: memory (persist learned skills across sessions), thinking (structured reasoning)
+_mcp_tools = mcp_hub.get_toolsets(["memory", "thinking"])
+
 forge_orchestrator = Agent(
     model=get_model(),
     name="forge_orchestrator",
     description=(
         "Top-level coordinator for the SKILL FORGE pipeline. Routes NLP requests through "
         "8 stages: intent parsing, research swarm, expert synthesis, skill drafting, "
-        "critic panel, red-team battle testing, GEPA iteration, and promotion to staging."
+        "critic panel, red-team battle testing, GEPA iteration, and promotion to staging. "
+        "Dynamic expert: learns new industry skills via MCP-powered research and forges "
+        "reusable skill files for any domain."
     ),
     instruction=INSTRUCTION,
     tools=[
@@ -134,6 +140,7 @@ forge_orchestrator = Agent(
         list_staged_skills_sync,
         build_and_run,
         open_in_browser,
+        *_mcp_tools,
     ],
     sub_agents=[
         intent_parser_agent,
