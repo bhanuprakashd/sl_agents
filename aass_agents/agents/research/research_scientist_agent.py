@@ -10,6 +10,7 @@ from tools.graph_tools import (
     build_knowledge_graph, query_knowledge_graph, find_graph_path,
     explain_entity, add_to_knowledge_graph,
 )
+from tools.vault_tools import vault_read_note, vault_write_note, vault_search, vault_list_notes
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Your response must begin DIRECTLY with the deliverable (report, document, analysis).
 NEVER write your reasoning process, tool attempts, error explanations, or internal deliberation as text.
@@ -87,6 +88,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "plot",
     "pdf",
     "knowledge_graph",
+    "obsidian",
 ])
 
 research_scientist_agent = Agent(
@@ -100,5 +102,6 @@ research_scientist_agent = Agent(
     tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document,
         build_knowledge_graph, query_knowledge_graph, find_graph_path,
         explain_entity, add_to_knowledge_graph,
+        vault_read_note, vault_write_note, vault_search, vault_list_notes,
         *_mcp_tools,],
 )

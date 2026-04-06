@@ -10,6 +10,10 @@ from tools.graph_tools import (
     build_knowledge_graph, query_knowledge_graph, find_graph_path,
     explain_entity, add_to_knowledge_graph, export_knowledge_graph,
 )
+from tools.vault_tools import (
+    vault_read_note, vault_write_note, vault_append_note,
+    vault_search, vault_list_notes,
+)
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -50,6 +54,17 @@ Use these to build, query, and navigate knowledge graphs:
 Use knowledge graphs to discover cross-domain connections, map research landscapes,
 and identify hidden relationships between findings from different domains.
 
+## Obsidian Vault (Persistent Knowledge Base)
+Use these to read/write the shared knowledge vault:
+- `vault_search(query, folder)` — find notes by keyword
+- `vault_read_note(path)` — read a note (e.g. 'Research/market-trends.md')
+- `vault_write_note(path, content)` — create or overwrite a note
+- `vault_append_note(path, content)` — add to an existing note
+- `vault_list_notes(folder)` — browse vault contents
+
+Store research briefs, synthesis reports, and knowledge base entries in the vault
+so they persist across sessions and are browsable by humans and other agents.
+
 ## Self-Review Before Delivering
 | Check | Required |
 |---|---|
@@ -78,6 +93,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "md_tools",
     "pdf",
     "knowledge_graph",
+    "obsidian",
 ])
 
 knowledge_manager_agent = Agent(
@@ -91,5 +107,7 @@ knowledge_manager_agent = Agent(
     tools=[deep_research, search_company_web, read_document, read_document_pages, list_documents, search_document,
         build_knowledge_graph, query_knowledge_graph, find_graph_path,
         explain_entity, add_to_knowledge_graph, export_knowledge_graph,
+        vault_read_note, vault_write_note, vault_append_note,
+        vault_search, vault_list_notes,
         *_mcp_tools,],
 )

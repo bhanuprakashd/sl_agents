@@ -6,6 +6,7 @@ from tools.research_tools import deep_research
 
 from agents._shared.model import get_model
 from agents._shared.mcp_hub import mcp_hub
+from tools.vault_tools import vault_read_note, vault_write_note, vault_search
 INSTRUCTION = """
 CRITICAL OUTPUT RULE: Begin DIRECTLY with the deliverable. NEVER write out your reasoning, tool errors, or internal deliberation. NEVER ask the user for decisions. NEVER offer options menus. If tools fail, use internal knowledge, label it [Knowledge-Based], and deliver. Just produce the output.
 
@@ -54,6 +55,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "excel",
     "data_transform",
     "charts",
+    "obsidian",
 ])
 
 data_scientist_agent = Agent(
@@ -65,5 +67,6 @@ data_scientist_agent = Agent(
     ),
     instruction=INSTRUCTION,
     tools=[generate_code, deep_research,
+        vault_read_note, vault_write_note, vault_search,
         *_mcp_tools,],
 )

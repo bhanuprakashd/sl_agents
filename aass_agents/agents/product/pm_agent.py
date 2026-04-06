@@ -16,6 +16,7 @@ from tools.agent_reach_tools import (
 from agents._shared.model import get_model, FAST
 from agents._shared.mcp_hub import mcp_hub
 from tools.document_tools import read_document, read_document_pages, list_documents, search_document
+from tools.vault_tools import vault_read_note, vault_write_note, vault_search
 
 INSTRUCTION = """
 You are a PM agent. Research the market, then output a complete PRD as JSON.
@@ -82,6 +83,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "wikipedia",
     "hacker_news",
     "web_search",
+    "obsidian",
 ])
 
 pm_agent = Agent(
@@ -93,5 +95,6 @@ pm_agent = Agent(
     tools=[_research_mcp, read_document, read_document_pages, list_documents, search_document,
            read_webpage, search_reddit, read_rss_feed, search_youtube,
            search_github_repos, search_github_code,
+           vault_read_note, vault_write_note, vault_search,
            *_mcp_tools],
 )

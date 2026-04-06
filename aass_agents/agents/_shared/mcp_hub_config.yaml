@@ -853,3 +853,14 @@ servers:
     command: graphify
     args: ["--mcp"]
     tool_prefix: graph_
+
+  # ── Tier 19: Knowledge Vault (Obsidian) ───────────────────────────────────
+
+  - name: mcpvault
+    capability: obsidian
+    description: "Obsidian vault access — read, write, search, patch, move, and delete notes. BM25 full-text search with relevance ranking. Frontmatter and tag management. Use for persistent knowledge base, ADRs, design docs, research notes, runbooks, and cross-session memory."
+    connection_type: stdio
+    command: npx
+    args: ["-y", "@bitbonsai/mcpvault@latest"]
+    env_keys: [OBSIDIAN_VAULT_PATH]
+    tool_prefix: vault_

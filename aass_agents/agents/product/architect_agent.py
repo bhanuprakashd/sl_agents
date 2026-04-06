@@ -13,6 +13,7 @@ from agents._shared.model import get_model, DEEP
 from agents._shared.mcp_hub import mcp_hub
 from tools.dynamic_skill_loader import load_domain_expertise, detect_industry, list_supported_industries
 from tools.graph_tools import build_knowledge_graph, query_knowledge_graph
+from tools.vault_tools import vault_read_note, vault_search
 
 
 def read_state(key: str, tool_context: ToolContext) -> str:
@@ -95,6 +96,7 @@ _mcp_tools = mcp_hub.get_toolsets([
     "diagrams", "drawio",
     "sec_audit", "openapi", "aws_docs", "arxiv", "wikipedia",
     "knowledge_graph",
+    "obsidian",
 ])
 
 architect_agent = Agent(
@@ -106,5 +108,6 @@ architect_agent = Agent(
     tools=[read_state, get_environment_summary, search_github_repos, search_github_code, read_webpage,
            load_domain_expertise, detect_industry, list_supported_industries,
            build_knowledge_graph, query_knowledge_graph,
+           vault_read_note, vault_search,
            *_mcp_tools],
 )

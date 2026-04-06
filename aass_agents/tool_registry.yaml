@@ -351,3 +351,46 @@ tools:
     departments: [all]
     tier: fast
     description: "Export knowledge graph as JSON, GraphML, SVG, or Neo4j Cypher"
+
+  # ── Obsidian Vault ─────────────────────────────────────────────────────────
+  vault_read_note:
+    module: tools.vault_tools
+    capabilities: [vault, read, knowledge]
+    departments: [all]
+    tier: fast
+    description: "Read a note from the Obsidian vault"
+
+  vault_write_note:
+    module: tools.vault_tools
+    capabilities: [vault, write, knowledge]
+    departments: [all]
+    tier: fast
+    description: "Create or overwrite a note in the Obsidian vault"
+
+  vault_append_note:
+    module: tools.vault_tools
+    capabilities: [vault, write, knowledge]
+    departments: [all]
+    tier: fast
+    description: "Append content to an existing vault note"
+
+  vault_search:
+    module: tools.vault_tools
+    capabilities: [vault, search, knowledge]
+    departments: [all]
+    tier: fast
+    description: "Search notes in the vault by keyword"
+
+  vault_list_notes:
+    module: tools.vault_tools
+    capabilities: [vault, read, knowledge]
+    departments: [all]
+    tier: fast
+    description: "List notes in a vault folder"
+
+  vault_delete_note:
+    module: tools.vault_tools
+    capabilities: [vault, write, knowledge]
+    departments: [all]
+    tier: fast
+    description: "Delete a vault note (moves to .trash for safety)"
